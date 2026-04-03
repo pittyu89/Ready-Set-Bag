@@ -6,6 +6,12 @@
     if (btn) btn.classList.add('active');
     const titles = { home: 'ADMIN DASHBOARD', teachers: 'ADMIN DASHBOARD', reports: 'ADMIN DASHBOARD', settings: 'ADMIN DASHBOARD' };
     document.getElementById('topbar-title').textContent = titles[page];
+    
+    // Close sidebar on mobile after navigation
+    if (window.innerWidth <= 767) {
+      const sidebar = document.querySelector('.sidebar');
+      sidebar.classList.remove('open');
+    }
   }
 
   // Modal
