@@ -915,19 +915,25 @@
 
     /* LAYOUT - HIDE SIDEBAR */
     .layout {
-      flex-direction: column-reverse;
+      flex-direction: column;
+      min-height: 100vh;
     }
     .sidebar {
       width: 100%;
       height: auto;
+      min-height: 50px;
       flex-direction: row;
       border-right: none;
       border-top: 1px solid #000;
+      border-bottom: none;
       padding: 8px;
       overflow: visible;
-      display: flex;
+      display: flex !important;
       align-items: center;
       gap: 4px;
+      order: 999;
+      flex-shrink: 0;
+      background: var(--sidebar-bg);
     }
     .sidebar-user {
       display: none;
