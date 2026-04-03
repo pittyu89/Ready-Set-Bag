@@ -923,11 +923,11 @@
       flex-direction: row;
       border-right: none;
       border-top: 1px solid #000;
-      padding: 10px;
-      overflow-x: auto;
+      padding: 8px;
+      overflow: visible;
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 4px;
     }
     .sidebar-user {
       display: none;
@@ -941,11 +941,10 @@
     }
     .nav-item {
       flex: 1;
-      padding: 6px 8px;
-      font-size: 7px;
-      gap: 4px;
+      padding: 6px 4px;
+      font-size: 6px;
+      gap: 3px;
       white-space: nowrap;
-      min-width: 0;
     }
     .nav-item svg {
       width: 12px;
