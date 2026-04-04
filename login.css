@@ -1,0 +1,190 @@
+/* ============================================================================
+   READY-SET-BAG! LOGIN PAGE - STYLES
+   ============================================================================ */
+
+:root {
+  --bg-dark: #1a1a1a;
+  --bg-darker: #111111;
+  --accent-blue: #66A3FF;
+  --accent-green: #A1B300;
+  --card-blue: #3C7CDD;
+  --card-green: #97A329;
+  --accent-red: #c0392b;
+  --text-primary: #e8e8e8;
+  --text-secondary: #aaaaaa;
+  --pixel: 'Press Start 2P', monospace;
+  --mono: 'Share Tech Mono', monospace;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: var(--mono);
+  background: linear-gradient(135deg, var(--bg-darker) 0%, var(--bg-dark) 100%);
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.login-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 20px;
+}
+
+.login-card {
+  background: #2a2a2a;
+  border: 4px solid #4D4D4D;
+  border-radius: 8px;
+  padding: 40px;
+  width: 100%;
+  max-width: 400px;
+  box-shadow: 8px 8px 0 #000;
+}
+
+.login-logo {
+  background: var(--accent-red);
+  color: #fff;
+  font-family: var(--pixel);
+  font-size: 18px;
+  text-align: center;
+  padding: 20px;
+  border-radius: 4px;
+  margin-bottom: 30px;
+  letter-spacing: 2px;
+  box-shadow: 4px 4px 0 rgba(0,0,0,0.3);
+}
+
+.login-card h1 {
+  font-family: var(--pixel);
+  font-size: 20px;
+  text-align: center;
+  margin-bottom: 30px;
+  letter-spacing: 3px;
+  color: var(--accent-blue);
+}
+
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-group label {
+  display: block;
+  font-family: var(--pixel);
+  font-size: 10px;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+  letter-spacing: 1px;
+}
+
+.form-group input,
+.form-group select {
+  width: 100%;
+  padding: 12px 14px;
+  background: #1a1a1a;
+  border: 2px solid #444;
+  border-radius: 4px;
+  font-family: var(--mono);
+  font-size: 13px;
+  color: var(--text-primary);
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+  border-color: var(--card-green);
+}
+
+.form-group input::placeholder {
+  color: #666;
+}
+
+.btn-login {
+  width: 100%;
+  padding: 14px;
+  background: var(--card-green);
+  color: #000;
+  font-family: var(--pixel);
+  font-size: 12px;
+  letter-spacing: 2px;
+  border: 2px solid #000;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: all 0.2s;
+  box-shadow: 4px 4px 0 rgba(0,0,0,0.3);
+}
+
+.btn-login:hover {
+  filter: brightness(1.1);
+  transform: translateY(-2px);
+  box-shadow: 6px 6px 0 rgba(0,0,0,0.3);
+}
+
+.btn-login:active {
+  transform: translateY(0);
+  box-shadow: 2px 2px 0 rgba(0,0,0,0.3);
+}
+
+.demo-credentials {
+  margin-top: 30px;
+  padding-top: 20px;
+  border-top: 2px solid #444;
+  text-align: center;
+  font-size: 10px;
+  color: var(--text-secondary);
+  line-height: 1.8;
+}
+
+.demo-credentials p {
+  font-family: var(--mono);
+  margin: 5px 0;
+}
+
+.demo-credentials strong {
+  color: var(--accent-green);
+  font-family: var(--pixel);
+}
+
+/* ---- RESPONSIVE ---- */
+@media (max-width: 768px) {
+  .login-card {
+    padding: 30px;
+  }
+
+  .login-logo {
+    font-size: 14px;
+    padding: 16px;
+    margin-bottom: 20px;
+  }
+
+  .login-card h1 {
+    font-size: 16px;
+    margin-bottom: 20px;
+  }
+
+  .form-group label {
+    font-size: 9px;
+  }
+
+  .form-group input,
+  .form-group select {
+    padding: 10px 12px;
+    font-size: 12px;
+  }
+
+  .btn-login {
+    font-size: 11px;
+    padding: 12px;
+  }
+
+  .demo-credentials {
+    font-size: 9px;
+  }
+}

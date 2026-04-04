@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ready-Set-Bag! Teacher Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="dashboard.css">
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-logo">READY-<br>SET<br>-BAG!</div>
+  <div class="topbar-title" id="topbar-title">TEACHER DASHBOARD</div>
+  <div class="topbar-right">
+    <button class="topbar-logout" onclick="showToast('Logged out.')">
+      <svg viewBox="0 0 24 24" fill="currentColor" width="12" height="12"><path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/></svg>
+      LOGOUT
+    </button>
+    <div class="topbar-avatar">MS</div>
+  </div>
+</div>
+
+<div class="layout">
+  <div class="sidebar">
+    <div class="sidebar-user">
+      <div class="label">TEACHER:</div>
+      <div class="name">MARIA SANTOS</div>
+      <div class="section-tag">Grade 6 – Sampaguita</div>
+    </div>
+    <nav class="sidebar-nav">
+      <button class="nav-item active" onclick="navigate('home', this)">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+        HOME
+      </button>
+      <button class="nav-item" onclick="navigate('session', this)">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+        SESSION
+      </button>
+      <button class="nav-item" onclick="navigate('students', this)">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+        STUDENTS
+      </button>
+      <button class="nav-item" onclick="navigate('reports', this)">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 3c1.93 0 3.5 1.57 3.5 3.5S13.93 13 12 13s-3.5-1.57-3.5-3.5S10.07 6 12 6zm7 13H5v-.23c0-.62.28-1.2.76-1.58C7.47 15.82 9.64 15 12 15s4.53.82 6.24 2.19c.48.38.76.97.76 1.58V19z"/></svg>
+        REPORTS
+      </button>
+    </nav>
+    <div class="sidebar-logout">
+      <button class="nav-item" style="color:#888;" onclick="showToast('Logged out.')">
+        <svg viewBox="0 0 24 24" fill="currentColor" style="width:14px;height:14px;"><path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/></svg>
+        LOGOUT
+      </button>
+    </div>
+  </div>
+
+  <main class="main">
+
+    <!-- ==================== HOME PAGE ==================== -->
+    <div class="page active" id="page-home">
+      <div class="welcome-card">
+        <div class="welcome-left">
+          <div class="welcome-greeting">👋 WELCOME BACK, TEACHER MARIA SANTOS!</div>
+          <div class="welcome-meta">
+            <div class="welcome-meta-item">🏫 Grade 6 – Sampaguita</div>
+            <div class="welcome-meta-item">👥 40 students</div>
+          </div>
+        </div>
+        <div class="welcome-status">
+          <div class="status-dot"></div>
+          ACTIVE
+        </div>
+      </div>
+
+      <div class="action-cards">
+        <div class="action-card">
+          <div class="action-card-top">
+            <div class="action-icon">
+              <svg viewBox="0 0 24 24" fill="#444"><path d="M8 5v14l11-7z"/></svg>
+            </div>
+            <div class="action-title">START NEW SESSION</div>
+          </div>
+          <div class="action-desc">Launch a game session for your class</div>
+          <button class="action-btn green" onclick="navigate('session', document.querySelectorAll('.nav-item')[1])">START NOW →</button>
+        </div>
+        <div class="action-card">
+          <div class="action-card-top">
+            <div class="action-icon">
+              <svg viewBox="0 0 24 24" fill="#444"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+            </div>
+            <div class="action-title">MANAGE STUDENTS</div>
+          </div>
+          <div class="action-desc">Add, remove, or reset passwords</div>
+          <button class="action-btn blue" onclick="navigate('students', document.querySelectorAll('.nav-item')[2])">MANAGE →</button>
+        </div>
+        <div class="action-card">
+          <div class="action-card-top">
+            <div class="action-icon">
+              <svg viewBox="0 0 24 24" fill="#444"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
+            </div>
+            <div class="action-title">VIEW REPORTS</div>
+          </div>
+          <div class="action-desc">See student performance data</div>
+          <button class="action-btn orange" onclick="navigate('reports', document.querySelectorAll('.nav-item')[3])">VIEW REPORTS →</button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M17 12h-5v5h5v-5zM16 1v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2h-1V1h-2zm3 18H5V8h14v11z"/></svg>
+          RECENT SESSIONS
+        </div>
+        <div class="session-item">
+          <div class="session-num">#1</div>
+          <div class="session-info">
+            <div class="session-date">MARCH 15, 2025 • 10:30 AM</div>
+            <div class="session-sub">Beginner Level • 35 students</div>
+          </div>
+          <div class="session-right">
+            <div class="session-score">78/100</div>
+            <button class="btn-view" onclick="navigate('reports', document.querySelectorAll('.nav-item')[3])">VIEW →</button>
+          </div>
+        </div>
+        <div class="session-item">
+          <div class="session-num">#2</div>
+          <div class="session-info">
+            <div class="session-date">MARCH 12, 2025 • 2:00 PM</div>
+            <div class="session-sub">Beginner Level • 38 students</div>
+          </div>
+          <div class="session-right">
+            <div class="session-score">72/100</div>
+            <button class="btn-view" onclick="navigate('reports', document.querySelectorAll('.nav-item')[3])">VIEW →</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- ==================== SESSION PAGE ==================== -->
+    <div class="page" id="page-session">
+      <div class="page-header">
+        <svg viewBox="0 0 24 24" fill="#555"><path d="M8 5v14l11-7z"/></svg>
+        <h1>START NEW GAME SESSION</h1>
+      </div>
+
+      <div class="session-setup">
+        <!-- Step 1: Difficulty -->
+        <div class="setup-card blue-bar">
+          <div class="setup-header">
+            <div class="setup-step-num">1</div>
+            <div class="setup-step-title">CHOOSE DIFFICULTY LEVEL</div>
+          </div>
+
+          <label class="diff-option selected" id="diff-beginner">
+            <input type="radio" name="difficulty" value="beginner" checked onchange="selectDiff(this)">
+            <div class="diff-body">
+              <div class="diff-name">
+                🛡 Beginner
+                <span class="diff-badge">9kg limit • 3 minutes</span>
+              </div>
+              <div class="diff-desc">Recommended for first-time players</div>
+            </div>
+          </label>
+
+          <label class="diff-option" id="diff-intermediate">
+            <input type="radio" name="difficulty" value="intermediate" onchange="selectDiff(this)">
+            <div class="diff-body">
+              <div class="diff-name">
+                ⚡ Intermediate
+                <span class="diff-badge">8kg limit • 2.5 minutes</span>
+              </div>
+              <div class="diff-desc">For students who completed Beginner</div>
+            </div>
+          </label>
+
+          <label class="diff-option" id="diff-advanced">
+            <input type="radio" name="difficulty" value="advanced" onchange="selectDiff(this)">
+            <div class="diff-body">
+              <div class="diff-name">
+                🎯 Advanced
+                <span class="diff-badge">7kg limit • 2 minutes</span>
+              </div>
+              <div class="diff-desc">For experienced students only</div>
+            </div>
+          </label>
+        </div>
+
+        <!-- Step 2: Session Code -->
+        <div class="setup-card orange-bar">
+          <div class="setup-header">
+            <div class="setup-step-num">2</div>
+            <div class="setup-step-title">SESSION CODE</div>
+          </div>
+          <div class="code-box">
+            <div class="code-share-label">Share this code with your students:</div>
+            <div class="code-display">
+              <div class="code-value" id="session-code">NU7FK</div>
+              <button class="btn-copy" onclick="copyCode()" title="Copy code">
+                <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+              </button>
+            </div>
+            <div class="code-instruction">Tell your students: <span>"Enter code <span id="code-inline">NU7FK</span> on your phones"</span></div>
+          </div>
+        </div>
+
+        <!-- Step 3: Students Joined -->
+        <div class="setup-card green-bar">
+          <div class="setup-header">
+            <div class="setup-step-num" style="background:var(--card-green);">3</div>
+            <div class="setup-step-title">STUDENTS JOINED</div>
+          </div>
+          <div class="joined-header">
+            <div class="joined-count"><span id="joined-count">0</span><span>/40</span></div>
+            <button class="btn-outline" onclick="simulateJoin()" style="font-size:9px;">+ SIMULATE JOIN</button>
+          </div>
+          <div class="joined-bar-track">
+            <div class="joined-bar-fill" id="joined-bar" style="width:0%"></div>
+          </div>
+          <button class="btn-launch" id="btn-launch" onclick="launchSession()">▶ LAUNCH SESSION</button>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- ==================== STUDENTS PAGE ==================== -->
+    <div class="page" id="page-students">
+      <div class="page-header">
+        <svg viewBox="0 0 24 24" fill="#555"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+        <h1>MANAGE STUDENTS</h1>
+      </div>
+
+      <div class="students-header-card">
+        <div class="students-class-info">
+          <div class="students-class-icon">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+          </div>
+          <div>
+            <div class="students-class-name">GRADE 6 – SAMPAGUITA</div>
+            <div class="students-class-sub" id="enrolled-count">40 students enrolled</div>
+          </div>
+        </div>
+        <div class="students-actions">
+          <button class="btn-primary" onclick="openAddModal()">
+            <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+            ADD STUDENTS
+          </button>
+          <button class="btn-outline" onclick="showToast('Printing passwords...')">
+            <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M19 8H5c-1.66 0-3 1.34-3 3v6h4v4h12v-4h4v-6c0-1.66-1.34-3-3-3zm-3 11H8v-5h8v5zm3-7c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm-1-9H6v4h12V3z"/></svg>
+            PRINT PASSWORDS
+          </button>
+        </div>
+      </div>
+
+      <div class="student-table-panel">
+        <div class="student-table-header">
+          <div class="panel-title" style="margin:0;">STUDENT LIST</div>
+          <input class="search-box" type="text" placeholder="🔍 Search..." oninput="filterStudents(this.value)">
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>USERNAME</th>
+              <th>DISPLAY NAME</th>
+              <th>PASSWORD</th>
+              <th>ACTIONS</th>
+            </tr>
+          </thead>
+          <tbody id="student-tbody">
+            <tr><td class="td-username">G6SAMP001</td><td>Student 1</td><td class="td-pass">••••••••</td><td><button class="btn-reset-pass" onclick="showToast('Password reset for Student 1')">Reset Password</button></td></tr>
+            <tr><td class="td-username">G6SAMP002</td><td>Student 2</td><td class="td-pass">••••••••</td><td><button class="btn-reset-pass" onclick="showToast('Password reset for Student 2')">Reset Password</button></td></tr>
+            <tr><td class="td-username">G6SAMP003</td><td>Student 3</td><td class="td-pass">••••••••</td><td><button class="btn-reset-pass" onclick="showToast('Password reset for Student 3')">Reset Password</button></td></tr>
+            <tr><td class="td-username">G6SAMP004</td><td>Student 4</td><td class="td-pass">••••••••</td><td><button class="btn-reset-pass" onclick="showToast('Password reset for Student 4')">Reset Password</button></td></tr>
+            <tr><td class="td-username">G6SAMP005</td><td>Student 5</td><td class="td-pass">••••••••</td><td><button class="btn-reset-pass" onclick="showToast('Password reset for Student 5')">Reset Password</button></td></tr>
+            <tr><td class="td-username">G6SAMP006</td><td>Student 6</td><td class="td-pass">••••••••</td><td><button class="btn-reset-pass" onclick="showToast('Password reset for Student 6')">Reset Password</button></td></tr>
+            <tr><td class="td-username">G6SAMP007</td><td>Student 7</td><td class="td-pass">••••••••</td><td><button class="btn-reset-pass" onclick="showToast('Password reset for Student 7')">Reset Password</button></td></tr>
+            <tr><td class="td-username">G6SAMP008</td><td>Student 8</td><td class="td-pass">••••••••</td><td><button class="btn-reset-pass" onclick="showToast('Password reset for Student 8')">Reset Password</button></td></tr>
+          </tbody>
+        </table>
+        <div class="table-footer" id="student-footer">SHOWING 8 OF 8 STUDENTS (DEMO)</div>
+      </div>
+    </div>
+
+
+    <!-- ==================== REPORTS PAGE ==================== -->
+    <div class="page" id="page-reports">
+      <div class="page-header">
+        <svg viewBox="0 0 24 24" fill="#555"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
+        <h1>PERFORMANCE REPORTS</h1>
+      </div>
+
+      <div class="filter-bar">
+        <div class="filter-label">FILTER:</div>
+        <select class="filter-select">
+          <option>All Sessions</option>
+          <option>March 15, 2025</option>
+          <option>March 12, 2025</option>
+        </select>
+        <select class="filter-select">
+          <option>All Levels</option>
+          <option>Beginner</option>
+          <option>Intermediate</option>
+          <option>Advanced</option>
+        </select>
+      </div>
+
+      <div class="reports-stats">
+        <div class="report-stat-card">
+          <div class="report-stat-icon green">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 6l2.29 2.29-4.88 4.88-4-4L2 16.59 3.41 18l6-6 4 4 6.3-6.29L22 12V6z"/></svg>
+          </div>
+          <div>
+            <div class="report-stat-val">78/100</div>
+            <div class="report-stat-label">Average Score</div>
+          </div>
+        </div>
+        <div class="report-stat-card">
+          <div class="report-stat-icon blue">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+          </div>
+          <div>
+            <div class="report-stat-val">92%</div>
+            <div class="report-stat-label">Completion Rate</div>
+          </div>
+        </div>
+        <div class="report-stat-card">
+          <div class="report-stat-icon orange">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"/></svg>
+          </div>
+          <div>
+            <div class="report-stat-val">2m 34s</div>
+            <div class="report-stat-label">Avg. Time</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="skill-prog-section">
+        <div class="skill-prog-title">SKILL PROGRESSION (FITTS &amp; POSNER)</div>
+        <div class="skill-row">
+          <div class="skill-row-header">
+            <div class="skill-row-name">Cognitive Stage</div>
+            <div class="skill-row-count">30 students (75%)</div>
+          </div>
+          <div class="skill-bar-track"><div class="skill-bar-fill blue" style="width:75%"></div></div>
+        </div>
+        <div class="skill-row">
+          <div class="skill-row-header">
+            <div class="skill-row-name">Associative Stage</div>
+            <div class="skill-row-count">7 students (18%)</div>
+          </div>
+          <div class="skill-bar-track"><div class="skill-bar-fill orange" style="width:18%"></div></div>
+        </div>
+        <div class="skill-row">
+          <div class="skill-row-header">
+            <div class="skill-row-name">Autonomous Stage</div>
+            <div class="skill-row-count">3 students (7%)</div>
+          </div>
+          <div class="skill-bar-track"><div class="skill-bar-fill green" style="width:7%"></div></div>
+        </div>
+      </div>
+
+      <div class="mistakes-section">
+        <div class="skill-prog-title">COMMON MISTAKES</div>
+        <div class="mistake-item">
+          <div class="mistake-left">
+            <div class="mistake-num">1</div>
+            <div class="mistake-text">Forgot water</div>
+          </div>
+          <div class="mistake-count">18 students</div>
+        </div>
+        <div class="mistake-item">
+          <div class="mistake-left">
+            <div class="mistake-num">2</div>
+            <div class="mistake-text">Packed toy instead of first aid</div>
+          </div>
+          <div class="mistake-count">12 students</div>
+        </div>
+        <div class="mistake-item">
+          <div class="mistake-left">
+            <div class="mistake-num">3</div>
+            <div class="mistake-text">Exceeded weight limit</div>
+          </div>
+          <div class="mistake-count">9 students</div>
+        </div>
+        <div class="mistake-item">
+          <div class="mistake-left">
+            <div class="mistake-num">4</div>
+            <div class="mistake-text">Forgot whistle</div>
+          </div>
+          <div class="mistake-count">7 students</div>
+        </div>
+      </div>
+
+      <div class="individual-panel">
+        <div class="individual-header">
+          <div class="panel-title" style="margin:0;">INDIVIDUAL RESULTS</div>
+          <input class="search-box" type="text" placeholder="🔍 Search student...">
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Student</th>
+              <th>Score</th>
+              <th>Time</th>
+              <th>Stage</th>
+              <th>Essentials</th>
+              <th>Errors</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td><strong>Student 1</strong></td><td class="td-score">85</td><td>2:30</td><td class="td-stage">Associative</td><td class="td-essentials">12/15</td><td>2</td></tr>
+            <tr><td><strong>Student 2</strong></td><td class="td-score">92</td><td>2:15</td><td class="td-stage">Autonomous</td><td class="td-essentials">14/15</td><td>1</td></tr>
+            <tr><td><strong>Student 3</strong></td><td class="td-score">68</td><td>2:58</td><td class="td-stage">Cognitive</td><td class="td-essentials">9/15</td><td class="td-err-high">5</td></tr>
+            <tr><td><strong>Student 4</strong></td><td class="td-score">78</td><td>2:42</td><td class="td-stage">Associative</td><td class="td-essentials">11/15</td><td class="td-err-high">3</td></tr>
+            <tr><td><strong>Student 5</strong></td><td class="td-score">88</td><td>2:10</td><td class="td-stage">Associative</td><td class="td-essentials">13/15</td><td>1</td></tr>
+            <tr><td><strong>Student 6</strong></td><td class="td-score">55</td><td>3:00</td><td class="td-stage">Cognitive</td><td class="td-essentials">7/15</td><td class="td-err-high">6</td></tr>
+            <tr><td><strong>Student 7</strong></td><td class="td-score">95</td><td>1:55</td><td class="td-stage">Autonomous</td><td class="td-essentials">15/15</td><td>0</td></tr>
+            <tr><td><strong>Student 8</strong></td><td class="td-score">72</td><td>2:48</td><td class="td-stage">Cognitive</td><td class="td-essentials">10/15</td><td class="td-err-high">4</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="export-bar">
+        <button class="btn-export green" onclick="showToast('CSV exported successfully!')">⬇ EXPORT CSV</button>
+        <button class="btn-export dark" onclick="window.print()">🖨 PRINT</button>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+
+<!-- ==================== ADD STUDENTS MODAL ==================== -->
+<div class="modal-overlay" id="modal-overlay" onclick="closeModalOutside(event)">
+  <div class="modal">
+    <div class="modal-title">ADD NEW STUDENTS</div>
+    <div class="modal-sub">Auto-generate usernames for your class</div>
+    <button class="modal-close" onclick="closeModal()">✕</button>
+
+    <div class="form-group">
+      <label class="form-label">HOW MANY STUDENTS TO ADD?</label>
+      <input class="form-input" type="number" id="input-count" value="0" min="0" max="100">
+    </div>
+    <div class="next-username-note">
+      Auto-generate usernames starting from: <strong id="next-username">G6SAMP041</strong> (next available)
+    </div>
+    <div class="form-group">
+      <label class="form-label">DEFAULT PASSWORD FOR ALL:</label>
+      <input class="form-input" type="text" id="input-defpass" value="default123">
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal()">CANCEL</button>
+      <button class="btn-create" onclick="addStudents()">CREATE STUDENTS</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="dashboard.js"></script>
+</body>
+</html>
