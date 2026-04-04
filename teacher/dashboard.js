@@ -8,14 +8,30 @@ function navigate(page, btn) {
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   document.getElementById('page-' + page).classList.add('active');
   if (btn) btn.classList.add('active');
-  const titles = {
-    home: 'TEACHER DASHBOARD',
-    session: 'START NEW GAME SESSION',
-    students: 'MANAGE STUDENTS',
-    reports: 'PERFORMANCE REPORTS'
-  };
-  document.getElementById('topbar-title').textContent = titles[page] || 'TEACHER DASHBOARD';
 }
+
+/* ---- LOGOUT ---- */
+function logout() {
+  showToast('Logged out.');
+  setTimeout(() => {
+    window.location.href = '../index.html';
+  }, 500);
+}
+
+/* ---- AVATAR MENU ---- */
+function toggleAvatarMenu() {
+  const menu = document.getElementById('avatar-menu');
+  menu.classList.toggle('show');
+}
+
+// Close dropdown when clicking outside
+document.addEventListener('click', (e) => {
+  const menu = document.getElementById('avatar-menu');
+  const avatar = document.querySelector('.topbar-avatar');
+  if (!avatar.contains(e.target) && !menu.contains(e.target)) {
+    menu.classList.remove('show');
+  }
+});
 
 /* ---- DIFFICULTY SELECTION ---- */
 function selectDiff(radio) {

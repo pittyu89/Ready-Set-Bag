@@ -11,13 +11,14 @@
 
 <div class="topbar">
   <div class="topbar-logo">READY-<br>SET<br>-BAG!</div>
-  <div class="topbar-title" id="topbar-title">TEACHER DASHBOARD</div>
-  <div class="topbar-right">
-    <button class="topbar-logout" onclick="showToast('Logged out.')">
-      <svg viewBox="0 0 24 24" fill="currentColor" width="12" height="12"><path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/></svg>
-      LOGOUT
-    </button>
-    <div class="topbar-avatar">MS</div>
+  <div class="topbar-center">
+    <div class="topbar-title" id="topbar-title">TEACHER DASHBOARD</div>
+    <div class="avatar-dropdown">
+      <button class="topbar-avatar" onclick="toggleAvatarMenu()">MS</button>
+      <div class="avatar-menu" id="avatar-menu">
+        <button onclick="logout()" class="avatar-menu-item">LOGOUT</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -47,7 +48,7 @@
       </button>
     </nav>
     <div class="sidebar-logout">
-      <button class="nav-item" style="color:#888;" onclick="showToast('Logged out.')">
+      <button class="nav-item" style="color:#888;" onclick="logout()">
         <svg viewBox="0 0 24 24" fill="currentColor" style="width:14px;height:14px;"><path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/></svg>
         LOGOUT
       </button>
@@ -58,6 +59,11 @@
 
     <!-- ==================== HOME PAGE ==================== -->
     <div class="page active" id="page-home">
+      <div class="page-header">
+        <svg viewBox="0 0 24 24" fill="#555"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+        <h1>HOME</h1>
+      </div>
+
       <div class="welcome-card">
         <div class="welcome-left">
           <div class="welcome-greeting">👋 WELCOME BACK, TEACHER MARIA SANTOS!</div>

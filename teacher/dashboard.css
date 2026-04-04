@@ -42,12 +42,11 @@ body {
 
 /* ---- TOP BAR ---- */
 .topbar {
-  background: var(--bg-darker);
+  background: var(--bg-panel);
   height: 48px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 16px 0 0;
   border-bottom: 1px solid #000;
   flex-shrink: 0;
   z-index: 100;
@@ -55,7 +54,7 @@ body {
 
 .topbar-logo {
   background: #c0392b;
-  width: 64px;
+  width: 185px;
   height: 48px;
   display: flex;
   align-items: center;
@@ -69,7 +68,6 @@ body {
 }
 
 .topbar-title {
-  flex: 1;
   padding-left: 20px;
   font-family: var(--pixel);
   font-size: 9px;
@@ -77,32 +75,22 @@ body {
   letter-spacing: 2px;
 }
 
-.topbar-right {
+.topbar-center {
+  flex: 1;
   display: flex;
   align-items: center;
-  gap: 12px;
+  padding: 0 16px 0 0;
+  justify-content: space-between;
+  gap: 16px;
+  border: 3px solid #4D4D4D;
+  width: 100%;
+  height: 100%;
 }
-
-.topbar-logout {
-  font-family: var(--pixel);
-  font-size: 7px;
-  color: var(--text-muted);
-  background: none;
-  border: none;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  letter-spacing: 1px;
-}
-
-.topbar-logout:hover { color: var(--accent-red); }
 
 .topbar-avatar {
   background: var(--card-blue);
   width: 32px;
   height: 32px;
-  border-radius: 3px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -110,6 +98,54 @@ body {
   font-size: 9px;
   color: #fff;
   font-weight: bold;
+  border: 2px solid #4D4D4D;
+  box-shadow: 2px 2px 0 #000;
+  cursor: pointer;
+  padding: 0;
+}
+
+.topbar-avatar:hover {
+  background: #2563d4;
+}
+
+.avatar-dropdown {
+  position: relative;
+}
+
+.avatar-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  background: var(--bg-panel);
+  border: 2px solid #4D4D4D;
+  box-shadow: 2px 2px 0 #000;
+  min-width: 120px;
+  display: none;
+  flex-direction: column;
+  z-index: 200;
+  margin-top: 2px;
+}
+
+.avatar-menu.show {
+  display: flex;
+}
+
+.avatar-menu-item {
+  padding: 8px 12px;
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-family: var(--pixel);
+  font-size: 7px;
+  cursor: pointer;
+  text-align: left;
+  letter-spacing: 1px;
+  transition: background 0.1s;
+}
+
+.avatar-menu-item:hover {
+  background: #2a2a2a;
+  color: var(--text-primary);
 }
 
 /* ---- LAYOUT ---- */
@@ -217,7 +253,6 @@ body {
 .welcome-card {
   background: var(--bg-panel);
   border: 3px solid #4D4D4D;
-  border-radius: 4px;
   padding: 20px 24px;
   display: flex;
   align-items: center;
@@ -261,7 +296,6 @@ body {
   width: 8px;
   height: 8px;
   background: var(--card-green);
-  border-radius: 50%;
   animation: pulse 2s infinite;
 }
 
@@ -281,7 +315,6 @@ body {
 .action-card {
   background: var(--bg-panel);
   border: 3px solid #4D4D4D;
-  border-radius: 4px;
   padding: 22px 20px;
   box-shadow: 4px 4px 0 #000;
 }
@@ -325,7 +358,6 @@ body {
   letter-spacing: 1px;
   border: none;
   cursor: pointer;
-  border-radius: 4px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -344,7 +376,6 @@ body {
 .panel {
   background: var(--bg-panel);
   border: 3px solid #4D4D4D;
-  border-radius: 4px;
   padding: 20px 22px;
   box-shadow: 4px 4px 0 #000;
   margin-bottom: 16px;
@@ -370,7 +401,6 @@ body {
   padding: 14px 16px;
   background: var(--bg-panel2);
   border: 1px solid #3a3a3a;
-  border-radius: 3px;
   margin-bottom: 10px;
 }
 
@@ -416,7 +446,6 @@ body {
   background: #2a2a2a;
   color: var(--text-secondary);
   cursor: pointer;
-  border-radius: 3px;
   letter-spacing: 1px;
   display: flex;
   align-items: center;
@@ -435,7 +464,6 @@ body {
 .setup-card {
   background: var(--bg-panel);
   border: 3px solid #4D4D4D;
-  border-radius: 4px;
   padding: 24px;
   box-shadow: 4px 4px 0 #000;
   margin-bottom: 18px;
@@ -458,7 +486,6 @@ body {
   width: 26px; height: 26px;
   background: var(--bg-darker);
   color: #fff;
-  border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
   font-family: var(--pixel);
   font-size: 8px;
@@ -486,7 +513,6 @@ body {
   gap: 14px;
   padding: 14px 16px;
   border: 2px solid #444;
-  border-radius: 3px;
   margin-bottom: 10px;
   cursor: pointer;
   transition: border-color 0.15s, background 0.15s;
@@ -518,7 +544,6 @@ body {
   background: #3a3a3a;
   color: var(--text-secondary);
   padding: 2px 8px;
-  border-radius: 20px;
   font-family: var(--mono);
 }
 
@@ -545,7 +570,6 @@ body {
   gap: 12px;
   background: var(--bg-darker);
   padding: 14px 24px;
-  border-radius: 6px;
   margin-bottom: 14px;
 }
 
@@ -561,7 +585,6 @@ body {
   border: none;
   cursor: pointer;
   padding: 8px;
-  border-radius: 4px;
   color: #aaa;
   transition: color 0.15s;
   display: flex;
@@ -599,7 +622,6 @@ body {
 .joined-bar-track {
   height: 8px;
   background: #3a3a3a;
-  border-radius: 4px;
   overflow: hidden;
   margin-bottom: 20px;
 }
@@ -607,7 +629,6 @@ body {
 .joined-bar-fill {
   height: 100%;
   background: var(--card-green);
-  border-radius: 4px;
   transition: width 0.5s ease;
 }
 
@@ -620,7 +641,6 @@ body {
   background: var(--card-green);
   color: #fff;
   border: none;
-  border-radius: 5px;
   cursor: pointer;
   transition: opacity 0.15s;
 }
@@ -632,7 +652,6 @@ body {
 .students-header-card {
   background: var(--bg-panel);
   border: 3px solid #4D4D4D;
-  border-radius: 4px;
   padding: 18px 22px;
   box-shadow: 4px 4px 0 #000;
   margin-bottom: 18px;
@@ -652,7 +671,6 @@ body {
 .students-class-icon {
   width: 44px; height: 44px;
   background: #2a2a2a;
-  border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
 }
 
@@ -687,7 +705,6 @@ body {
   background: var(--card-green);
   color: #fff;
   border: none;
-  border-radius: 4px;
   cursor: pointer;
   transition: opacity 0.15s;
 }
@@ -705,7 +722,6 @@ body {
   background: var(--bg-panel2);
   color: var(--text-secondary);
   border: 2px solid #555;
-  border-radius: 4px;
   cursor: pointer;
   transition: border-color 0.15s;
 }
@@ -716,7 +732,6 @@ body {
 .student-table-panel {
   background: var(--bg-panel);
   border: 3px solid #4D4D4D;
-  border-radius: 4px;
   padding: 20px 22px;
   box-shadow: 4px 4px 0 #000;
 }
@@ -733,7 +748,6 @@ body {
 .search-box {
   background: var(--bg-panel2);
   border: 1px solid #444;
-  border-radius: 4px;
   padding: 7px 12px;
   font-family: var(--mono);
   font-size: 11px;
@@ -784,7 +798,6 @@ tbody td {
   background: var(--bg-panel2);
   color: var(--text-secondary);
   border: 2px solid #555;
-  border-radius: 3px;
   cursor: pointer;
   letter-spacing: 1px;
   transition: border-color 0.15s, color 0.15s;
@@ -804,7 +817,6 @@ tbody td {
 .filter-bar {
   background: var(--bg-panel);
   border: 3px solid #4D4D4D;
-  border-radius: 4px;
   padding: 12px 18px;
   display: flex;
   align-items: center;
@@ -827,7 +839,6 @@ tbody td {
   color: var(--text-primary);
   background: var(--bg-panel2);
   border: 1px solid #444;
-  border-radius: 4px;
   padding: 6px 28px 6px 10px;
   cursor: pointer;
   outline: none;
@@ -849,7 +860,6 @@ tbody td {
 .report-stat-card {
   background: var(--bg-panel);
   border: 3px solid #4D4D4D;
-  border-radius: 4px;
   padding: 18px 20px;
   box-shadow: 4px 4px 0 #000;
   display: flex;
@@ -859,7 +869,6 @@ tbody td {
 
 .report-stat-icon {
   width: 40px; height: 40px;
-  border-radius: 4px;
   display: flex; align-items: center; justify-content: center;
   flex-shrink: 0;
 }
@@ -888,7 +897,6 @@ tbody td {
 .skill-prog-section {
   background: var(--bg-panel);
   border: 3px solid #4D4D4D;
-  border-radius: 4px;
   padding: 20px 22px;
   box-shadow: 4px 4px 0 #000;
   margin-bottom: 18px;
@@ -928,13 +936,11 @@ tbody td {
 .skill-bar-track {
   height: 10px;
   background: #3a3a3a;
-  border-radius: 5px;
   overflow: hidden;
 }
 
 .skill-bar-fill {
   height: 100%;
-  border-radius: 5px;
   transition: width 0.8s ease;
 }
 
@@ -946,7 +952,6 @@ tbody td {
 .mistakes-section {
   background: var(--bg-panel);
   border: 3px solid #4D4D4D;
-  border-radius: 4px;
   padding: 20px 22px;
   box-shadow: 4px 4px 0 #000;
   margin-bottom: 18px;
@@ -958,7 +963,6 @@ tbody td {
   justify-content: space-between;
   padding: 12px 14px;
   background: var(--bg-panel2);
-  border-radius: 3px;
   margin-bottom: 8px;
 }
 
@@ -974,7 +978,6 @@ tbody td {
   width: 26px; height: 26px;
   background: var(--accent-red);
   color: #fff;
-  border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
   font-family: var(--pixel);
   font-size: 8px;
@@ -992,14 +995,12 @@ tbody td {
   color: var(--text-secondary);
   background: #3a3a3a;
   padding: 4px 10px;
-  border-radius: 3px;
 }
 
 /* Individual Results */
 .individual-panel {
   background: var(--bg-panel);
   border: 3px solid #4D4D4D;
-  border-radius: 4px;
   padding: 20px 22px;
   box-shadow: 4px 4px 0 #000;
   margin-bottom: 18px;
@@ -1034,7 +1035,6 @@ tbody td {
   font-family: var(--pixel);
   font-size: 8px;
   letter-spacing: 1px;
-  border-radius: 4px;
   cursor: pointer;
   transition: opacity 0.15s;
   border: 2px solid #ddd;
@@ -1060,7 +1060,6 @@ tbody td {
 .modal {
   background: var(--bg-panel);
   border: 3px solid #4D4D4D;
-  border-radius: 4px;
   padding: 28px;
   width: 400px;
   max-width: 95vw;
@@ -1112,7 +1111,6 @@ tbody td {
   width: 100%;
   background: var(--bg-panel2);
   border: 1px solid #444;
-  border-radius: 4px;
   padding: 10px 12px;
   font-family: var(--mono);
   font-size: 13px;
@@ -1142,7 +1140,6 @@ tbody td {
   font-size: 8px;
   background: none;
   border: 2px solid #555;
-  border-radius: 4px;
   cursor: pointer;
   color: var(--text-secondary);
   letter-spacing: 1px;
@@ -1157,7 +1154,6 @@ tbody td {
   background: var(--card-green);
   color: #fff;
   border: none;
-  border-radius: 4px;
   cursor: pointer;
   letter-spacing: 1px;
 }
@@ -1173,7 +1169,6 @@ tbody td {
   border: 1px solid var(--card-green);
   border-left: 4px solid var(--card-green);
   padding: 14px 20px;
-  border-radius: 3px;
   font-family: var(--pixel);
   font-size: 8px;
   color: var(--accent-green);
@@ -1190,17 +1185,21 @@ tbody td {
 /* ---- SCROLLBAR ---- */
 .main::-webkit-scrollbar { width: 6px; }
 .main::-webkit-scrollbar-track { background: #d8d8d8; }
-.main::-webkit-scrollbar-thumb { background: #aaa; border-radius: 3px; }
+.main::-webkit-scrollbar-thumb { background: #aaa; }
 
 /* ============= RESPONSIVE ============= */
 @media (max-width: 1024px) {
   .sidebar { width: 160px; }
+  .topbar-logo { width: 160px; }
   .action-cards { grid-template-columns: 1fr 1fr; }
   .reports-stats { grid-template-columns: 1fr 1fr; }
 }
 
 @media (max-width: 767px) {
   .layout { flex-direction: column-reverse; }
+  .topbar-avatar { width: 28px; height: 28px; font-size: 8px; }
+  .avatar-menu { min-width: 100px; margin-top: 4px; }
+  .avatar-menu-item { padding: 6px 10px; font-size: 6px; }
   .sidebar {
     width: 100%; height: auto; min-height: 50px;
     flex-direction: row; border-right: none; border-top: 1px solid #000;

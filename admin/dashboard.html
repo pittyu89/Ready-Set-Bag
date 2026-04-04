@@ -11,8 +11,15 @@
 
 <div class="topbar">
   <div class="topbar-logo">READY-<br>SET<br>-BAG!</div>
-  <div class="topbar-title" id="topbar-title">ADMIN DASHBOARD</div>
-  <div class="topbar-avatar">SA</div>
+  <div class="topbar-center">
+    <div class="topbar-title" id="topbar-title">ADMIN DASHBOARD</div>
+    <div class="avatar-dropdown">
+      <button class="topbar-avatar" onclick="toggleAvatarMenu()">SA</button>
+      <div class="avatar-menu" id="avatar-menu">
+        <button onclick="logout()" class="avatar-menu-item">LOGOUT</button>
+      </div>
+    </div>
+  </div>
 </div>
 
 <div class="layout">
@@ -40,7 +47,7 @@
       </button>
     </nav>
     <div class="sidebar-logout">
-      <button class="nav-item" style="color:#888;">
+      <button class="nav-item" style="color:#888;" onclick="logout()">
         <svg viewBox="0 0 24 24" fill="currentColor" style="width:14px;height:14px;"><path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/></svg>
         LOGOUT
       </button>
@@ -393,7 +400,7 @@
       <div class="settings-panel">
         <div class="panel-title" style="margin-bottom:16px;">SYSTEM</div>
         <div class="settings-row"><span class="settings-key">VERSION</span><span class="settings-val">Ready-Set-Bag! v1.0</span></div>
-        <div class="settings-row"><span class="settings-key">DEFAULT PASSWORD</span><span class="settings-val">TempPass123!</span></div>
+        <div class="settings-row"><span class="settings-key">DEFAULT PASSWORD</span><span class="settings-val">niggaballs</span></div>
         <div class="settings-row"><span class="settings-key">FORCE PWD CHANGE</span><span class="settings-val" style="color:var(--accent-green);">ENABLED</span></div>
       </div>
     </div>

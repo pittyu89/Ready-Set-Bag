@@ -18,6 +18,29 @@ function navigate(page, btn) {
   document.getElementById('topbar-title').textContent = titles[page];
 }
 
+// ---- LOGOUT ----
+function logout() {
+  showToast('Logged out.');
+  setTimeout(() => {
+    window.location.href = '../index.html';
+  }, 500);
+}
+
+// ---- AVATAR MENU ----
+function toggleAvatarMenu() {
+  const menu = document.getElementById('avatar-menu');
+  menu.classList.toggle('show');
+}
+
+// Close dropdown when clicking outside
+document.addEventListener('click', (e) => {
+  const menu = document.getElementById('avatar-menu');
+  const avatar = document.querySelector('.topbar-avatar');
+  if (!avatar.contains(e.target) && !menu.contains(e.target)) {
+    menu.classList.remove('show');
+  }
+});
+
 // ---- MODAL MANAGEMENT ----
 function openModal() {
   document.getElementById('modal-overlay').classList.add('open');
