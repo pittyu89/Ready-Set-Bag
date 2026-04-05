@@ -1204,7 +1204,7 @@ tbody td {
   .avatar-menu { min-width: 100px; margin-top: 4px; }
   .avatar-menu-item { padding: 6px 10px; font-size: 6px; }
   
-  .layout { flex-direction: column-reverse; overflow-y: auto; }
+  .layout { flex-direction: column-reverse; overflow: visible; }
   .sidebar {
     width: 100%; height: auto; min-height: 50px;
     flex-direction: row; border-right: none; border-top: 1px solid #000;
