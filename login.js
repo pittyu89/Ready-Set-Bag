@@ -17,8 +17,8 @@ function handleLogin(event) {
 
   // Demo credentials
   const validCredentials = {
-    teacher: { username: 'maria_santos', password: 'nigga' },
-    admin: { username: 'admin', password: 'niggaballs' }
+    teacher: { username: 'maria_santos', password: 'Teacher@123' },
+    admin: { username: 'admin', password: 'Admin@123' }
   };
 
   const credentials = validCredentials[role];
