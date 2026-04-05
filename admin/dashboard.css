@@ -1010,7 +1010,7 @@ tbody td {
 /* MOBILE (≤767px) */
 @media (max-width: 767px) {
   body { height: 100vh; }
-  .topbar { height: 44px; padding: 0 12px 0 0; }
+  .topbar { height: 44px;}
   .topbar-logo { width: 50px; height: 44px; font-size: 5px; line-height: 1.2; }
   .topbar-title { font-size: 7px; padding-left: 12px; letter-spacing: 1px; }
   .topbar-avatar { width: 28px; height: 28px; font-size: 8px; }
@@ -1145,7 +1145,7 @@ tbody td {
 
 /* SMALL MOBILE (≤480px) */
 @media (max-width: 480px) {
-  .topbar { height: 40px; padding: 0 8px 0 0; }
+  .topbar { height: 40px;}
   .topbar-logo { width: 44px; height: 40px; font-size: 4px; }
   .topbar-title { font-size: 6px; padding-left: 8px; }
   .topbar-avatar { width: 24px; height: 24px; font-size: 7px; }
