@@ -1204,7 +1204,7 @@ tbody td {
   .avatar-menu { min-width: 100px; margin-top: 4px; }
   .avatar-menu-item { padding: 6px 10px; font-size: 6px; }
   
-  .layout { flex-direction: column-reverse; }
+  .layout { flex-direction: column-reverse; overflow-y: auto; }
   .sidebar {
     width: 100%; height: auto; min-height: 50px;
     flex-direction: row; border-right: none; border-top: 1px solid #000;
@@ -1223,8 +1223,7 @@ tbody td {
   .nav-item:hover { background: #2a2a2a; color: var(--text-primary); }
   .nav-item.active { background: var(--sidebar-active); color: #fff; }
   .nav-item svg { width: 12px; height: 12px; flex-shrink: 0; }
-  .sidebar-logout { padding: 0; border-top: none; }
-  .sidebar-logout .nav-item { flex: 1; min-width: 45px; }
+  .sidebar-logout { display: none; }
   
   .main { padding: 16px 14px 24px; flex: 1; overflow-y: auto; }
   .action-cards { grid-template-columns: 1fr; }
