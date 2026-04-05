@@ -572,7 +572,7 @@ thead th {
   letter-spacing: 1px;
   padding: 10px 8px;
   text-align: left;
-  border-bottom: 1px solid #333;
+  border-bottom: 2px solid #444;
 }
 
 tbody tr {

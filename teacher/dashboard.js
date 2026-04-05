@@ -137,3 +137,17 @@ function showToast(msg, type = 'success') {
 
 /* ---- INIT ---- */
 generateCode();
+
+/* ---- FILTER INDIVIDUAL RESULTS ---- */
+function filterResults(query) {
+  const q = query.toLowerCase();
+  const rows = document.querySelectorAll('#results-tbody tr');
+  let visible = 0;
+  rows.forEach(row => {
+    const match = row.textContent.toLowerCase().includes(q);
+    row.style.display = match ? '' : 'none';
+    if (match) visible++;
+  });
+  const total = rows.length;
+  document.getElementById('results-footer').textContent = `SHOWING ${visible} OF ${total} STUDENTS`;
+}
