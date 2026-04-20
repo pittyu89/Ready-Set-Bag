@@ -344,6 +344,7 @@ function updateStudentCount() {
   const visible = document.querySelectorAll('#student-tbody tr:not([style*="display: none"])').length;
   document.getElementById('student-footer').textContent = `SHOWING ${visible} OF ${total} STUDENTS`;
   document.getElementById('enrolled-count').textContent = total + ' students enrolled';
+  document.getElementById('welcome-student-count').textContent = total + ' students';
 }
 
 function filterStudents(query) {
