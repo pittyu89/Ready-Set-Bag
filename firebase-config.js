@@ -36,4 +36,4 @@ setTimeout(() => {
   } catch (error) {
     console.error('✗ Firebase initialization error:', error);
   }
-}, 500);
+}, 100);

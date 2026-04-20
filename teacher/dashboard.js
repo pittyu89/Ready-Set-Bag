@@ -29,8 +29,14 @@ window.addEventListener('load', () => {
   teacherId = sessionStorage.getItem('teacherId');
   teacherSection = section;
   
-  // Load student count on initial page load
-  loadStudentsFromFirebase();
+  // Wait for Firebase to initialize, then load student count
+  setTimeout(() => {
+    if (typeof db !== 'undefined' && db !== null) {
+      loadStudentsFromFirebase();
+    } else {
+      console.error('Firebase not initialized yet');
+    }
+  }, 200);
 });
 
 /* ---- NAVIGATION ---- */
