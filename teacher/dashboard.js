@@ -28,6 +28,9 @@ window.addEventListener('load', () => {
   
   teacherId = sessionStorage.getItem('teacherId');
   teacherSection = section;
+  
+  // Load student count on initial page load
+  loadStudentsFromFirebase();
 });
 
 /* ---- NAVIGATION ---- */
