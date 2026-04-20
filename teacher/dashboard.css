@@ -805,6 +805,28 @@ tbody td {
 
 .btn-reset-pass:hover { border-color: var(--btn-reset); color: var(--btn-reset); }
 
+.btn-sm {
+  font-family: var(--pixel);
+  font-size: 7px;
+  padding: 5px 10px;
+  background: var(--bg-panel2);
+  color: var(--text-secondary);
+  border: 2px solid #555;
+  cursor: pointer;
+  letter-spacing: 1px;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.btn-delete {
+  border-color: #555 !important;
+  color: var(--text-secondary) !important;
+}
+
+.btn-delete:hover {
+  border-color: var(--btn-delete) !important;
+  color: var(--btn-delete) !important;
+}
+
 .table-footer {
   margin-top: 14px;
   font-family: var(--pixel);

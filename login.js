@@ -70,6 +70,7 @@ async function authenticateTeacher(email, password) {
       sessionStorage.setItem('username', teacherData.firstName + ' ' + teacherData.lastName);
       sessionStorage.setItem('teacherId', teacher.id);
       sessionStorage.setItem('teacherEmail', teacherData.email);
+      sessionStorage.setItem('teacherSection', teacherData.section);
 
       // Redirect to teacher dashboard
       window.location.href = './teacher/dashboard.html';
