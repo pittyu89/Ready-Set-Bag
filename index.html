@@ -24,8 +24,8 @@
         </div>
 
         <div class="form-group">
-          <label for="username">Username:</label>
-          <input type="text" id="username" placeholder="Enter username" required>
+          <label for="username">Email:</label>
+          <input type="text" id="username" placeholder="Enter email" required>
         </div>
 
         <div class="form-group">
@@ -38,12 +38,19 @@
 
       <div class="demo-credentials">
         <p>Demo Credentials:</p>
-        <p><strong>Teacher:</strong> maria_santos / Teacher@123</p>
         <p><strong>Admin:</strong> admin / Admin@123</p>
       </div>
     </div>
   </div>
 
+  <!-- Firebase SDK (Compat version) -->
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore-compat.js"></script>
+
+  <!-- Firebase Configuration -->
+  <script src="firebase-config.js"></script>
+
+  <!-- Login Script -->
   <script src="login.js"></script>
 </body>
 </html>

@@ -411,7 +411,7 @@
 
 <div class="modal-overlay" id="modal-overlay" onclick="closeModalOutside(event)">
   <div class="modal">
-    <div class="modal-title">ADD NEW TEACHER</div>
+    <div class="modal-title" id="modal-title">ADD NEW TEACHER</div>
     <button class="modal-close" onclick="closeModal()">✕</button>
     <div class="modal-section-label">TEACHER INFORMATION:</div>
     <div class="form-row">
@@ -453,7 +453,7 @@
     </div>
     <div class="modal-actions">
       <button class="btn-cancel" onclick="closeModal()">CANCEL</button>
-      <button class="btn-create" onclick="createTeacher()">CREATE TEACHER</button>
+      <button class="btn-create" id="create-btn" onclick="createTeacher()">CREATE TEACHER</button>
     </div>
   </div>
 </div>
@@ -461,6 +461,15 @@
 
 <div class="toast" id="toast"></div>
 
+<!-- Firebase SDK (Compat version - works with regular script tags) -->
+<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth-compat.js"></script>
+
+<!-- Firebase Configuration -->
+<script src="../firebase-config.js"></script>
+
+<!-- Dashboard Script -->
 <script src="dashboard.js"></script>
 </body>
 </html>
