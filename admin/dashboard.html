@@ -66,20 +66,20 @@
         <div>
           <div class="school-name">CARUHATAN EAST ELEMENTARY SCHOOL</div>
           <div class="school-sub">School Administration</div>
-          <div class="school-date">📅 Friday, April 3, 2026</div>
+          <div class="school-date" id="school-date">📅 Friday, April 3, 2026</div>
         </div>
       </div>
 
       <div class="stat-cards">
         <div class="stat-card blue">
           <div class="stat-label">TEACHERS</div>
-          <div class="stat-value">8</div>
+          <div class="stat-value" id="home-teacher-count">8</div>
           <div class="stat-sub">active</div>
         </div>
         <div class="stat-card green">
           <div class="stat-label">STUDENTS</div>
-          <div class="stat-value">320</div>
-          <div class="stat-sub">8 sections</div>
+          <div class="stat-value" id="home-student-count">320</div>
+          <div class="stat-sub" id="home-section-count">8 sections</div>
         </div>
         <div class="stat-card orange">
           <div class="stat-label">SESSIONS</div>
@@ -177,7 +177,7 @@
       <div class="teachers-header">
         <div class="teachers-meta">
           <h2>Caruhatan East Elementary School</h2>
-          <p>TOTAL TEACHERS: 8</p>
+          <p id="total-teachers-text">TOTAL TEACHERS: 8</p>
         </div>
         <button class="btn-add" onclick="openModal()">+ ADD NEW TEACHER</button>
       </div>

@@ -110,8 +110,9 @@ function loadTeachersFromFirebase() {
           tbody.appendChild(row);
         });
 
-        // Update count
+        // Update count and home stats
         updateTeacherCount();
+        updateHomeStats();
         
         if (snapshot.size === 0) {
           console.log('No teachers in Firestore');
@@ -122,6 +123,62 @@ function loadTeachersFromFirebase() {
         showToast('Error loading teachers: ' + error.message, 'error');
       }
     );
+}
+
+// ---- UPDATE HOME STATS ----
+function updateHomeStats() {
+  if (typeof db === 'undefined') {
+    setTimeout(updateHomeStats, 500);
+    return;
+  }
+
+  // Update date
+  updateSchoolDate();
+  
+  // Update teacher count
+  db.collection('teachers').get().then((snapshot) => {
+    const teacherCount = snapshot.size;
+    document.getElementById('home-teacher-count').textContent = teacherCount;
+    document.getElementById('total-teachers-text').textContent = `TOTAL TEACHERS: ${teacherCount}`;
+  });
+
+  // Update student count and unique sections
+  db.collection('students').get().then((snapshot) => {
+    const studentCount = snapshot.size;
+    
+    // Count unique sections
+    const teachers = new Set();
+    snapshot.forEach((doc) => {
+      teachers.add(doc.data().teacherId);
+    });
+    
+    // Get unique sections from teachers collection
+    db.collection('teachers').get().then((teacherSnapshot) => {
+      const sections = new Set();
+      teacherSnapshot.forEach((doc) => {
+        sections.add(doc.data().section);
+      });
+      const sectionCount = sections.size;
+      
+      document.getElementById('home-student-count').textContent = studentCount;
+      document.getElementById('home-section-count').textContent = sectionCount + ' sections';
+    });
+  });
+}
+
+// ---- UPDATE SCHOOL DATE ----
+function updateSchoolDate() {
+  const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  
+  const today = new Date();
+  const dayName = days[today.getDay()];
+  const monthName = months[today.getMonth()];
+  const date = today.getDate();
+  const year = today.getFullYear();
+  
+  const dateString = `📅 ${dayName}, ${monthName} ${date}, ${year}`;
+  document.getElementById('school-date').textContent = dateString;
 }
 
 // ---- TEACHER MANAGEMENT ----
@@ -314,3 +371,8 @@ function showToast(msg, type = 'success') {
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => toast.classList.remove('show'), 3000);
 }
+
+// ---- INITIALIZE ON PAGE LOAD ----
+window.addEventListener('load', () => {
+  updateHomeStats();
+});
