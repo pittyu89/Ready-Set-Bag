@@ -265,7 +265,7 @@ body.admin-mode .left-panel {
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: inset 2px 2px 5px rgba(0,0,0,0.18), inset -1px -1px 3px rgba(255,255,255,0.65), 4px 4px 12px rgba(0,0,0,0.4);
+  box-shadow: 4px 4px 12px rgba(0,0,0,0.4);
   z-index: 2;
 }
 
@@ -283,7 +283,7 @@ body.admin-mode .left-panel {
   font-family: var(--jersey);
   font-size: 24px;
   color: #555;
-  box-shadow: inset 3px 3px 8px rgba(0,0,0,0.15), inset -2px -2px 5px rgba(255,255,255,0.7);
+  box-shadow: inset 4px 4px 10px rgba(0,0,0,0.25), inset -3px -3px 8px rgba(255,255,255,0.8);
   transition: box-shadow 0.2s;
 }
 
