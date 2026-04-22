@@ -420,14 +420,14 @@ body.admin-mode .right-panel {
 
 .icon-pencil {
   opacity: 1;
-  width: 300px;
+  width: 100px;
   height: 600px;
   transform: translate(-50%, -50%) scale(1);
 }
 
 .icon-wrench {
   opacity: 0;
-  width: 300px;
+  width: 200px;
   height: 600px;
   transform: translate(-50%, -50%) scale(1);
 }
