@@ -68,26 +68,6 @@ body.admin-mode .left-panel {
   text-align: center;
 }
 
-@media (max-width: 1024px) {
-  .login-title {
-    font-size: 60px;
-    margin-bottom: 24px;
-  }
-
-  .user-img {
-    width: 30px !important;
-    height: 35px !important;
-    transform: translateY(8px) !important;
-  }
-}
-
-@media (max-width: 480px) {
-  .login-title {
-    font-size: 45px;
-    margin-bottom: 16px;
-  }
-}
-
 /* ---- INPUT FIELDS ---- */
 .input-group {
   width: 100%;
@@ -289,7 +269,8 @@ body.admin-mode .icon-wrench {
   transform: translate(-50%, -50%) scale(1);
 }
 
-/* ---- RESPONSIVE ---- */
+/* ---- RESPONSIVE BREAKPOINTS ---- */
+
 /* Large screens: Fixed dimensions */
 @media (min-width: 1920px) {
   .left-panel {
@@ -297,6 +278,7 @@ body.admin-mode .icon-wrench {
     height: 970px;
   }
 }
+
 /* Tablets and below: Stack vertically */
 @media (max-width: 1024px) {
   body {
@@ -322,6 +304,11 @@ body.admin-mode .icon-wrench {
     flex-shrink: 0;
   }
 
+  .login-title {
+    font-size: 100px;
+    margin-bottom: 24px;
+  }
+
   .left-panel {
     width: 420px;
     height: 500px;
@@ -335,6 +322,11 @@ body.admin-mode .icon-wrench {
   .input-icon {
     width: 50px;
     height: 50px;
+  }
+
+  .input-icon img {
+    width: 25px !important;
+    height: 25px !important;
   }
 
   .user-img {
@@ -373,8 +365,13 @@ body.admin-mode .icon-wrench {
   }
 }
 
-/* Very small phones: Further optimize */
+/* Small phones */
 @media (max-width: 480px) {
+  .login-title {
+    font-size: 70px;
+    margin-bottom: 16px;
+  }
+
   .left-panel {
     width: 320px;
     height: 380px;
@@ -390,15 +387,13 @@ body.admin-mode .icon-wrench {
     height: 40px;
   }
 
-  .user-img {
+  .input-icon img {
     width: 25px !important;
-    height: 30px !important;
-    transform: translateY(5px) !important;
+    height: 25px !important;
   }
 
-  .lock-img {
-    width: 20px !important;
-    height: 25px !important;
+  .user-img {
+    transform: translateY(1px);
   }
 
   .input-group input {
