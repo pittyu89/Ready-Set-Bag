@@ -68,6 +68,26 @@ body.admin-mode .left-panel {
   text-align: center;
 }
 
+@media (max-width: 1024px) {
+  .login-title {
+    font-size: 60px;
+    margin-bottom: 24px;
+  }
+
+  .user-img {
+    width: 30px !important;
+    height: 35px !important;
+    transform: translateY(8px) !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .login-title {
+    font-size: 45px;
+    margin-bottom: 16px;
+  }
+}
+
 /* ---- INPUT FIELDS ---- */
 .input-group {
   width: 100%;
@@ -92,7 +112,14 @@ body.admin-mode .left-panel {
 }
 
 .user-img {
+  width: 45px;
+  height: 55px;
   transform: translateY(8px);
+}
+
+.lock-img {
+  width: 30px;
+  height: 35px;
 }
 
 .input-group input {
@@ -296,42 +323,42 @@ body.admin-mode .icon-wrench {
   }
 
   .left-panel {
-    width: 85%;
-    max-width: 500px;
-    padding: clamp(40px, 8vw, 80px);
+    width: 420px;
+    height: 500px;
+    padding: 40px;
   }
 
   .input-group {
-    margin-bottom: clamp(16px, 4vw, 24px);
+    margin-bottom: 14px;
   }
 
   .input-icon {
-    width: clamp(55px, 12vw, 70px);
-    height: clamp(55px, 12vw, 70px);
+    width: 50px;
+    height: 50px;
   }
 
   .user-img {
-    transform: translateY(3px);
+    transform: translateY(2px);
   }
 
   .input-group input {
-    font-size: clamp(16px, 4vw, 24px);
-    padding: clamp(12px, 3vw, 18px) clamp(16px, 3vw, 24px) clamp(12px, 3vw, 18px) clamp(65px, 15vw, 90px);
+    font-size: 14px;
+    padding: 10px 12px 10px 65px;
   }
 
   .btn-login-index {
-    font-size: clamp(28px, 6vw, 50px);
-    padding: 8px clamp(40px, 8vw, 72px);
-    margin-top: clamp(10px, 3vw, 16px);
+    font-size: 32px;
+    padding: 6px 40px;
+    margin-top: 12px;
   }
 
   .toggle-row {
-    margin-top: clamp(20px, 5vw, 32px);
-    gap: clamp(10px, 2vw, 16px);
+    margin-top: 18px;
+    gap: 12px;
   }
 
   .toggle-label {
-    font-size: clamp(16px, 3vw, 24px);
+    font-size: 14px;
   }
 
   .panel-icon {
@@ -349,25 +376,57 @@ body.admin-mode .icon-wrench {
 /* Very small phones: Further optimize */
 @media (max-width: 480px) {
   .left-panel {
-    width: 90%;
-    padding: clamp(30px, 6vw, 50px);
+    width: 320px;
+    height: 380px;
+    padding: 20px;
+  }
+
+  .input-group {
+    margin-bottom: 10px;
+  }
+
+  .input-icon {
+    width: 40px;
+    height: 40px;
+  }
+
+  .user-img {
+    width: 25px !important;
+    height: 30px !important;
+    transform: translateY(5px) !important;
+  }
+
+  .lock-img {
+    width: 20px !important;
+    height: 25px !important;
   }
 
   .input-group input {
-    padding: clamp(10px, 2.5vw, 14px) clamp(14px, 2vw, 18px) clamp(10px, 2.5vw, 14px) clamp(60px, 14vw, 80px);
+    font-size: 12px;
+    padding: 8px 10px 8px 55px;
+  }
+
+  .btn-login-index {
+    font-size: 24px;
+    padding: 5px 28px;
+    margin-top: 8px;
   }
 
   .toggle-switch {
-    width: clamp(55px, 12vw, 70px);
-    height: clamp(30px, 6vw, 38px);
+    width: 55px;
+    height: 30px;
   }
 
   .toggle-thumb {
-    width: clamp(22px, 5vw, 30px);
-    height: clamp(22px, 5vw, 30px);
+    width: 22px;
+    height: 22px;
   }
 
   .toggle-switch input:checked ~ .toggle-thumb {
-    transform: translateX(clamp(18px, 4vw, 32px));
+    transform: translateX(25px);
+  }
+
+  .toggle-label {
+    font-size: 12px;
   }
 }
