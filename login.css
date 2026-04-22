@@ -235,17 +235,15 @@ body.admin-mode .left-panel {
   border-color: #a82020;
 }
 
-/* "Log In" title — SVG-rendered for true inner shadow on text */
+/* "Log In" title */
 .login-title {
   margin-bottom: 48px;
   line-height: 1;
-}
-
-.login-title svg {
-  display: block;
-  overflow: visible;
-  width: 300px;
-  height: auto;
+  font-family: var(--jersey);
+  font-size: 100px;
+  color: rgba(255,255,255,0.92);
+  letter-spacing: 2px;
+  text-align: center;
 }
 
 /* ---- INPUT FIELDS ---- */
@@ -262,7 +260,7 @@ body.admin-mode .left-panel {
   transform: translateY(-50%);
   width: 70px;
   height: 70px;
-  background: #d4d4d4;
+  background: #E8E8E8;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -271,10 +269,8 @@ body.admin-mode .left-panel {
   z-index: 2;
 }
 
-.input-icon svg {
-  width: 32px;
-  height: 32px;
-  fill: #999;
+.user-img {
+  transform: translateY(8px);
 }
 
 .input-group input {

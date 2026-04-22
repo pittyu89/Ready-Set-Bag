@@ -10,51 +10,16 @@
 <body>
   <div class="login-wrapper">
 
-    <!-- SVG filters for inner shadow on text -->
-    <svg width="0" height="0" style="position:absolute;">
-      <defs>
-        <!-- Inner shadow filter: darkens inside the text shape -->
-        <filter id="text-inner-shadow" x="-10%" y="-10%" width="120%" height="120%">
-          <!-- Step 1: create a solid fill from the text alpha -->
-          <feFlood flood-color="rgba(0,0,0,0.45)" result="flood"/>
-          <feComposite in="flood" in2="SourceAlpha" operator="in" result="shadow-color"/>
-          <!-- Step 2: blur it slightly -->
-          <feGaussianBlur in="shadow-color" stdDeviation="1.5" result="shadow-blur"/>
-          <!-- Step 3: offset from top (shadow sits at top inside text) -->
-          <feOffset dx="0" dy="-20" result="shadow-offset"/>
-          <!-- Step 4: clip the shadow to inside the text -->
-          <feComposite in="shadow-offset" in2="SourceAlpha" operator="in" result="inner-shadow"/>
-          <!-- Step 5: composite inner shadow ON TOP of original graphic -->
-          <feMerge>
-            <feMergeNode in="SourceGraphic"/>
-            <feMergeNode in="inner-shadow"/>
-          </feMerge>
-        </filter>
-      </defs>
-    </svg>
-
     <!-- LEFT HALF -->
     <div class="left-half">
     <div class="left-panel">
-      <h1 class="login-title">
-        <svg viewBox="0 0 220 70" width="220" height="70">
-          <text
-            x="110" y="58"
-            text-anchor="middle"
-            font-family="'Jersey 25', sans-serif"
-            font-size="100"
-            fill="rgba(255,255,255,0.92)"
-            
-            letter-spacing="2"
-          >Log In</text>
-        </svg>
-      </h1>
+      <h1 class="login-title">Log In</h1>
 
       <form onsubmit="handleLogin(event)" style="width:100%;display:flex;flex-direction:column;align-items:center;">
         <!-- Username -->
         <div class="input-group">
           <div class="input-icon">
-            <svg viewBox="0 0 24 24"><path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/></svg>
+            <img class="user-img" src="images/user.png" alt="Username" style="width:45px;height:55px;"/>
           </div>
           <input type="text" id="username" required autocomplete="off">
         </div>
@@ -62,7 +27,7 @@
         <!-- Password -->
         <div class="input-group">
           <div class="input-icon">
-            <svg viewBox="0 0 24 24"><path d="M18 8h-1V6c0-2.8-2.2-5-5-5S7 3.2 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.7 1.4-3.1 3.1-3.1 1.7 0 3.1 1.4 3.1 3.1v2z"/></svg>
+            <img src="images/lock.png" alt="Password" style="width:30px;height:35px;"/>
           </div>
           <input type="password" id="password" required>
         </div>
