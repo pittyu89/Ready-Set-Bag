@@ -2,15 +2,33 @@
    READY-SET-BAG! LOGIN PAGE - SCRIPT
    ============================================================================ */
 
+// ---- TOGGLE SWITCH (TEACHER/ADMIN MODE) ----
+const roleToggle = document.getElementById('role-toggle');
+if (roleToggle) {
+  roleToggle.addEventListener('change', function() {
+    if (this.checked) {
+      // Teacher mode
+      document.body.classList.remove('admin-mode');
+    } else {
+      // Admin mode
+      document.body.classList.add('admin-mode');
+    }
+  });
+}
+
+// Start in admin mode (toggle unchecked = admin)
+document.body.classList.add('admin-mode');
+
 async function handleLogin(event) {
   event.preventDefault();
 
-  const role = document.getElementById('role').value;
+  const isTeacher = document.getElementById('role-toggle')?.checked;
+  const role = isTeacher ? 'teacher' : 'admin';
   const email = document.getElementById('username').value;
   const password = document.getElementById('password').value;
 
   // Simple validation
-  if (!role || !email || !password) {
+  if (!email || !password) {
     alert('Please fill in all fields!');
     return;
   }
@@ -25,10 +43,9 @@ async function handleLogin(event) {
     if (role === 'teacher') {
       // Authenticate teacher from Firestore
       await authenticateTeacher(email, password);
-    } else if (role === 'admin') {
+    } else {
       // Authenticate admin with demo credentials
       if (email === adminCredentials.username && password === adminCredentials.password) {
-        // Store role in session storage
         sessionStorage.setItem('userRole', 'admin');
         sessionStorage.setItem('username', adminCredentials.username);
         window.location.href = './admin/dashboard.html';

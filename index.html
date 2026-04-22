@@ -4,53 +4,129 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Ready-Set-Bag! - Login</title>
-  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Jersey+25&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="login.css">
 </head>
 <body>
-  <div class="login-container">
-    <div class="login-card">
-      <div class="login-logo">READY-SET-BAG!</div>
-      <h1>LOGIN</h1>
-      
-      <form onsubmit="handleLogin(event)">
-        <div class="form-group">
-          <label for="role">Select Role:</label>
-          <select id="role" required>
-            <option value="">-- Choose --</option>
-            <option value="teacher">Teacher</option>
-            <option value="admin">Admin</option>
-          </select>
+  <div class="login-wrapper">
+
+    <!-- SVG filters for inner shadow on text -->
+    <svg width="0" height="0" style="position:absolute;">
+      <defs>
+        <!-- Inner shadow filter: darkens inside the text shape -->
+        <filter id="text-inner-shadow" x="-10%" y="-10%" width="120%" height="120%">
+          <!-- Step 1: create a solid fill from the text alpha -->
+          <feFlood flood-color="rgba(0,0,0,0.45)" result="flood"/>
+          <feComposite in="flood" in2="SourceAlpha" operator="in" result="shadow-color"/>
+          <!-- Step 2: blur it slightly -->
+          <feGaussianBlur in="shadow-color" stdDeviation="1.5" result="shadow-blur"/>
+          <!-- Step 3: offset from top (shadow sits at top inside text) -->
+          <feOffset dx="0" dy="-20" result="shadow-offset"/>
+          <!-- Step 4: clip the shadow to inside the text -->
+          <feComposite in="shadow-offset" in2="SourceAlpha" operator="in" result="inner-shadow"/>
+          <!-- Step 5: composite inner shadow ON TOP of original graphic -->
+          <feMerge>
+            <feMergeNode in="SourceGraphic"/>
+            <feMergeNode in="inner-shadow"/>
+          </feMerge>
+        </filter>
+      </defs>
+    </svg>
+
+    <!-- LEFT HALF -->
+    <div class="left-half">
+    <div class="left-panel">
+      <h1 class="login-title">
+        <svg viewBox="0 0 220 70" width="220" height="70">
+          <text
+            x="110" y="58"
+            text-anchor="middle"
+            font-family="'Jersey 25', sans-serif"
+            font-size="100"
+            fill="rgba(255,255,255,0.92)"
+            
+            letter-spacing="2"
+          >Log In</text>
+        </svg>
+      </h1>
+
+      <form onsubmit="handleLogin(event)" style="width:100%;display:flex;flex-direction:column;align-items:center;">
+        <!-- Username -->
+        <div class="input-group">
+          <div class="input-icon">
+            <svg viewBox="0 0 24 24"><path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/></svg>
+          </div>
+          <input type="text" id="username" required autocomplete="off">
         </div>
 
-        <div class="form-group">
-          <label for="username">Email:</label>
-          <input type="text" id="username" placeholder="Enter email" required>
+        <!-- Password -->
+        <div class="input-group">
+          <div class="input-icon">
+            <svg viewBox="0 0 24 24"><path d="M18 8h-1V6c0-2.8-2.2-5-5-5S7 3.2 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.7 1.4-3.1 3.1-3.1 1.7 0 3.1 1.4 3.1 3.1v2z"/></svg>
+          </div>
+          <input type="password" id="password" required>
         </div>
 
-        <div class="form-group">
-          <label for="password">Password:</label>
-          <input type="password" id="password" placeholder="Enter password" required>
-        </div>
-
-        <button type="submit" class="btn-login">LOGIN</button>
+        <button type="submit" class="btn-login-index">Log In</button>
       </form>
 
-      <div class="demo-credentials">
-        <p>Demo Credentials:</p>
-        <p><strong>Admin:</strong> admin / Admin@123</p>
+      <!-- Toggle -->
+      <div class="toggle-row">
+        <span class="toggle-label">admin</span>
+        <label class="toggle-switch">
+          <input type="checkbox" id="role-toggle" onchange="switchRole(this)">
+          <div class="toggle-track"></div>
+          <div class="toggle-thumb"></div>
+        </label>
+        <span class="toggle-label">teacher</span>
+      </div>
+    </div>
+    </div><!-- end left-half -->
+
+    <!-- RIGHT PANEL -->
+    <div class="right-panel">
+      <div class="panel-icon">
+        <!-- Pencil icon (teacher) -->
+        <svg class="icon-pencil" viewBox="0 0 80 200" width="120" height="240">
+          <!-- eraser top -->
+          <rect x="20" y="5" width="40" height="22" rx="3" stroke="rgba(255,255,255,0.88)" stroke-width="5" fill="none"/>
+          <!-- metal band -->
+          <rect x="20" y="27" width="40" height="10" rx="1" stroke="rgba(255,255,255,0.88)" stroke-width="5" fill="none"/>
+          <!-- body -->
+          <rect x="20" y="37" width="40" height="120" stroke="rgba(255,255,255,0.88)" stroke-width="5" fill="none"/>
+          <!-- tip triangle -->
+          <polygon points="20,157 60,157 40,195" stroke="rgba(255,255,255,0.88)" stroke-width="5" fill="none" stroke-linejoin="round"/>
+        </svg>
+
+        <!-- Wrench icon (admin) -->
+        <svg class="icon-wrench" viewBox="0 0 80 210" width="120" height="240">
+          <!-- top fork prongs -->
+          <line x1="22" y1="5"  x2="22" y2="45" stroke="rgba(255,255,255,0.88)" stroke-width="5"/>
+          <line x1="58" y1="5"  x2="58" y2="45" stroke="rgba(255,255,255,0.88)" stroke-width="5"/>
+          <!-- top crossbar -->
+          <line x1="10" y1="5"  x2="32" y2="5"  stroke="rgba(255,255,255,0.88)" stroke-width="5"/>
+          <line x1="48" y1="5"  x2="70" y2="5"  stroke="rgba(255,255,255,0.88)" stroke-width="5"/>
+          <!-- top horizontal join -->
+          <line x1="10" y1="45" x2="70" y2="45" stroke="rgba(255,255,255,0.88)" stroke-width="5"/>
+          <!-- handle shaft -->
+          <rect x="33" y="45" width="14" height="115" stroke="rgba(255,255,255,0.88)" stroke-width="5" fill="none"/>
+          <!-- bottom horizontal join -->
+          <line x1="10" y1="160" x2="70" y2="160" stroke="rgba(255,255,255,0.88)" stroke-width="5"/>
+          <!-- bottom fork prongs -->
+          <line x1="22" y1="160" x2="22" y2="200" stroke="rgba(255,255,255,0.88)" stroke-width="5"/>
+          <line x1="58" y1="160" x2="58" y2="200" stroke="rgba(255,255,255,0.88)" stroke-width="5"/>
+          <!-- bottom crossbar -->
+          <line x1="10" y1="200" x2="32" y2="200" stroke="rgba(255,255,255,0.88)" stroke-width="5"/>
+          <line x1="48" y1="200" x2="70" y2="200" stroke="rgba(255,255,255,0.88)" stroke-width="5"/>
+        </svg>
       </div>
     </div>
   </div>
 
-  <!-- Firebase SDK (Compat version) -->
+  <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore-compat.js"></script>
-
-  <!-- Firebase Configuration -->
   <script src="firebase-config.js"></script>
-
-  <!-- Login Script -->
   <script src="login.js"></script>
 </body>
 </html>
