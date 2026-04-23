@@ -29,6 +29,8 @@ async function generateCode() {
     let code = '';
     for (let i = 0; i < 5; i++) code += chars[Math.floor(Math.random() * chars.length)];
     
+    const selectedDiff = document.querySelector('input[name="difficulty"]:checked');
+    const difficulty = selectedDiff ? selectedDiff.value : 'beginner';
     const teacherId = sessionStorage.getItem('teacherId');
     const timestamp = new Date();
 
@@ -38,7 +40,7 @@ async function generateCode() {
     const sessionRef = await window.db.collection('sessions').add({
       sessionCode: code,
       teacherId: teacherId,
-      difficulty: 'beginner',
+      difficulty: difficulty,
       status: 'waiting', // waiting, active, ended
       playersJoined: 0,
       playersList: [],
@@ -50,7 +52,7 @@ async function generateCode() {
 
     currentSessionCode = code;
     currentSessionId = sessionRef.id;
-    currentDifficulty = 'beginner';
+    currentDifficulty = difficulty;
 
     // Update UI
     document.getElementById('session-code').textContent = code;
@@ -147,16 +149,6 @@ function copyCode() {
   navigator.clipboard.writeText(currentSessionCode).then(() => 
     showToast('Code copied: ' + currentSessionCode)
   );
-}
-
-// Simulate join (for testing) - TODO: Remove after testing
-let joinedCount = 0;
-function simulateJoin() {
-  if (joinedCount < 40) {
-    joinedCount = Math.min(40, joinedCount + Math.floor(Math.random() * 5) + 1);
-    document.getElementById('joined-count').textContent = joinedCount;
-    document.getElementById('joined-bar').style.width = (joinedCount / 40 * 100) + '%';
-  }
 }
 
 // End session
