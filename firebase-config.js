@@ -15,25 +15,34 @@ const firebaseConfig = {
 };
 
 // Initialize Firebase
-let db;
-let auth;
+window.db = null;
+window.auth = null;
+window.firebaseReady = false;
 
-// Wait a moment to ensure all Firebase scripts are loaded
-setTimeout(() => {
-  try {
-    if (typeof firebase !== 'undefined' && firebase.apps && firebase.apps.length === 0) {
-      firebase.initializeApp(firebaseConfig);
-      db = firebase.firestore();
-      auth = firebase.auth();
-      console.log('✓ Firebase initialized successfully');
-      console.log('✓ Firestore ready');
-    } else if (firebase.apps && firebase.apps.length > 0) {
-      db = firebase.firestore();
-      auth = firebase.auth();
-      console.log('✓ Firebase already initialized');
-      console.log('✓ Firestore ready');
+// Promise that resolves when Firebase is initialized
+window.firebaseInitPromise = new Promise((resolve) => {
+  // Wait a moment to ensure all Firebase scripts are loaded
+  setTimeout(() => {
+    try {
+      if (typeof firebase !== 'undefined' && firebase.apps && firebase.apps.length === 0) {
+        firebase.initializeApp(firebaseConfig);
+        window.db = firebase.firestore();
+        window.auth = firebase.auth();
+        window.firebaseReady = true;
+        console.log('✓ Firebase initialized successfully');
+        console.log('✓ Firestore ready');
+        resolve();
+      } else if (firebase.apps && firebase.apps.length > 0) {
+        window.db = firebase.firestore();
+        window.auth = firebase.auth();
+        window.firebaseReady = true;
+        console.log('✓ Firebase already initialized');
+        console.log('✓ Firestore ready');
+        resolve();
+      }
+    } catch (error) {
+      console.error('✗ Firebase initialization error:', error);
+      resolve(); // Still resolve to avoid blocking
     }
-  } catch (error) {
-    console.error('✗ Firebase initialization error:', error);
-  }
-}, 100);
+  }, 500);
+});

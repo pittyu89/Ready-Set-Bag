@@ -3,16 +3,20 @@
    ============================================================================ */
 
 // ---- TOGGLE SWITCH (TEACHER/ADMIN MODE) ----
+function switchRole(toggle) {
+  if (toggle.checked) {
+    // Teacher mode
+    document.body.classList.remove('admin-mode');
+  } else {
+    // Admin mode
+    document.body.classList.add('admin-mode');
+  }
+}
+
 const roleToggle = document.getElementById('role-toggle');
 if (roleToggle) {
   roleToggle.addEventListener('change', function() {
-    if (this.checked) {
-      // Teacher mode
-      document.body.classList.remove('admin-mode');
-    } else {
-      // Admin mode
-      document.body.classList.add('admin-mode');
-    }
+    switchRole(this);
   });
 }
 
@@ -60,42 +64,44 @@ async function handleLogin(event) {
 }
 
 async function authenticateTeacher(email, password) {
-  // Check if Firebase is initialized
-  if (typeof db === 'undefined') {
-    alert('System error: Firebase not initialized. Please refresh the page.');
+  if (!window.auth) {
+    alert('System error: Firebase not initialized.');
     return;
   }
 
   try {
-    // Query Firestore for matching teacher
-    const snapshot = await db.collection('teachers')
+    // Firebase Auth handles the credential check — no Firestore read needed
+    const userCredential = await window.auth.signInWithEmailAndPassword(email, password);
+    const user = userCredential.user;
+
+    // Now fetch teacher profile (user is authenticated, so rules pass)
+    const snapshot = await window.db.collection('teachers')
       .where('email', '==', email)
       .get();
 
     if (snapshot.empty) {
-      alert('Teacher not found!');
+      alert('Teacher profile not found.');
+      await window.auth.signOut();
       return;
     }
 
-    // Check password
     const teacher = snapshot.docs[0];
     const teacherData = teacher.data();
 
-    if (teacherData.password === password) {
-      // Store role and teacher info in session storage
-      sessionStorage.setItem('userRole', 'teacher');
-      sessionStorage.setItem('username', teacherData.firstName + ' ' + teacherData.lastName);
-      sessionStorage.setItem('teacherId', teacher.id);
-      sessionStorage.setItem('teacherEmail', teacherData.email);
-      sessionStorage.setItem('teacherSection', teacherData.section);
+    sessionStorage.setItem('userRole', 'teacher');
+    sessionStorage.setItem('username', teacherData.firstName + ' ' + teacherData.lastName);
+    sessionStorage.setItem('teacherId', teacher.id);
+    sessionStorage.setItem('teacherEmail', teacherData.email);
+    sessionStorage.setItem('teacherSection', teacherData.section);
 
-      // Redirect to teacher dashboard
-      window.location.href = './teacher/dashboard.html';
-    } else {
-      alert('Invalid password!');
-    }
+    window.location.href = './teacher/dashboard.html';
+
   } catch (error) {
     console.error('Teacher authentication error:', error);
-    alert('Authentication error: ' + error.message);
+    if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
+      alert('Invalid email or password.');
+    } else {
+      alert('Authentication error: ' + error.message);
+    }
   }
 }

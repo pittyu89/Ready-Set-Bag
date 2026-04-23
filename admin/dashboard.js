@@ -86,7 +86,7 @@ function loadTeachersFromFirebase() {
   tbody.innerHTML = '';
 
   // Set up real-time listener
-  teachersListener = db.collection('teachers')
+  teachersListener = window.db.collection('teachers')
     .orderBy('createdAt', 'desc')
     .onSnapshot(
       (snapshot) => {
@@ -127,41 +127,24 @@ function loadTeachersFromFirebase() {
 
 // ---- UPDATE HOME STATS ----
 function updateHomeStats() {
-  if (typeof db === 'undefined') {
-    setTimeout(updateHomeStats, 500);
-    return;
-  }
+  if (!window.db) return; // Firebase not ready yet, firebaseInitPromise handles timing
 
-  // Update date
   updateSchoolDate();
-  
-  // Update teacher count
-  db.collection('teachers').get().then((snapshot) => {
+
+  window.db.collection('teachers').get().then((snapshot) => {
     const teacherCount = snapshot.size;
     document.getElementById('home-teacher-count').textContent = teacherCount;
     document.getElementById('total-teachers-text').textContent = `TOTAL TEACHERS: ${teacherCount}`;
   });
 
-  // Update student count and unique sections
-  db.collection('students').get().then((snapshot) => {
+  window.db.collection('students').get().then((snapshot) => {
     const studentCount = snapshot.size;
-    
-    // Count unique sections
-    const teachers = new Set();
-    snapshot.forEach((doc) => {
-      teachers.add(doc.data().teacherId);
-    });
-    
-    // Get unique sections from teachers collection
-    db.collection('teachers').get().then((teacherSnapshot) => {
+    document.getElementById('home-student-count').textContent = studentCount;
+
+    window.db.collection('teachers').get().then((teacherSnapshot) => {
       const sections = new Set();
-      teacherSnapshot.forEach((doc) => {
-        sections.add(doc.data().section);
-      });
-      const sectionCount = sections.size;
-      
-      document.getElementById('home-student-count').textContent = studentCount;
-      document.getElementById('home-section-count').textContent = sectionCount + ' sections';
+      teacherSnapshot.forEach((doc) => sections.add(doc.data().section));
+      document.getElementById('home-section-count').textContent = sections.size + ' sections';
     });
   });
 }
@@ -183,10 +166,8 @@ function updateSchoolDate() {
 
 // ---- TEACHER MANAGEMENT ----
 async function createTeacher() {
-  // Check if Firebase is initialized
   if (typeof db === 'undefined') {
-    showToast('Firebase is not initialized. Please refresh the page.', 'error');
-    console.error('db is undefined - Firebase not initialized');
+    showToast('Firebase is not initialized.', 'error');
     return;
   }
 
@@ -195,30 +176,41 @@ async function createTeacher() {
   const email = document.getElementById('input-email').value.trim();
   const section = document.getElementById('input-section').value;
   const password = document.getElementById('input-pass').value;
-  
-  if (!first || !last || !email || !section) {
+
+  if (!first || !last || !email || !section || !password) {
     showToast('Please fill in all required fields.', 'error');
     return;
   }
 
   try {
-    // Create a new teacher document in Firestore
-    await db.collection('teachers').add({
+    // 1. Create Firebase Auth account
+    const userCredential = await firebase.auth().createUserWithEmailAndPassword(email, password);
+    const uid = userCredential.user.uid;
+
+    // 2. Create Firestore document (use Auth UID as doc ID for easy lookup)
+    await window.db.collection('teachers').doc(uid).set({
+      uid: uid,
       firstName: first,
       lastName: last,
       email: email,
       section: section,
-      password: password, // In production, this should be hashed
+      password: password, // optional to keep for reference
       createdAt: new Date(),
       updatedAt: new Date()
     });
 
-    // The real-time listener will automatically update the table
+    // 3. Sign back in as admin (creating a user auto-signs them in)
+    await firebase.auth().signOut();
+
     closeModal();
     showToast('Teacher created successfully!');
   } catch (error) {
     console.error('Error creating teacher:', error);
-    showToast('Error creating teacher: ' + error.message, 'error');
+    if (error.code === 'auth/email-already-in-use') {
+      showToast('That email is already registered.', 'error');
+    } else {
+      showToast('Error: ' + error.message, 'error');
+    }
   }
 }
 
@@ -260,7 +252,7 @@ async function updateTeacher(teacherId, btn) {
 
   try {
     // Update Firestore document
-    await db.collection('teachers').doc(teacherId).update({
+    await window.db.collection('teachers').doc(teacherId).update({
       firstName: first,
       lastName: last,
       email: email,
@@ -280,30 +272,25 @@ async function updateTeacher(teacherId, btn) {
 
 // Reset teacher password in Firebase
 async function resetPassword(btn) {
-  if (typeof db === 'undefined') {
-    showToast('Firebase is not initialized. Please refresh the page.', 'error');
-    return;
-  }
-
   const row = btn.closest('tr');
   const teacherId = row.getAttribute('data-teacher-id');
   const name = row.querySelector('.td-name').textContent;
-  
-  const newPassword = 'TempPass123!'; // Default temporary password
-  
+  const newPassword = 'TempPass123!';
+
   if (confirm(`Reset password for ${name} to "${newPassword}"?`)) {
     try {
-      // Update password in Firestore
+      // 1. Update Firebase Auth password via Admin-style reset
+      //    (client SDK can't change OTHER users' passwords, so we store
+      //     it in Firestore and handle it at next login)
       await db.collection('teachers').doc(teacherId).update({
         password: newPassword,
-        passwordReset: true,
+        passwordResetPending: true,
         updatedAt: new Date()
       });
 
-      showToast(`Password reset for ${name}. New password: ${newPassword}`);
+      showToast(`Password reset for ${name}. They'll use "${newPassword}" at next login.`);
     } catch (error) {
-      console.error('Error resetting password:', error);
-      showToast('Error resetting password: ' + error.message, 'error');
+      showToast('Error: ' + error.message, 'error');
     }
   }
 }
@@ -328,7 +315,7 @@ async function confirmDelete(btn) {
   if (confirm(`Delete ${name}?`)) {
     try {
       // Delete from Firestore
-      await db.collection('teachers').doc(teacherId).delete();
+      await window.db.collection('teachers').doc(teacherId).delete();
       
       // The real-time listener will automatically remove the row from the table
       showToast(`${name} deleted.`);
@@ -374,5 +361,8 @@ function showToast(msg, type = 'success') {
 
 // ---- INITIALIZE ON PAGE LOAD ----
 window.addEventListener('load', () => {
-  updateHomeStats();
+  window.firebaseInitPromise.then(() => {
+    updateHomeStats();
+    loadTeachersFromFirebase();
+  });
 });

@@ -30,13 +30,13 @@ window.addEventListener('load', () => {
   teacherSection = section;
   
   // Wait for Firebase to initialize, then load student count
-  setTimeout(() => {
-    if (typeof db !== 'undefined' && db !== null) {
+  window.firebaseInitPromise.then(() => {
+    if (window.db) {
       loadStudentsFromFirebase();
     } else {
-      console.error('Firebase not initialized yet');
+      console.error('Firebase not initialized');
     }
-  }, 200);
+  });
 });
 
 /* ---- NAVIGATION ---- */
@@ -54,6 +54,14 @@ function navigate(page, btn) {
 
 /* ---- LOGOUT ---- */
 function logout() {
+  // Sign out from Firebase
+  if (window.auth) {
+    window.auth.signOut().catch(err => console.error('Sign out error:', err));
+  }
+  
+  // Clear session storage
+  sessionStorage.clear();
+  
   showToast('Logged out.');
   setTimeout(() => {
     window.location.href = '../index.html';
@@ -76,47 +84,13 @@ document.addEventListener('click', (e) => {
 });
 
 /* ---- DIFFICULTY SELECTION ---- */
-function selectDiff(radio) {
-  document.querySelectorAll('.diff-option').forEach(o => o.classList.remove('selected'));
-  radio.closest('.diff-option').classList.add('selected');
-}
+// Handled by session-manager.js
 
 /* ---- SESSION CODE ---- */
-function generateCode() {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  let code = '';
-  for (let i = 0; i < 5; i++) code += chars[Math.floor(Math.random() * chars.length)];
-  document.getElementById('session-code').textContent = code;
-  document.getElementById('code-inline').textContent = code;
-}
-
-function copyCode() {
-  const code = document.getElementById('session-code').textContent;
-  navigator.clipboard.writeText(code).then(() => showToast('Code copied: ' + code));
-}
+// Handled by session-manager.js
 
 /* ---- STUDENTS JOINED SIMULATION ---- */
-let joinedCount = 0;
-function simulateJoin() {
-  if (joinedCount < 40) {
-    joinedCount = Math.min(40, joinedCount + Math.floor(Math.random() * 5) + 1);
-    document.getElementById('joined-count').textContent = joinedCount;
-    document.getElementById('joined-bar').style.width = (joinedCount / 40 * 100) + '%';
-    showToast(joinedCount + ' students joined!');
-  }
-}
-
-function launchSession() {
-  if (joinedCount === 0) {
-    showToast('Wait for students to join first!', 'error');
-    return;
-  }
-  showToast('🚀 Session launched with ' + joinedCount + ' students!');
-  joinedCount = 0;
-  document.getElementById('joined-count').textContent = '0';
-  document.getElementById('joined-bar').style.width = '0%';
-  generateCode();
-}
+// Handled by session-manager.js (real-time Firebase listener)
 
 /* ---- IMPORT STUDENTS FROM CSV ---- */
 function openAddModal() {
@@ -186,7 +160,7 @@ async function importStudentsFromCSV() {
     return;
   }
 
-  if (typeof db === 'undefined') {
+  if (!window.db) {
     showToast('Firebase is not initialized. Please refresh the page.', 'error');
     return;
   }
@@ -202,7 +176,7 @@ async function importStudentsFromCSV() {
 
   try {
     // Get highest student number for this teacher
-    const snapshot = await db.collection('students')
+    const snapshot = await window.db.collection('students')
       .where('teacherId', '==', teacherId)
       .get();
 
@@ -221,7 +195,7 @@ async function importStudentsFromCSV() {
       const studentNumber = nextNum + i;
       const username = sectionCode + String(studentNumber).padStart(3, '0');
 
-      await db.collection('students').add({
+      await window.db.collection('students').add({
         teacherId: teacherId,
         section: teacherSection,
         firstName: student.firstName,
@@ -249,7 +223,7 @@ async function importStudentsFromCSV() {
 
 // ---- LOAD STUDENTS FROM FIRESTORE (REAL-TIME) ----
 function loadStudentsFromFirebase() {
-  if (typeof db === 'undefined') {
+  if (!window.db) {
     showToast('Firebase is not initialized. Please refresh the page.', 'error');
     return;
   }
@@ -270,7 +244,7 @@ function loadStudentsFromFirebase() {
   const tbody = document.getElementById('student-tbody');
   
   // Set up real-time listener
-  studentsListener = db.collection('students')
+  studentsListener = window.db.collection('students')
     .where('teacherId', '==', teacherId)
     .orderBy('studentNumber', 'asc')
     .onSnapshot(
@@ -302,7 +276,7 @@ function loadStudentsFromFirebase() {
 }
 
 async function resetStudentPassword(btn) {
-  if (typeof db === 'undefined') {
+  if (!window.db) {
     showToast('Firebase is not initialized.', 'error');
     return;
   }
@@ -314,7 +288,7 @@ async function resetStudentPassword(btn) {
 
   if (confirm(`Reset password for ${displayName} to "${newPassword}"?`)) {
     try {
-      await db.collection('students').doc(studentId).update({
+      await window.db.collection('students').doc(studentId).update({
         password: newPassword,
         updatedAt: new Date()
       });
@@ -328,7 +302,7 @@ async function resetStudentPassword(btn) {
 }
 
 async function deleteStudent(btn) {
-  if (typeof db === 'undefined') {
+  if (!window.db) {
     showToast('Firebase is not initialized.', 'error');
     return;
   }
@@ -339,7 +313,7 @@ async function deleteStudent(btn) {
 
   if (confirm(`Delete ${displayName}?`)) {
     try {
-      await db.collection('students').doc(studentId).delete();
+      await window.db.collection('students').doc(studentId).delete();
       showToast(`${displayName} deleted`);
     } catch (error) {
       console.error('Error deleting student:', error);
@@ -373,9 +347,6 @@ function showToast(msg, type = 'success') {
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => toast.classList.remove('show'), 3000);
 }
-
-/* ---- INIT ---- */
-generateCode();
 
 /* ---- FILTER INDIVIDUAL RESULTS ---- */
 function filterResults(query) {
