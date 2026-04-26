@@ -192,38 +192,48 @@
         </div>
 
         <!-- Step 2: Session Code -->
-        <div class="setup-card orange-bar">
+        <div class="setup-card orange-bar" id="card-code">
           <div class="setup-header">
             <div class="setup-step-num">2</div>
             <div class="setup-step-title">SESSION CODE</div>
           </div>
-          <div class="code-box">
+
+          <!-- Shown only after code is generated -->
+          <div class="code-box" id="code-box" style="display:none;">
             <div class="code-share-label">Share this code with your students:</div>
             <div class="code-display">
-              <div class="code-value" id="session-code">NU7FK</div>
-              <button class="btn-copy" onclick="copyCode()" title="Copy code">
+              <div class="code-value" id="session-code">—</div>
+              <button class="btn-copy" id="btn-copy" onclick="copyCode()" title="Copy code">
                 <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
               </button>
             </div>
-            <div class="code-instruction">Tell your students: <span>"Enter code <span id="code-inline">NU7FK</span> on your phones"</span></div>
+            <div class="code-instruction">Tell your students: <span>"Enter code <span id="code-inline">—</span> on your phones"</span></div>
           </div>
-          <button class="btn-launch" onclick="generateCode()">✨ GENERATE SESSION CODE</button>
+
+          <!-- Placeholder shown before code is generated -->
+          <div class="code-placeholder" id="code-placeholder">
+            <div class="code-placeholder-text">No session code yet.<br>Generate one below to get started.</div>
+          </div>
+
+          <button class="btn-launch" id="btn-generate" onclick="generateCode()">✨ GENERATE SESSION CODE</button>
         </div>
 
         <!-- Step 3: Students Joined -->
-        <div class="setup-card green-bar">
+        <div class="setup-card green-bar" id="card-launch">
           <div class="setup-header">
             <div class="setup-step-num" style="background:var(--card-green);">3</div>
             <div class="setup-step-title">STUDENTS JOINED</div>
           </div>
           <div class="joined-header">
             <div class="joined-count"><span id="joined-count">0</span><span>/40</span></div>
-
           </div>
           <div class="joined-bar-track">
             <div class="joined-bar-fill" id="joined-bar" style="width:0%"></div>
           </div>
-          <button class="btn-launch" id="btn-launch" onclick="launchSession()">▶ LAUNCH SESSION</button>
+          <div class="launch-btn-row">
+            <button class="btn-launch" id="btn-launch" onclick="launchSession()">▶ LAUNCH SESSION</button>
+            <button class="btn-stop" id="btn-stop" onclick="stopSession()" style="display:none;">⏹ STOP SESSION</button>
+          </div>
         </div>
       </div>
     </div>

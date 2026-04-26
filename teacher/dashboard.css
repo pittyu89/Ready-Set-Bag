@@ -1313,3 +1313,65 @@ tbody td {
   .nav-item { font-size: 5px; padding: 5px 2px; min-width: 35px; gap: 1px; }
   .nav-item svg { width: 8px; height: 8px; }
 }
+
+/* ============================================================================
+   SESSION STATE STYLES
+   ============================================================================ */
+
+/* Placeholder shown before a code is generated */
+.code-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 90px;
+  margin-bottom: 16px;
+}
+
+.code-placeholder-text {
+  text-align: center;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 13px;
+  color: rgba(255,255,255,0.45);
+  line-height: 1.8;
+  letter-spacing: 0.5px;
+  border: 2px dashed rgba(255,255,255,0.2);
+  border-radius: 10px;
+  padding: 18px 28px;
+  width: 100%;
+}
+
+/* Row that holds Launch + Stop buttons side by side */
+.launch-btn-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.launch-btn-row .btn-launch,
+.launch-btn-row .btn-stop {
+  flex: 1;
+}
+
+/* Stop Session button */
+.btn-stop {
+  display: block;
+  width: 100%;
+  padding: 14px;
+  background: #c0392b;
+  color: #fff;
+  border: none;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 11px;
+  cursor: pointer;
+  letter-spacing: 0.5px;
+  transition: background 0.2s, opacity 0.2s;
+}
+
+.btn-stop:hover {
+  background: #e74c3c;
+}
+
+/* Locked difficulty option overlay feel */
+.diff-option.locked {
+  pointer-events: none;
+}
