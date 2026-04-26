@@ -610,6 +610,22 @@ tbody td {
 .btn-reset:hover { filter: brightness(1.2); }
 .btn-delete { background: var(--btn-delete); color: #fff; }
 .btn-delete:hover { filter: brightness(1.2); }
+.btn-deactivate { background: #888; color: #fff; }
+.btn-deactivate:hover { filter: brightness(1.2); }
+.btn-activate { background: var(--accent-green); color: #111; }
+.btn-activate:hover { filter: brightness(1.2); }
+.btn-sm:disabled { opacity: 0.35; cursor: not-allowed; filter: none; }
+
+.status-badge {
+  display: inline-block;
+  font-family: var(--pixel);
+  font-size: 6px;
+  padding: 3px 7px;
+  letter-spacing: 1px;
+  border-radius: 3px;
+}
+.status-active { background: rgba(161,179,0,0.2); color: var(--accent-green); border: 1px solid var(--accent-green); }
+.status-inactive { background: rgba(136,136,136,0.15); color: #888; border: 1px solid #555; }
 
 .table-footer {
   margin-top: 14px;

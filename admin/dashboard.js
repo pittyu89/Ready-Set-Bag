@@ -63,6 +63,7 @@ function openModal() {
 
 function closeModal() {
   document.getElementById('modal-overlay').classList.remove('open');
+  clearFieldHighlights();
 }
 
 function closeModalOutside(e) {
@@ -96,15 +97,25 @@ function loadTeachersFromFirebase() {
         // Add each teacher from Firestore
         snapshot.forEach((doc) => {
           const teacher = doc.data();
+          const isActive = teacher.status !== 'inactive';
           const row = document.createElement('tr');
           row.setAttribute('data-teacher-id', doc.id);
+          if (!isActive) row.style.opacity = '0.55';
           row.innerHTML = `
             <td class="td-name">${teacher.firstName} ${teacher.lastName}</td>
             <td class="td-email">${teacher.email}</td>
             <td class="td-section">${teacher.section}</td>
+            <td class="td-status">
+              <span class="status-badge ${isActive ? 'status-active' : 'status-inactive'}">
+                ${isActive ? 'ACTIVE' : 'INACTIVE'}
+              </span>
+            </td>
             <td class="td-actions">
-              <button class="btn-sm btn-edit" onclick="openEditModal(this)">✏ EDIT</button>
-              <button class="btn-sm btn-reset" onclick="resetPassword(this)">↺ RESET</button>
+              <button class="btn-sm btn-edit" onclick="openEditModal(this)" ${!isActive ? 'disabled' : ''}>✏ EDIT</button>
+              <button class="btn-sm btn-reset" onclick="resetPassword(this)" ${!isActive ? 'disabled' : ''}>↺ RESET</button>
+              <button class="btn-sm ${isActive ? 'btn-deactivate' : 'btn-activate'}" onclick="toggleTeacherStatus(this)">
+                ${isActive ? '⏸ DEACTIVATE' : '▶ ACTIVATE'}
+              </button>
               <button class="btn-sm btn-delete" onclick="confirmDelete(this)">🗑 DELETE</button>
             </td>`;
           tbody.appendChild(row);
@@ -164,6 +175,21 @@ function updateSchoolDate() {
   document.getElementById('school-date').textContent = dateString;
 }
 
+// ---- FIELD VALIDATION HELPERS (NEG-2.3) ----
+function highlightFields(fields) {
+  fields.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.border = '2px solid #e74c3c';
+  });
+}
+
+function clearFieldHighlights() {
+  ['input-first', 'input-last', 'input-email', 'input-section', 'input-pass'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.border = '';
+  });
+}
+
 // ---- TEACHER MANAGEMENT ----
 async function createTeacher() {
   if (typeof db === 'undefined') {
@@ -171,13 +197,24 @@ async function createTeacher() {
     return;
   }
 
+  clearFieldHighlights();
+
   const first = document.getElementById('input-first').value.trim();
   const last = document.getElementById('input-last').value.trim();
   const email = document.getElementById('input-email').value.trim();
   const section = document.getElementById('input-section').value;
   const password = document.getElementById('input-pass').value;
 
-  if (!first || !last || !email || !section || !password) {
+  // NEG-2.3: Highlight empty fields and block submission
+  const emptyFields = [];
+  if (!first) emptyFields.push('input-first');
+  if (!last) emptyFields.push('input-last');
+  if (!email) emptyFields.push('input-email');
+  if (!section) emptyFields.push('input-section');
+  if (!password) emptyFields.push('input-pass');
+
+  if (emptyFields.length > 0) {
+    highlightFields(emptyFields);
     showToast('Please fill in all required fields.', 'error');
     return;
   }
@@ -195,6 +232,7 @@ async function createTeacher() {
       email: email,
       section: section,
       password: password, // optional to keep for reference
+      status: 'active',
       createdAt: new Date(),
       updatedAt: new Date()
     });
@@ -203,6 +241,7 @@ async function createTeacher() {
     await firebase.auth().signOut();
 
     closeModal();
+    clearFieldHighlights();
     showToast('Teacher created successfully!');
   } catch (error) {
     console.error('Error creating teacher:', error);
@@ -240,12 +279,22 @@ async function updateTeacher(teacherId, btn) {
     return;
   }
 
+  clearFieldHighlights();
+
   const first = document.getElementById('input-first').value.trim();
   const last = document.getElementById('input-last').value.trim();
   const email = document.getElementById('input-email').value.trim();
   const section = document.getElementById('input-section').value;
 
-  if (!first || !last || !email || !section) {
+  // NEG-2.3: Highlight empty fields and block submission
+  const emptyFields = [];
+  if (!first) emptyFields.push('input-first');
+  if (!last) emptyFields.push('input-last');
+  if (!email) emptyFields.push('input-email');
+  if (!section) emptyFields.push('input-section');
+
+  if (emptyFields.length > 0) {
+    highlightFields(emptyFields);
     showToast('Please fill in all required fields.', 'error');
     return;
   }
@@ -263,6 +312,7 @@ async function updateTeacher(teacherId, btn) {
     // The real-time listener will automatically update the table
     closeModal();
     resetModalToCreate();
+    clearFieldHighlights();
     showToast('Teacher updated successfully!');
   } catch (error) {
     console.error('Error updating teacher:', error);
@@ -300,6 +350,34 @@ function resetModalToCreate() {
   document.getElementById('modal-title').textContent = 'ADD NEW TEACHER';
   document.getElementById('create-btn').textContent = 'CREATE TEACHER';
   document.getElementById('create-btn').onclick = () => createTeacher();
+}
+
+// Deactivate or reactivate a teacher (REQ-4)
+async function toggleTeacherStatus(btn) {
+  if (!window.db) {
+    showToast('Firebase is not initialized.', 'error');
+    return;
+  }
+
+  const row = btn.closest('tr');
+  const teacherId = row.getAttribute('data-teacher-id');
+  const name = row.querySelector('.td-name').textContent;
+  const isCurrentlyActive = btn.classList.contains('btn-deactivate');
+  const newStatus = isCurrentlyActive ? 'inactive' : 'active';
+  const action = isCurrentlyActive ? 'deactivate' : 'reactivate';
+
+  if (confirm(`${action.charAt(0).toUpperCase() + action.slice(1)} ${name}? ${isCurrentlyActive ? 'They will no longer be able to log in.' : 'They will be able to log in again.'}`)) {
+    try {
+      await window.db.collection('teachers').doc(teacherId).update({
+        status: newStatus,
+        updatedAt: new Date()
+      });
+      showToast(`${name} ${newStatus === 'inactive' ? 'deactivated' : 'reactivated'} successfully.`);
+    } catch (error) {
+      console.error('Error updating teacher status:', error);
+      showToast('Error: ' + error.message, 'error');
+    }
+  }
 }
 
 async function confirmDelete(btn) {
