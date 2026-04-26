@@ -2,20 +2,21 @@
    READY-SET-BAG! LOGIN PAGE - SCRIPT
    ============================================================================ */
 
+// Session timeout duration: 30 minutes (in milliseconds)
+const SESSION_TIMEOUT_MS = 30 * 60 * 1000;
+
 // ---- TOGGLE SWITCH (TEACHER/ADMIN MODE) ----
 function switchRole(toggle) {
   if (toggle.checked) {
-    // Teacher mode
     document.body.classList.remove('admin-mode');
   } else {
-    // Admin mode
     document.body.classList.add('admin-mode');
   }
 }
 
 const roleToggle = document.getElementById('role-toggle');
 if (roleToggle) {
-  roleToggle.addEventListener('change', function() {
+  roleToggle.addEventListener('change', function () {
     switchRole(this);
   });
 }
@@ -23,17 +24,38 @@ if (roleToggle) {
 // Start in admin mode (toggle unchecked = admin)
 document.body.classList.add('admin-mode');
 
+// ---- HELPERS ----
+function clearPassword() {
+  const pwField = document.getElementById('password');
+  if (pwField) pwField.value = '';
+}
+
+function showLoginError(msg) {
+  clearPassword();
+  alert(msg);
+}
+
+function isOnline() {
+  return navigator.onLine;
+}
+
+// ---- MAIN LOGIN HANDLER ----
 async function handleLogin(event) {
   event.preventDefault();
 
+  // REQ-1.2.3: Check network before doing anything
+  if (!isOnline()) {
+    alert('No internet connection detected. A stable connection is required to log in. Please check your network and try again.');
+    return;
+  }
+
   const isTeacher = document.getElementById('role-toggle')?.checked;
   const role = isTeacher ? 'teacher' : 'admin';
-  const email = document.getElementById('username').value;
+  const email = document.getElementById('username').value.trim();
   const password = document.getElementById('password').value;
 
-  // Simple validation
   if (!email || !password) {
-    alert('Please fill in all fields!');
+    showLoginError('Please fill in all fields.');
     return;
   }
 
@@ -45,42 +67,53 @@ async function handleLogin(event) {
 
   try {
     if (role === 'teacher') {
-      // Authenticate teacher from Firestore
       await authenticateTeacher(email, password);
     } else {
-      // Authenticate admin with demo credentials
       if (email === adminCredentials.username && password === adminCredentials.password) {
+        // REQ-3: Store login timestamp for session timeout enforcement
         sessionStorage.setItem('userRole', 'admin');
         sessionStorage.setItem('username', adminCredentials.username);
+        sessionStorage.setItem('loginTime', Date.now().toString());
         window.location.href = './admin/dashboard.html';
       } else {
-        alert('Invalid admin credentials!');
+        // REQ-1.2.2: Show error and clear the password field
+        showLoginError('Invalid credentials. Please check your username and password.');
       }
     }
   } catch (error) {
     console.error('Login error:', error);
-    alert('Login error: ' + error.message);
+    showLoginError('Login error: ' + error.message);
   }
 }
 
+// ---- TEACHER AUTHENTICATION ----
 async function authenticateTeacher(email, password) {
+  // Wait for Firebase before proceeding
+  await window.firebaseInitPromise;
+
   if (!window.auth) {
-    alert('System error: Firebase not initialized.');
+    alert('System error: Firebase not initialized. Please refresh and try again.');
+    return;
+  }
+
+  // REQ-1.2.3: Double-check network right before the Firebase call
+  if (!isOnline()) {
+    alert('Connection lost. A stable internet connection is required to authenticate. Please check your network and try again.');
     return;
   }
 
   try {
-    // Firebase Auth handles the credential check — no Firestore read needed
     const userCredential = await window.auth.signInWithEmailAndPassword(email, password);
     const user = userCredential.user;
 
-    // Now fetch teacher profile (user is authenticated, so rules pass)
+    // Fetch teacher profile from Firestore (auth rules allow this now that user is signed in)
     const snapshot = await window.db.collection('teachers')
       .where('email', '==', email)
       .get();
 
     if (snapshot.empty) {
-      alert('Teacher profile not found.');
+      // REQ-1.2.2: Clear password, show error
+      showLoginError('Teacher profile not found. Please contact your administrator.');
       await window.auth.signOut();
       return;
     }
@@ -88,18 +121,34 @@ async function authenticateTeacher(email, password) {
     const teacher = snapshot.docs[0];
     const teacherData = teacher.data();
 
+    // REQ-3: Store login timestamp alongside session data
     sessionStorage.setItem('userRole', 'teacher');
     sessionStorage.setItem('username', teacherData.firstName + ' ' + teacherData.lastName);
     sessionStorage.setItem('teacherId', teacher.id);
     sessionStorage.setItem('teacherEmail', teacherData.email);
     sessionStorage.setItem('teacherSection', teacherData.section);
+    sessionStorage.setItem('loginTime', Date.now().toString());
 
     window.location.href = './teacher/dashboard.html';
 
   } catch (error) {
     console.error('Teacher authentication error:', error);
-    if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
-      alert('Invalid email or password.');
+
+    // REQ-1.2.2: Always clear the password field on failure
+    clearPassword();
+
+    // REQ-1.2.3: Distinguish network errors from bad credentials
+    if (
+      error.code === 'auth/network-request-failed' ||
+      error.message?.toLowerCase().includes('network')
+    ) {
+      alert('Network error: Could not reach the authentication server. Please check your internet connection and try again.');
+    } else if (
+      error.code === 'auth/user-not-found' ||
+      error.code === 'auth/wrong-password' ||
+      error.code === 'auth/invalid-credential'
+    ) {
+      alert('Invalid email or password. Please try again.');
     } else {
       alert('Authentication error: ' + error.message);
     }

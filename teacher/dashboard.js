@@ -10,6 +10,8 @@ let csvData = [];
 
 // Load teacher info on page load
 window.addEventListener('load', () => {
+  initAuthGuard();
+
   const username = sessionStorage.getItem('username');
   const section = sessionStorage.getItem('teacherSection');
   

@@ -361,6 +361,7 @@ function showToast(msg, type = 'success') {
 
 // ---- INITIALIZE ON PAGE LOAD ----
 window.addEventListener('load', () => {
+  initAuthGuard();
   window.firebaseInitPromise.then(() => {
     updateHomeStats();
     loadTeachersFromFirebase();
