@@ -37,6 +37,10 @@
         <svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
         TEACHERS
       </button>
+      <button class="nav-item" onclick="navigate('students', this)">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M5 13.18v4L12 21l7-3.82v-4L12 17l-7-3.82zM12 3L1 9l11 6 9-4.91V17h2V9L12 3z"/></svg>
+        STUDENTS
+      </button>
       <button class="nav-item" onclick="navigate('reports', this)">
         <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 3c1.93 0 3.5 1.57 3.5 3.5S13.93 13 12 13s-3.5-1.57-3.5-3.5S10.07 6 12 6zm7 13H5v-.23c0-.62.28-1.2.76-1.58C7.47 15.82 9.64 15 12 15s4.53.82 6.24 2.19c.48.38.76.97.76 1.58V19z"/></svg>
         REPORTS
@@ -204,6 +208,41 @@
       </div>
     </div>
 
+
+
+    <div class="page" id="page-students">
+      <div class="page-header">
+        <svg viewBox="0 0 24 24" fill="#555"><path d="M5 13.18v4L12 21l7-3.82v-4L12 17l-7-3.82zM12 3L1 9l11 6 9-4.91V17h2V9L12 3z"/></svg>
+        <h1>MANAGE STUDENTS</h1>
+      </div>
+
+      <div class="teachers-header">
+        <div class="teachers-meta">
+          <h2>Caruhatan East Elementary School</h2>
+          <p id="total-students-text">TOTAL STUDENTS: <span id="admin-student-count-text">0</span></p>
+        </div>
+        <div style="display:flex;gap:10px;">
+          <button class="btn-add" onclick="openStudentModal('single')">+ ADD STUDENT</button>
+          <button class="btn-add" style="background:#5D8ED7;" onclick="openStudentModal('csv')">&#11014; IMPORT CSV</button>
+        </div>
+      </div>
+
+      <div class="teacher-table-panel">
+        <div class="teacher-table-header">
+          <div class="panel-title" style="margin:0;">STUDENT LIST</div>
+          <input class="search-box" id="admin-search" type="text" placeholder="Search students..." oninput="filterAdminStudents(this.value)">
+        </div>
+        <div style="padding:8px 16px;border-bottom:1px solid #333;display:flex;align-items:center;gap:12px;">
+          <span style="font-size:9px;color:#666;font-family:var(--pixel);">SECTION:</span>
+          <select id="admin-section-filter" class="form-select" style="width:200px;padding:4px 8px;font-size:10px;" onchange="filterAdminStudents(document.getElementById('admin-search').value)"><option value="">ALL SECTIONS</option></select>
+        </div>
+        <table id="admin-student-table">
+          <thead><tr><th>USERNAME</th><th>NAME</th><th>SECTION</th><th>PASSWORD</th><th style="text-align:right;">ACTIONS</th></tr></thead>
+          <tbody id="admin-student-tbody"></tbody>
+        </table>
+        <div class="table-footer" id="admin-student-footer">SHOWING 0 OF 0 STUDENTS</div>
+      </div>
+    </div>
 
     <div class="page" id="page-reports">
       <div class="page-header">
@@ -407,6 +446,66 @@
     <div class="modal-actions">
       <button class="btn-cancel" onclick="closeModal()">CANCEL</button>
       <button class="btn-create" id="create-btn" onclick="createTeacher()">CREATE TEACHER</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- Student Modal -->
+<div class="modal-overlay" id="student-modal-overlay" onclick="closeStudentModalOutside(event)">
+  <div class="modal" style="max-width:560px;">
+    <div class="modal-title" id="student-modal-title">ADD NEW STUDENT</div>
+    <button class="modal-close" onclick="closeStudentModal()">&#10005;</button>
+
+    <!-- TABS -->
+    <div class="student-modal-tabs" id="student-modal-tabs">
+      <button class="stab active" id="stab-single" onclick="switchStudentTab('single')">SINGLE STUDENT</button>
+      <button class="stab" id="stab-csv" onclick="switchStudentTab('csv')">IMPORT CSV</button>
+    </div>
+
+    <!-- SINGLE STUDENT FORM -->
+    <div id="student-single-form">
+      <div class="modal-section-label">STUDENT INFORMATION:</div>
+      <div class="form-row">
+        <div class="form-group" style="margin:0;">
+          <label class="form-label">FIRST NAME: *</label>
+          <input class="form-input" type="text" placeholder="Juan" id="s-input-first">
+        </div>
+        <div class="form-group" style="margin:0;">
+          <label class="form-label">LAST NAME: *</label>
+          <input class="form-input" type="text" placeholder="Dela Cruz" id="s-input-last">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">ASSIGN TO TEACHER SECTION: *</label>
+        <select class="form-select" id="s-input-section"><option value="">Select section...</option></select>
+      </div>
+      <div class="form-note" style="margin-top:0;">&#9888; Default password is Student@123. Username will be auto-generated.</div>
+      <div class="modal-actions">
+        <button class="btn-cancel" onclick="closeStudentModal()">CANCEL</button>
+        <button class="btn-create" onclick="addSingleStudent()">CREATE STUDENT</button>
+      </div>
+    </div>
+
+    <!-- CSV FORM -->
+    <div id="student-csv-form" style="display:none;">
+      <div class="modal-section-label">CSV FORMAT: first_name,last_name (one per line)</div>
+      <div class="form-group">
+        <label class="form-label">ASSIGN TO TEACHER SECTION: *</label>
+        <select class="form-select" id="s-csv-section"><option value="">Select section...</option></select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">SELECT CSV FILE: *</label>
+        <input class="form-input" type="file" accept=".csv" id="s-csv-file" onchange="previewStudentCSV()">
+      </div>
+      <div id="s-csv-preview" style="display:none;">
+        <div class="modal-section-label">PREVIEW (<span id="s-preview-count">0</span> STUDENTS):</div>
+        <div id="s-preview-list" style="background:#222;border:1px solid #444;padding:10px 14px;font-size:11px;max-height:120px;overflow-y:auto;line-height:1.8;"></div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-cancel" onclick="closeStudentModal()">CANCEL</button>
+        <button class="btn-create" id="s-import-btn" disabled onclick="importAdminStudentsFromCSV()">IMPORT STUDENTS</button>
+      </div>
     </div>
   </div>
 </div>

@@ -307,7 +307,7 @@ body {
 /* ---- ACTION CARDS ---- */
 .action-cards {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: 16px;
   margin-bottom: 22px;
 }
@@ -648,103 +648,7 @@ body {
 .btn-launch:hover { opacity: 0.88; }
 .btn-launch:disabled { background: #ccc; color: #999; cursor: not-allowed; }
 
-/* ============= MANAGE STUDENTS PAGE ============= */
-.students-header-card {
-  background: var(--bg-panel);
-  border: 3px solid #4D4D4D;
-  padding: 18px 22px;
-  box-shadow: 4px 4px 0 #000;
-  margin-bottom: 18px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 12px;
-}
-
-.students-class-info {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-}
-
-.students-class-icon {
-  width: 44px; height: 44px;
-  background: #2a2a2a;
-  display: flex; align-items: center; justify-content: center;
-}
-
-.students-class-icon svg { width: 24px; height: 24px; color: var(--accent-blue); }
-
-.students-class-name {
-  font-family: var(--pixel);
-  font-size: 10px;
-  color: var(--text-primary);
-  margin-bottom: 4px;
-}
-
-.students-class-sub {
-  font-size: 11px;
-  color: var(--text-secondary);
-}
-
-.students-actions {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-
-.btn-primary {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 16px;
-  font-family: var(--pixel);
-  font-size: 8px;
-  letter-spacing: 1px;
-  background: var(--card-green);
-  color: #fff;
-  border: none;
-  cursor: pointer;
-  transition: opacity 0.15s;
-}
-
-.btn-primary:hover { opacity: 0.88; }
-
-.btn-outline {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 16px;
-  font-family: var(--pixel);
-  font-size: 8px;
-  letter-spacing: 1px;
-  background: var(--bg-panel2);
-  color: var(--text-secondary);
-  border: 2px solid #555;
-  cursor: pointer;
-  transition: border-color 0.15s;
-}
-
-.btn-outline:hover { border-color: #888; color: var(--text-primary); }
-
-/* Student Table Panel */
-.student-table-panel {
-  background: var(--bg-panel);
-  border: 3px solid #4D4D4D;
-  padding: 20px 22px;
-  box-shadow: 4px 4px 0 #000;
-}
-
-.student-table-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 16px;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-
+/* ---- SHARED TABLE STYLES ---- */
 .search-box {
   background: #404040;
   border: 2px solid #4D4D4D;
@@ -786,45 +690,6 @@ tbody td {
   padding: 14px 8px;
   font-size: 12px;
   color: var(--text-primary);
-}
-
-.td-username { font-family: var(--mono); font-weight: bold; color: var(--text-primary); }
-.td-pass { color: var(--text-muted); letter-spacing: 3px; }
-
-.btn-reset-pass {
-  font-family: var(--pixel);
-  font-size: 7px;
-  padding: 5px 10px;
-  background: var(--bg-panel2);
-  color: var(--text-secondary);
-  border: 2px solid #555;
-  cursor: pointer;
-  letter-spacing: 1px;
-  transition: border-color 0.15s, color 0.15s;
-}
-
-.btn-reset-pass:hover { border-color: var(--btn-reset); color: var(--btn-reset); }
-
-.btn-sm {
-  font-family: var(--pixel);
-  font-size: 7px;
-  padding: 5px 10px;
-  background: var(--bg-panel2);
-  color: var(--text-secondary);
-  border: 2px solid #555;
-  cursor: pointer;
-  letter-spacing: 1px;
-  transition: border-color 0.15s, color 0.15s;
-}
-
-.btn-delete {
-  border-color: #555 !important;
-  color: var(--text-secondary) !important;
-}
-
-.btn-delete:hover {
-  border-color: var(--btn-delete) !important;
-  color: var(--btn-delete) !important;
 }
 
 .table-footer {
@@ -1257,27 +1122,6 @@ tbody td {
   .action-cards { grid-template-columns: 1fr; }
   .reports-stats { grid-template-columns: 1fr; }
   .welcome-meta { flex-direction: column; gap: 8px; align-items: flex-start; }
-  .students-header-card { flex-direction: column; align-items: flex-start; }
-  
-  /* Students Page Responsiveness */
-  .student-table-header {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 8px;
-  }
-  .search-box {
-    width: 100%;
-    font-size: 10px;
-    padding: 8px 10px;
-  }
-  table { font-size: 10px; }
-  thead th { font-size: 6px; padding: 8px 4px; }
-  tbody td { padding: 8px 4px; font-size: 10px; }
-  .btn-reset-pass {
-    font-size: 6px;
-    padding: 4px 8px;
-    white-space: nowrap;
-  }
   
   /* Filter Bar Responsiveness */
   .filter-bar { padding: 10px 12px; gap: 8px; flex-wrap: wrap; box-shadow: 2px 2px 0px #000; }

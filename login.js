@@ -70,11 +70,8 @@ async function handleLogin(event) {
       await authenticateTeacher(email, password);
     } else {
       if (email === adminCredentials.username && password === adminCredentials.password) {
-        // REQ-3: Store login timestamp for session timeout enforcement
-        sessionStorage.setItem('userRole', 'admin');
-        sessionStorage.setItem('username', adminCredentials.username);
-        sessionStorage.setItem('loginTime', Date.now().toString());
-        window.location.href = './admin/dashboard.html';
+        // REQ-3: Verify credentials, then authenticate with Firebase silently
+        await authenticateAdmin();
       } else {
         // REQ-1.2.2: Show error and clear the password field
         showLoginError('Invalid credentials. Please check your username and password.');
@@ -149,6 +146,63 @@ async function authenticateTeacher(email, password) {
       error.code === 'auth/invalid-credential'
     ) {
       alert('Invalid email or password. Please try again.');
+    } else {
+      alert('Authentication error: ' + error.message);
+    }
+  }
+}
+
+// ---- ADMIN AUTHENTICATION ----
+async function authenticateAdmin() {
+  // Wait for Firebase before proceeding
+  await window.firebaseInitPromise;
+
+  if (!window.auth) {
+    alert('System error: Firebase not initialized. Please refresh and try again.');
+    return;
+  }
+
+  // Check network right before the Firebase call
+  if (!isOnline()) {
+    alert('Connection lost. A stable internet connection is required to authenticate. Please check your network and try again.');
+    return;
+  }
+
+  try {
+    // Fixed admin account email for Firebase (internal use only)
+    const adminEmail = 'admin@readysetbag.local';
+    const adminPassword = 'Admin@123';
+
+    // Sign in with Firebase using the fixed admin account
+    const userCredential = await window.auth.signInWithEmailAndPassword(adminEmail, adminPassword);
+    const user = userCredential.user;
+
+    // REQ-3: Store login timestamp and admin info for session timeout enforcement
+    sessionStorage.setItem('userRole', 'admin');
+    sessionStorage.setItem('username', 'admin');
+    sessionStorage.setItem('adminId', user.uid);
+    sessionStorage.setItem('adminEmail', user.email);
+    sessionStorage.setItem('loginTime', Date.now().toString());
+
+    window.location.href = './admin/dashboard.html';
+
+  } catch (error) {
+    console.error('Admin authentication error:', error);
+    clearPassword();
+
+    // Distinguish network errors from credential errors
+    if (
+      error.code === 'auth/network-request-failed' ||
+      error.message?.toLowerCase().includes('network')
+    ) {
+      alert('Network error: Could not reach the authentication server. Please check your internet connection and try again.');
+    } else if (
+      error.code === 'auth/user-not-found' ||
+      error.code === 'auth/wrong-password' ||
+      error.code === 'auth/invalid-credential'
+    ) {
+      // This should not happen with hardcoded credentials, but handle it anyway
+      alert('Admin account error. Please contact the system administrator.');
     } else {
       alert('Authentication error: ' + error.message);
     }

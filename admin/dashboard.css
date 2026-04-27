@@ -1214,3 +1214,47 @@ tbody td {
   .nav-item { font-size: 5px; padding: 5px 2px; min-width: 35px; gap: 1px; }
   .nav-item svg { width: 8px; height: 8px; }
 }
+
+/* ============================================================================
+   STUDENT MODAL TABS
+   ============================================================================ */
+
+.student-modal-tabs {
+  display: flex;
+  gap: 0;
+  margin-bottom: 18px;
+  border-bottom: 2px solid #444;
+}
+
+.stab {
+  background: none;
+  border: none;
+  border-bottom: 3px solid transparent;
+  padding: 8px 20px;
+  font-family: var(--pixel);
+  font-size: 8px;
+  color: var(--text-muted);
+  cursor: pointer;
+  letter-spacing: 1px;
+  margin-bottom: -2px;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.stab:hover {
+  color: var(--text-secondary);
+}
+
+.stab.active {
+  color: var(--accent-green);
+  border-bottom-color: var(--accent-green);
+}
+
+/* btn-deactivate / btn-activate */
+.btn-deactivate {
+  background: #8B4513 !important;
+  color: #ffcc88 !important;
+}
+.btn-activate {
+  background: #2d6e2d !important;
+  color: #aaffaa !important;
+}

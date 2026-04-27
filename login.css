@@ -110,10 +110,11 @@ body.admin-mode .left-panel {
   outline: none;
   border-radius: 40px;
   font-family: var(--jersey);
-  font-size: 24px;
+  font-size: 28px;
   color: #555;
   box-shadow: inset 4px 4px 10px rgba(0,0,0,0.25), inset -3px -3px 8px rgba(255,255,255,0.8);
   transition: box-shadow 0.2s;
+  letter-spacing: 1px;
 }
 
 .input-group input:focus {

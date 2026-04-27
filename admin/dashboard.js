@@ -15,14 +15,17 @@ function navigate(page, btn) {
   const titles = { 
     home: 'ADMIN DASHBOARD', 
     teachers: 'ADMIN DASHBOARD', 
+    students: 'ADMIN DASHBOARD',
     reports: 'ADMIN DASHBOARD', 
     settings: 'ADMIN DASHBOARD' 
   };
-  document.getElementById('topbar-title').textContent = titles[page];
+  document.getElementById('topbar-title').textContent = titles[page] || 'ADMIN DASHBOARD';
   
-  // Load teachers from Firestore when navigating to teachers page
   if (page === 'teachers') {
     loadTeachersFromFirebase();
+  }
+  if (page === 'students') {
+    loadAdminStudentsFromFirebase();
   }
 }
 
@@ -445,3 +448,281 @@ window.addEventListener('load', () => {
     loadTeachersFromFirebase();
   });
 });
+/* ============================================================================
+   ADMIN STUDENT MANAGEMENT
+   ============================================================================ */
+
+let adminStudentsListener = null;
+let adminCsvData = [];
+let sectionTeacherMap = {}; // section -> teacherId
+
+// ---- OPEN/CLOSE STUDENT MODAL ----
+function openStudentModal(tab) {
+  document.getElementById('student-modal-overlay').classList.add('open');
+  // Reset forms
+  document.getElementById('s-input-first').value = '';
+  document.getElementById('s-input-last').value = '';
+  document.getElementById('s-csv-file').value = '';
+  document.getElementById('s-csv-preview').style.display = 'none';
+  document.getElementById('s-import-btn').disabled = true;
+  adminCsvData = [];
+  // Populate section dropdowns from Firestore teachers
+  populateSectionDropdowns();
+  switchStudentTab(tab || 'single');
+}
+
+function closeStudentModal() {
+  document.getElementById('student-modal-overlay').classList.remove('open');
+}
+
+function closeStudentModalOutside(e) {
+  if (e.target === document.getElementById('student-modal-overlay')) closeStudentModal();
+}
+
+function switchStudentTab(tab) {
+  document.getElementById('student-single-form').style.display = tab === 'single' ? '' : 'none';
+  document.getElementById('student-csv-form').style.display = tab === 'csv' ? '' : 'none';
+  document.getElementById('stab-single').classList.toggle('active', tab === 'single');
+  document.getElementById('stab-csv').classList.toggle('active', tab === 'csv');
+}
+
+// ---- POPULATE SECTION DROPDOWNS FROM TEACHERS ----
+async function populateSectionDropdowns() {
+  if (!window.db) return;
+  try {
+    const snap = await window.db.collection('teachers').get();
+    const sections = [];
+    sectionTeacherMap = {};
+    snap.forEach(doc => {
+      const t = doc.data();
+      // Skip explicitly inactive teachers; include all others
+      if (t.section && t.status !== 'inactive') {
+        sections.push(t.section);
+        sectionTeacherMap[t.section] = doc.id;
+      }
+    });
+    sections.sort();
+
+    ['s-input-section', 's-csv-section', 'admin-section-filter'].forEach(id => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      const isFilter = id === 'admin-section-filter';
+      el.innerHTML = isFilter ? '<option value="">ALL SECTIONS</option>' : '<option value="">Select section...</option>';
+      sections.forEach(sec => {
+        const opt = document.createElement('option');
+        opt.value = sec;
+        opt.textContent = sec;
+        el.appendChild(opt);
+      });
+    });
+  } catch (e) {
+    console.error('Error loading sections:', e);
+  }
+}
+
+// ---- ADD SINGLE STUDENT ----
+async function addSingleStudent() {
+  if (!window.db) { showToast('Firebase not initialized.', 'error'); return; }
+
+  const first = document.getElementById('s-input-first').value.trim();
+  const last  = document.getElementById('s-input-last').value.trim();
+  const section = document.getElementById('s-input-section').value;
+
+  if (!first || !last || !section) {
+    showToast('Please fill in all required fields.', 'error'); return;
+  }
+
+  const teacherId = sectionTeacherMap[section];
+  if (!teacherId) {
+    showToast('No active teacher found for that section.', 'error'); return;
+  }
+
+  try {
+    const snap = await window.db.collection('students').where('teacherId', '==', teacherId).get();
+    const numbers = snap.docs.map(d => d.data().studentNumber || 0);
+    const nextNum = numbers.length ? Math.max(...numbers) + 1 : 1;
+
+    // Build section code from section name (e.g. G6-Sampaguita → G6SAMP)
+    const sectionCode = section.replace(/[^A-Z0-9]/gi, '').toUpperCase().substring(0, 6);
+    const username = sectionCode + String(nextNum).padStart(3, '0');
+
+    await window.db.collection('students').add({
+      teacherId,
+      section,
+      firstName: first,
+      lastName: last,
+      displayName: `${first} ${last}`,
+      username,
+      studentNumber: nextNum,
+      password: 'Student@123',
+      createdAt: new Date(),
+      updatedAt: new Date()
+    });
+
+    closeStudentModal();
+    showToast(`${first} ${last} added successfully!`);
+    loadAdminStudentsFromFirebase();
+  } catch (err) {
+    console.error(err);
+    showToast('Error: ' + err.message, 'error');
+  }
+}
+
+// ---- CSV PREVIEW ----
+function previewStudentCSV() {
+  const file = document.getElementById('s-csv-file').files[0];
+  if (!file) {
+    document.getElementById('s-csv-preview').style.display = 'none';
+    document.getElementById('s-import-btn').disabled = true;
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const lines = e.target.result.trim().split('\n').filter(l => l.trim());
+    adminCsvData = [];
+    lines.forEach(line => {
+      const [firstName, lastName] = line.split(',').map(s => s.trim());
+      if (firstName && lastName) adminCsvData.push({ firstName, lastName });
+    });
+    if (!adminCsvData.length) {
+      showToast('No valid students found in CSV.', 'error');
+      document.getElementById('s-csv-preview').style.display = 'none';
+      document.getElementById('s-import-btn').disabled = true;
+      return;
+    }
+    document.getElementById('s-preview-list').innerHTML =
+      adminCsvData.map((s, i) => `${i + 1}. ${s.firstName} ${s.lastName}`).join('<br>');
+    document.getElementById('s-preview-count').textContent = adminCsvData.length;
+    document.getElementById('s-csv-preview').style.display = '';
+    document.getElementById('s-import-btn').disabled = false;
+  };
+  reader.readAsText(file);
+}
+
+// ---- IMPORT STUDENTS FROM CSV ----
+async function importAdminStudentsFromCSV() {
+  if (!window.db) { showToast('Firebase not initialized.', 'error'); return; }
+  if (!adminCsvData.length) { showToast('Please select a CSV file first.', 'error'); return; }
+
+  const section = document.getElementById('s-csv-section').value;
+  if (!section) { showToast('Please select a section.', 'error'); return; }
+
+  const teacherId = sectionTeacherMap[section];
+  if (!teacherId) { showToast('No active teacher for that section.', 'error'); return; }
+
+  try {
+    const snap = await window.db.collection('students').where('teacherId', '==', teacherId).get();
+    const numbers = snap.docs.map(d => d.data().studentNumber || 0);
+    let nextNum = numbers.length ? Math.max(...numbers) + 1 : 1;
+    const sectionCode = section.replace(/[^A-Z0-9]/gi, '').toUpperCase().substring(0, 6);
+
+    for (const student of adminCsvData) {
+      const username = sectionCode + String(nextNum).padStart(3, '0');
+      await window.db.collection('students').add({
+        teacherId,
+        section,
+        firstName: student.firstName,
+        lastName: student.lastName,
+        displayName: `${student.firstName} ${student.lastName}`,
+        username,
+        studentNumber: nextNum,
+        password: 'Student@123',
+        createdAt: new Date(),
+        updatedAt: new Date()
+      });
+      nextNum++;
+    }
+
+    closeStudentModal();
+    showToast(`${adminCsvData.length} student(s) imported!`);
+    loadAdminStudentsFromFirebase();
+  } catch (err) {
+    console.error(err);
+    showToast('Error: ' + err.message, 'error');
+  }
+}
+
+// ---- LOAD ALL STUDENTS (REAL-TIME) ----
+function loadAdminStudentsFromFirebase() {
+  if (!window.db) return;
+  if (adminStudentsListener) adminStudentsListener();
+
+  populateSectionDropdowns();
+
+  adminStudentsListener = window.db.collection('students')
+    .orderBy('section', 'asc')
+    .orderBy('studentNumber', 'asc')
+    .onSnapshot((snapshot) => {
+      const tbody = document.getElementById('admin-student-tbody');
+      tbody.innerHTML = '';
+      snapshot.forEach(doc => {
+        const s = doc.data();
+        const row = document.createElement('tr');
+        row.setAttribute('data-student-id', doc.id);
+        row.innerHTML = `
+          <td class="td-username">${s.username}</td>
+          <td>${s.displayName}</td>
+          <td>${s.section}</td>
+          <td class="td-pass">••••••••</td>
+          <td class="td-actions">
+            <button class="btn-sm btn-reset" onclick="resetAdminStudentPassword(this)">↺ RESET</button>
+            <button class="btn-sm btn-delete" onclick="deleteAdminStudent(this)">🗑 DELETE</button>
+          </td>`;
+        tbody.appendChild(row);
+      });
+      updateAdminStudentCount();
+      filterAdminStudents(document.getElementById('admin-search')?.value || '');
+    }, err => {
+      console.error(err);
+      showToast('Error loading students: ' + err.message, 'error');
+    });
+}
+
+// ---- RESET STUDENT PASSWORD ----
+async function resetAdminStudentPassword(btn) {
+  if (!window.db) { showToast('Firebase not initialized.', 'error'); return; }
+  const row = btn.closest('tr');
+  const id = row.getAttribute('data-student-id');
+  const name = row.querySelector('td:nth-child(2)').textContent;
+  if (confirm(`Reset password for ${name} to "Student@123"?`)) {
+    try {
+      await window.db.collection('students').doc(id).update({ password: 'Student@123', updatedAt: new Date() });
+      showToast(`Password reset for ${name}.`);
+    } catch (err) { showToast('Error: ' + err.message, 'error'); }
+  }
+}
+
+// ---- DELETE STUDENT ----
+async function deleteAdminStudent(btn) {
+  if (!window.db) { showToast('Firebase not initialized.', 'error'); return; }
+  const row = btn.closest('tr');
+  const id = row.getAttribute('data-student-id');
+  const name = row.querySelector('td:nth-child(2)').textContent;
+  if (confirm(`Delete ${name}?`)) {
+    try {
+      await window.db.collection('students').doc(id).delete();
+      showToast(`${name} deleted.`);
+    } catch (err) { showToast('Error: ' + err.message, 'error'); }
+  }
+}
+
+// ---- FILTER STUDENTS ----
+function filterAdminStudents(query) {
+  const q = (query || '').toLowerCase();
+  const sectionFilter = document.getElementById('admin-section-filter')?.value || '';
+  document.querySelectorAll('#admin-student-tbody tr').forEach(row => {
+    const text = row.textContent.toLowerCase();
+    const sectionMatch = !sectionFilter || row.querySelector('td:nth-child(3)')?.textContent === sectionFilter;
+    row.style.display = (text.includes(q) && sectionMatch) ? '' : 'none';
+  });
+  updateAdminStudentCount();
+}
+
+function updateAdminStudentCount() {
+  const total = document.querySelectorAll('#admin-student-tbody tr').length;
+  const visible = document.querySelectorAll('#admin-student-tbody tr:not([style*="display: none"])').length;
+  const footer = document.getElementById('admin-student-footer');
+  if (footer) footer.textContent = `SHOWING ${visible} OF ${total} STUDENTS`;
+  const countEl = document.getElementById('admin-student-count-text');
+  if (countEl) countEl.textContent = total;
+}
