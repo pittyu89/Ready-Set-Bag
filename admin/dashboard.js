@@ -5,6 +5,40 @@
 // Global variable to track Firestore listener
 let teachersListener = null;
 
+// Store admin credentials for re-authentication after creating users
+let adminCredentials = {
+  email: sessionStorage.getItem('adminEmail') || 'admin@readysetbag.local',
+  password: sessionStorage.getItem('adminPassword') || 'Admin@123'
+};
+
+// Helper function to restore admin authentication after creating a user
+async function restoreAdminAuth() {
+  if (!adminCredentials.email || !adminCredentials.password) {
+    console.warn('Admin credentials not available:', adminCredentials);
+    return;
+  }
+
+  try {
+    // Check current user
+    const currentUser = firebase.auth().currentUser;
+
+    
+    // Check if already authenticated as admin
+    if (currentUser && currentUser.email === adminCredentials.email) {
+
+      return;
+    }
+
+
+    const result = await firebase.auth().signInWithEmailAndPassword(adminCredentials.email, adminCredentials.password);
+
+  } catch (err) {
+    console.error('Failed to restore admin auth:', err.code, err.message);
+    // Try to continue anyway - the session might still be valid
+  }
+}
+
+
 // ---- NAVIGATION ----
 function navigate(page, btn) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
@@ -129,7 +163,7 @@ function loadTeachersFromFirebase() {
         updateHomeStats();
         
         if (snapshot.size === 0) {
-          console.log('No teachers in Firestore');
+
         }
       },
       (error) => {
@@ -227,7 +261,10 @@ async function createTeacher() {
     const userCredential = await firebase.auth().createUserWithEmailAndPassword(email, password);
     const uid = userCredential.user.uid;
 
-    // 2. Create Firestore document (use Auth UID as doc ID for easy lookup)
+    // 2. Restore admin authentication
+    await restoreAdminAuth();
+
+    // 3. Create Firestore document (use Auth UID as doc ID for easy lookup)
     await window.db.collection('teachers').doc(uid).set({
       uid: uid,
       firstName: first,
@@ -239,9 +276,6 @@ async function createTeacher() {
       createdAt: new Date(),
       updatedAt: new Date()
     });
-
-    // 3. Sign back in as admin (creating a user auto-signs them in)
-    await firebase.auth().signOut();
 
     closeModal();
     clearFieldHighlights();
@@ -443,7 +477,13 @@ function showToast(msg, type = 'success') {
 // ---- INITIALIZE ON PAGE LOAD ----
 window.addEventListener('load', () => {
   initAuthGuard();
-  window.firebaseInitPromise.then(() => {
+  window.firebaseInitPromise.then(async () => {
+    // Restore admin authentication before loading data
+    await restoreAdminAuth();
+    
+    // Add small delay to ensure auth is fully restored
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
     updateHomeStats();
     loadTeachersFromFirebase();
   });
@@ -538,6 +578,16 @@ async function addSingleStudent() {
   }
 
   try {
+    // Disable listeners while creating student
+    if (adminStudentsListener) {
+      adminStudentsListener();
+      adminStudentsListener = null;
+    }
+    if (teachersListener) {
+      teachersListener();
+      teachersListener = null;
+    }
+
     const snap = await window.db.collection('students').where('teacherId', '==', teacherId).get();
     const numbers = snap.docs.map(d => d.data().studentNumber || 0);
     const nextNum = numbers.length ? Math.max(...numbers) + 1 : 1;
@@ -545,8 +595,19 @@ async function addSingleStudent() {
     // Build section code from section name (e.g. G6-Tulips → G6TULIPS)
     const sectionCode = section.replace(/[^A-Z0-9]/gi, '').toUpperCase();
     const username = sectionCode + String(nextNum).padStart(3, '0');
+    const password = 'Student@123';
+    
+    // Create Firebase Auth account for the student
+    const studentEmail = `${username}@readysetbag.local`;
+    const userCredential = await firebase.auth().createUserWithEmailAndPassword(studentEmail, password);
+    const authUid = userCredential.user.uid;
+    
+    // Restore admin authentication
+    await restoreAdminAuth();
 
+    // Create Firestore document with auth UID
     await window.db.collection('students').add({
+      authUid,
       teacherId,
       section,
       firstName: first,
@@ -554,17 +615,32 @@ async function addSingleStudent() {
       displayName: `${first} ${last}`,
       username,
       studentNumber: nextNum,
-      password: 'Student@123',
+      password: password,
       createdAt: new Date(),
       updatedAt: new Date()
     });
 
     closeStudentModal();
     showToast(`${first} ${last} added successfully!`);
+    
+    // Ensure admin is authenticated before reloading
+    await restoreAdminAuth();
+    
+    // Reload table with fresh listener to show new student immediately
     loadAdminStudentsFromFirebase();
   } catch (err) {
     console.error(err);
-    showToast('Error: ' + err.message, 'error');
+    // Ensure admin auth is restored
+    await restoreAdminAuth();
+    
+    // Reload table in case of error to maintain UI state
+    loadAdminStudentsFromFirebase();
+    
+    if (err.code === 'auth/email-already-in-use') {
+      showToast('That username is already registered.', 'error');
+    } else {
+      showToast('Error: ' + err.message, 'error');
+    }
   }
 }
 
@@ -611,34 +687,90 @@ async function importAdminStudentsFromCSV() {
   if (!teacherId) { showToast('No active teacher for that section.', 'error'); return; }
 
   try {
+    // Disable listeners while importing to prevent permission errors
+    if (adminStudentsListener) {
+      adminStudentsListener();
+      adminStudentsListener = null;
+    }
+    if (teachersListener) {
+      teachersListener();
+      teachersListener = null;
+    }
+
     const snap = await window.db.collection('students').where('teacherId', '==', teacherId).get();
     const numbers = snap.docs.map(d => d.data().studentNumber || 0);
     let nextNum = numbers.length ? Math.max(...numbers) + 1 : 1;
     const sectionCode = section.replace(/[^A-Z0-9]/gi, '').toUpperCase();
+    const password = 'Student@123';
+    let successCount = 0;
 
-    for (const student of adminCsvData) {
+    const tbody = document.getElementById('admin-student-tbody');
+    
+    for (let i = 0; i < adminCsvData.length; i++) {
+      const student = adminCsvData[i];
       const username = sectionCode + String(nextNum).padStart(3, '0');
-      await window.db.collection('students').add({
-        teacherId,
-        section,
-        firstName: student.firstName,
-        lastName: student.lastName,
-        displayName: `${student.firstName} ${student.lastName}`,
-        username,
-        studentNumber: nextNum,
-        password: 'Student@123',
-        createdAt: new Date(),
-        updatedAt: new Date()
-      });
+      
+      try {
+        // Create Firebase Auth account for the student
+        const studentEmail = `${username}@readysetbag.local`;
+        const userCredential = await firebase.auth().createUserWithEmailAndPassword(studentEmail, password);
+        const authUid = userCredential.user.uid;
+        
+        // Restore admin authentication
+        await restoreAdminAuth();
+
+        // Create Firestore document with auth UID
+        const docRef = await window.db.collection('students').add({
+          authUid,
+          teacherId,
+          section,
+          firstName: student.firstName,
+          lastName: student.lastName,
+          displayName: `${student.firstName} ${student.lastName}`,
+          username,
+          studentNumber: nextNum,
+          password: password,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        });
+        
+        // Add row to table immediately (real-time feedback)
+        const row = document.createElement('tr');
+        row.setAttribute('data-student-id', docRef.id);
+        row.innerHTML = `
+          <td class="td-username">${username}</td>
+          <td>${student.firstName} ${student.lastName}</td>
+          <td>${section}</td>
+          <td class="td-pass">••••••••</td>
+          <td class="td-actions">
+            <button class="btn-sm btn-reset" onclick="resetAdminStudentPassword(this)">↺ RESET</button>
+            <button class="btn-sm btn-delete" onclick="deleteAdminStudent(this)">🗑 DELETE</button>
+          </td>`;
+        tbody.appendChild(row);
+        
+        // Show progress
+        showToast(`Creating students... ${i + 1}/${adminCsvData.length}`, 'info');
+        successCount++;
+      } catch (err) {
+        console.error(`Error creating student ${student.firstName} ${student.lastName}:`, err);
+        // Continue with next student instead of stopping
+      }
       nextNum++;
     }
 
+    // Ensure admin is authenticated after import completes
+    await restoreAdminAuth();
+    
     closeStudentModal();
-    showToast(`${adminCsvData.length} student(s) imported!`);
+    showToast(`${successCount} of ${adminCsvData.length} student(s) imported successfully!`);
+    
+    // Now that auth is stable and all students are created, reload the table with fresh listener
     loadAdminStudentsFromFirebase();
   } catch (err) {
     console.error(err);
     showToast('Error: ' + err.message, 'error');
+    // Ensure admin auth is restored
+    await restoreAdminAuth();
   }
 }
 

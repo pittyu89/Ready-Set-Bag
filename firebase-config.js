@@ -29,15 +29,13 @@ window.firebaseInitPromise = new Promise((resolve) => {
         window.db = firebase.firestore();
         window.auth = firebase.auth();
         window.firebaseReady = true;
-        console.log('✓ Firebase initialized successfully');
-        console.log('✓ Firestore ready');
+
         resolve();
       } else if (firebase.apps && firebase.apps.length > 0) {
         window.db = firebase.firestore();
         window.auth = firebase.auth();
         window.firebaseReady = true;
-        console.log('✓ Firebase already initialized');
-        console.log('✓ Firestore ready');
+
         resolve();
       }
     } catch (error) {

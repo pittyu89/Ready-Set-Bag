@@ -182,6 +182,8 @@ async function authenticateAdmin() {
     sessionStorage.setItem('username', 'admin');
     sessionStorage.setItem('adminId', user.uid);
     sessionStorage.setItem('adminEmail', user.email);
+    // Store admin credentials for creating users in dashboard (needed for re-authentication)
+    sessionStorage.setItem('adminPassword', adminPassword);
     sessionStorage.setItem('loginTime', Date.now().toString());
 
     window.location.href = './admin/dashboard.html';

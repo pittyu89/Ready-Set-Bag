@@ -124,7 +124,7 @@ async function generateCode() {
     listenToPlayerJoins();
     applySessionState('ready');
 
-    console.log('Session created:', code, sessionRef.id);
+
   } catch (error) {
     console.error('Error creating session:', error);
     showToast('Failed to create session', 'error');
@@ -168,7 +168,7 @@ async function selectDiff(radio) {
         difficulty: difficulty,
         updatedAt: new Date()
       });
-      console.log('Difficulty updated:', difficulty);
+
     }
   } catch (error) {
     console.error('Error updating difficulty:', error);
