@@ -542,8 +542,8 @@ async function addSingleStudent() {
     const numbers = snap.docs.map(d => d.data().studentNumber || 0);
     const nextNum = numbers.length ? Math.max(...numbers) + 1 : 1;
 
-    // Build section code from section name (e.g. G6-Sampaguita → G6SAMP)
-    const sectionCode = section.replace(/[^A-Z0-9]/gi, '').toUpperCase().substring(0, 6);
+    // Build section code from section name (e.g. G6-Tulips → G6TULIPS)
+    const sectionCode = section.replace(/[^A-Z0-9]/gi, '').toUpperCase();
     const username = sectionCode + String(nextNum).padStart(3, '0');
 
     await window.db.collection('students').add({
@@ -614,7 +614,7 @@ async function importAdminStudentsFromCSV() {
     const snap = await window.db.collection('students').where('teacherId', '==', teacherId).get();
     const numbers = snap.docs.map(d => d.data().studentNumber || 0);
     let nextNum = numbers.length ? Math.max(...numbers) + 1 : 1;
-    const sectionCode = section.replace(/[^A-Z0-9]/gi, '').toUpperCase().substring(0, 6);
+    const sectionCode = section.replace(/[^A-Z0-9]/gi, '').toUpperCase();
 
     for (const student of adminCsvData) {
       const username = sectionCode + String(nextNum).padStart(3, '0');
