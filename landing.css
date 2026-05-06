@@ -1,0 +1,432 @@
+@import url('https://fonts.googleapis.com/css2?family=Jersey+25&family=Press+Start+2P&display=swap');
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --orange: #E8722A;
+    --blue: #5B8DD9;
+    --green: #7BBF5E;
+    --red: #D94F4F;
+    --yellow: #E8C84A;
+    --gray-bg: #C8C8C8;
+    --card-bg: #D0D0D0;
+    --pixel: 'Jersey 25', monospace;
+  }
+
+  body { font-family: 'Jersey 25', sans-serif; margin: 0; padding: 0; }
+
+  /* NAV — fixed/floating on both desktop and mobile */
+  .nav {
+    position: fixed;
+    top: 10px;
+    left: 10px;
+    z-index: 999;
+    display: flex;
+    align-items: flex-start;
+    background: transparent;
+    padding: 0;
+  }
+
+  .nav-bag {
+    background: #E8E8E8;
+    border: none;
+    border-radius: 0;
+    padding: 0;
+    font-size: 34px;
+    cursor: pointer;
+    line-height: 1;
+    flex-shrink: 0;
+    width: 58px;
+    height: 58px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: -2px 2px 0px rgba(0,0,0,0.2), 2px 2px 0px rgba(0,0,0,0.2);
+  }
+
+  /* Desktop layout:
+       row 1: bag + download + about
+       row 2: gameplay + items          */
+  .nav {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  .nav-top-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  /* Desktop row 2 (gameplay/items): hidden until open */
+  .nav-bottom-row {
+    display: flex;
+    flex-direction: row;
+    gap: 12px;
+  }
+
+  /* nav-links (download/about beside bag): hidden until open */
+  .nav-links {
+    display: flex;
+    flex-direction: row;
+    gap: 12px;
+  }
+
+  .nav-tab {
+    font-family: 'Jersey 25', sans-serif;
+    font-size: 26px;
+    padding: 0 26px;
+    height: 58px;
+    display: flex;
+    align-items: center;
+    border: none;
+    cursor: pointer;
+    background: #E8E8E8;
+    color: #333;
+    border-radius: 0;
+    white-space: nowrap;
+    box-shadow: -2px 2px 0px rgba(0,0,0,0.2), 2px 2px 0px rgba(0,0,0,0.2);
+  }
+
+  /* Nav tabs always in layout but invisible when closed */
+  .nav-links,
+  .nav-bottom-row {
+    overflow: visible;
+  }
+
+  /* All animatable tabs start hidden */
+  .nav-links .nav-tab,
+  .nav-bottom-row .nav-tab {
+    opacity: 0;
+    transform: translateX(-24px);
+    transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+                opacity   0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+                visibility 0s linear 0.4s;
+    visibility: hidden;
+    pointer-events: none;
+  }
+
+  /* download + about: animate when nav-links gets .open */
+  .nav-links.open .nav-tab {
+    opacity: 1;
+    transform: translateX(0);
+    visibility: visible;
+    pointer-events: auto;
+    transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+                opacity   0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+                visibility 0s linear 0s;
+  }
+  .nav-links.open .nav-tab:nth-child(2) { transition-delay: 0.08s; }
+
+  /* gameplay + items: animate when nav-bottom-row gets .open */
+  .nav-bottom-row.open .nav-tab {
+    opacity: 1;
+    transform: translateX(0);
+    visibility: visible;
+    pointer-events: auto;
+    transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+                opacity   0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+                visibility 0s linear 0s;
+  }
+  .nav-bottom-row.open .nav-tab:nth-child(2) { transition-delay: 0.08s; }
+  .nav-tab[data-section="download"] { color: #6879E5; }
+  .nav-tab[data-section="about"]    { color: #59AB3C; }
+  .nav-tab[data-section="gameplay"] { color: #CB4848; }
+  .nav-tab[data-section="items"]    { color: #E6C84D; }
+
+  /* MOBILE: nav anchored bottom-left
+     Visual layout (open):
+       [ download ] [ items    ]   ← nav-bottom-row (gameplay/items) shown above
+       [ 🎒 bag  ] [ gameplay ] [ about ]   ← nav-top-row (bag row) at bottom
+  */
+  @media (max-width: 540px) {
+    .nav {
+      top: auto;
+      bottom: 12px;
+      left: 12px;
+      flex-direction: column-reverse; /* flip: top-row at bottom, bottom-row above */
+      align-items: flex-start;
+      gap: 12px;
+    }
+    /* On mobile, nav-top-row (bag+download+about) is always visible */
+    .nav-top-row {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      gap: 12px;
+    }
+    /* On mobile, nav-bottom-row (gameplay+items) sits above when open */
+    .nav-bottom-row {
+      display: flex;
+      flex-direction: row;
+      gap: 12px;
+    }
+    .nav-links {
+      display: flex;
+      flex-direction: row;
+      gap: 12px;
+    }
+    .nav-bag {
+      font-size: 36px;
+      padding: 0;
+      width: 62px;
+      height: 62px;
+      box-shadow: -2px 2px 0px rgba(0,0,0,0.2), 2px 2px 0px rgba(0,0,0,0.2);
+    }
+    .nav-tab {
+      border-radius: 0;
+      box-shadow: -2px 2px 0px rgba(0,0,0,0.2), 2px 2px 0px rgba(0,0,0,0.2);
+      font-size: 22px;
+      padding: 0 20px;
+      height: 62px;
+    }
+  }
+
+  /* EQUAL HEIGHT SECTIONS */
+  .hero,
+  .section-blue,
+  .section-green,
+  .section-red,
+  .section-yellow {
+    min-height: 100vh;
+    box-sizing: border-box;
+  }
+
+  /* HERO */
+  .hero {
+    background: #E8E8E8;
+    padding: 40px 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 60px;
+    position: relative;
+  }
+  .hero-left {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .hero-left svg {
+    width: clamp(260px, 35vw, 520px);
+    height: auto;
+  }
+  .hero-tagline {
+    font-family: var(--pixel);
+    font-size: clamp(14px, 1.8vw, 28px);
+    color: #FFFFFF;
+    text-align: right;
+    line-height: 2;
+    white-space: nowrap;
+    text-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+    margin-left: auto;
+  }
+
+  /* BLUE */
+  .section-blue { background: var(--blue); padding: clamp(16px, 2.5vw, 40px); display: flex; flex-direction: column; }
+  .card { background: #E8E8E8; border-radius: 16px; padding: clamp(16px, 2vw, 32px); flex: 1; display: flex; flex-direction: column; }
+  .trailer-box {
+    background: transparent;
+    border-radius: 12px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: clamp(12px, 1.5vw, 24px);
+    font-family: var(--pixel);
+    font-size: clamp(14px, 1.5vw, 24px);
+    color: #666;
+    gap: clamp(12px, 1.5vw, 24px);
+  }
+  .btn-download {
+    display: block;
+    margin: 0 auto;
+    background: #5B8DD9;
+    color: #fff;
+    border: none;
+    padding: clamp(14px, 1.6vw, 24px) clamp(40px, 4vw, 70px);
+    font-family: 'Jersey 25', sans-serif;
+    font-size: clamp(18px, 2vw, 32px);
+    border-radius: 10px;
+    cursor: pointer;
+  }
+
+  /* GREEN */
+  .section-green { background: var(--green); padding: clamp(16px, 2.5vw, 40px); display: flex; flex-direction: column; }
+  .about-card { background: #E8E8E8; border-radius: 16px; padding: clamp(20px, 2.5vw, 48px); flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+  .about-card h2 {
+    font-family: 'Jersey 25', sans-serif;
+    font-size: clamp(22px, 3vw, 48px);
+    color: var(--green);
+    margin-bottom: clamp(10px, 1.2vw, 22px);
+    flex-shrink: 0;
+  }
+  .about-card p { font-family: 'Jersey 25', sans-serif; font-size: clamp(14px, 1.4vw, 22px); color: #333; line-height: 1.7; overflow-y: auto; flex: 1; }
+
+  /* RED */
+  .section-red { background: var(--red); padding: clamp(16px, 2.5vw, 40px); display: flex; flex-direction: column; }
+  .gameplay-grid {
+    display: grid;
+    grid-template-columns: 0.25fr 0.5fr 0.25fr;
+    gap: clamp(10px, 1.2vw, 20px);
+    flex: 1;
+  }
+  .gameplay-left {
+    display: flex;
+    flex-direction: column;
+    gap: clamp(8px, 1vw, 16px);
+    align-items: center;
+    flex: 1;
+  }
+  .gameplay-label {
+    font-family: 'Jersey 25', sans-serif;
+    font-size: clamp(18px, 2vw, 32px);
+    color: #fff;
+    background: #E8E8E8;
+    color: var(--red);
+    width: 100%;
+    text-align: center;
+    padding: clamp(8px, 1vw, 14px) 0;
+    border-radius: 10px;
+    flex-shrink: 0;
+  }
+  .character-container {
+    display: flex;
+    flex-direction: column;
+    gap: clamp(8px, 1vw, 16px);
+    align-items: center;
+    flex: 1;
+    width: 100%;
+    background: #E8E8E8;
+    padding: clamp(8px, 1vw, 16px);
+    border-radius: 10px;
+  }
+  .char-thumb { background: #BEBEBE; border-radius: 12px; width: 100%; aspect-ratio: 1; flex: 1; }
+  .char-label { font-family: 'Jersey 25', sans-serif; font-size: clamp(14px, 1.4vw, 22px); color: #D94F4F; text-align: center; }
+  .gameplay-right { display: flex; flex-direction: column; gap: clamp(8px, 1vw, 16px); }
+  .movement-card {
+    background: #E8E8E8;
+    border-radius: 12px;
+    padding: clamp(12px, 1.4vw, 22px) clamp(16px, 1.8vw, 28px);
+    font-family: 'Jersey 25', sans-serif;
+    font-size: clamp(16px, 1.6vw, 26px);
+    color: #D94F4F;
+    flex: 1;
+  }
+  .gameplay-areas {
+    display: flex;
+    flex-direction: column;
+    gap: clamp(8px, 1vw, 16px);
+    flex: 2;
+  }
+  .area-card {
+    background: #E8E8E8;
+    border-radius: 12px;
+    font-family: 'Jersey 25', sans-serif;
+    font-size: clamp(16px, 1.6vw, 26px);
+    color: var(--red);
+    text-align: center;
+    line-height: 1.4;
+    cursor: pointer;
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* YELLOW */
+  .section-yellow { background: var(--yellow); padding: clamp(16px, 2.5vw, 40px); display: flex; flex-direction: column; }
+  .items-grid-layout { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(10px, 1.2vw, 20px); flex: 1; }
+  .items-grid-card { background: transparent; border-radius: 16px; display: flex; flex-direction: column; gap: clamp(20px, 2vw, 32px); }
+  .items-grid-title {
+    font-family: 'Jersey 25', sans-serif;
+    font-size: clamp(16px, 1.6vw, 26px);
+    color: #E8C84A;
+    text-align: center;
+    background: #E8E8E8;
+    border-radius: 8px;
+    padding: clamp(4px, 0.6vw, 10px) 0;
+    flex-shrink: 0;
+  }
+  .items-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: clamp(6px, 0.7vw, 12px); flex: 1; align-content: start; }
+  .item-cell { background: #fff; border-radius: 10px; aspect-ratio: 1; box-shadow: inset 0 2px 4px rgba(0,0,0,0.15); }
+  .item-detail-card {
+    background: #FFFFFF;
+    border-radius: 16px;
+    padding: clamp(12px, 1.4vw, 24px);
+    display: flex;
+    flex-direction: column;
+    gap: clamp(8px, 1vw, 16px);
+    box-shadow: inset 0 3px 8px rgba(0,0,0,0.15);
+  }
+  .item-preview { background: #bbb; border-radius: 10px; flex: 0.5; }
+  .item-name { font-family: 'Jersey 25', sans-serif; font-size: clamp(16px, 1.6vw, 26px); color: #555; }
+  .item-meta { font-family: 'Jersey 25', sans-serif; font-size: clamp(13px, 1.3vw, 20px); color: #888; }
+
+  /* MOBILE */
+  @media (max-width: 540px) {
+    .hero { flex-direction: column; align-items: center; height: auto; min-height: 100vh; }
+    .hero-tagline { 
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      text-align: right;
+      white-space: normal;
+    }
+    .gameplay-grid {
+      display: grid;
+      grid-template-columns: 0.4fr 0.6fr;
+      gap: clamp(10px, 1.2vw, 20px);
+    }
+    .gameplay-left {
+      display: flex;
+      flex-direction: column;
+      gap: clamp(8px, 1vw, 16px);
+      align-items: center;
+      grid-column: 1;
+      grid-row: 1;
+      flex: 1;
+    }
+    .gameplay-areas {
+      grid-column: 2;
+      grid-row: 1;
+      display: flex;
+      flex-direction: column;
+      gap: clamp(8px, 1vw, 16px);
+      flex: 1;
+    }
+    .movement-card {
+      grid-column: 1 / -1;
+      grid-row: 2;
+    }
+    .items-grid-layout { 
+      display: grid; 
+      grid-template-columns: 1fr;
+      grid-template-rows: auto auto auto auto;
+      gap: clamp(12px, 1.5vw, 20px);
+    }
+    .items-grid-card { 
+      display: contents;
+    }
+    .items-grid-title { 
+      grid-row: 1;
+      text-align: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .items-grid { 
+      grid-row: 4;
+    }
+    .item-detail-card { 
+      display: grid;
+      grid-template-columns: 1fr;
+      grid-template-rows: auto auto;
+      gap: clamp(12px, 1.5vw, 20px);
+      grid-row: 2 / 4;
+    }
+    .nav-bag img {
+      width: 70% !important;
+      height: 70% !important;
+    }
+  }

@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>READY-SET-BAG!!</title>
+  <link rel="stylesheet" href="landing.css">
+</head>
+<body>
+
+  <nav class="nav" id="main-nav">
+    <!-- Desktop row 1 / Mobile row 2: bag + download + about -->
+    <div class="nav-top-row" id="nav-top-row">
+      <button class="nav-bag" id="nav-toggle" aria-label="Toggle navigation"><img src="images/GoBagIcon.png" alt="Bag" style="width: 70%; height: 70%; object-fit: contain;"></button>
+      <div class="nav-links" id="nav-links">
+        <button class="nav-tab active" data-section="download">download</button>
+        <button class="nav-tab" data-section="about">about</button>
+      </div>
+    </div>
+    <!-- Desktop row 2 / Mobile row 1: gameplay + items -->
+    <div class="nav-bottom-row" id="nav-bottom-row">
+      <button class="nav-tab" data-section="gameplay">gameplay</button>
+      <button class="nav-tab" data-section="items">items</button>
+    </div>
+  </nav>
+
+  <section class="hero" id="sec-hero">
+    <div class="hero-left">
+    </div>
+    <div class="hero-tagline">Think Fast.<br>Pack Smart.<br>Stay Safe.</div>
+  </section>
+
+  <section class="section-blue" id="sec-download">
+    <div class="card">
+      <div class="trailer-box">
+        trailer
+        <button class="btn-download">download</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="section-green" id="sec-about">
+    <div class="about-card">
+      <h2>about</h2>
+      <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer maximus imperdiet lacus et egestas. Curabitur sit amet gravida ante. Class aptent taciti sociosqu ad litora torquent per conubia nostra, per inceptos himenaeos. Cras quis tellus et dui auctor aliquam eu in justo. Class aptent taciti sociosqu ad litora torquent per conubia nostra, per inceptos himenaeos. Nullam quis sem vitae dui rutrum tristique in vel lorem. Duis dapibus ante eu sem feugiat, quis tempus ante euismod. Sed congue sed ante a scelerisque. Mauris sit amet tincidunt sapien. In cursus lorem nec massa fringilla, sit amet sagittis neque sodales.<br><br>
+      Quisque imperdiet ante ac mollis mattis. Praesent maximus faucibus enim vel interdum. Donec sit amet sem lacus. Duis a consectetur ex. Maecenas sit amet hendrerit lacus. Duis rutrum quam vitae mauris vulputate lacinia. Ut mi felis, mattis non volutpat quis, vestibulum non justo. Praesent tristique egestas urna non auctor. Praesent vestibulum consectetur mauris, eu vehicula risus efficitur vel. Curabitur tortor velit, accumsan quis feugiat nec, cursus et massa. Aenean ullamcorper sollicitudin neque, ac finibus mi</p>
+    </div>
+  </section>
+
+  <section class="section-red" id="sec-gameplay">
+    <div class="gameplay-grid">
+      <div class="gameplay-left">
+        <div class="gameplay-label">gameplay</div>
+        <div class="character-container">
+          <div class="char-thumb"></div>
+          <div class="char-thumb"></div>
+          <div class="char-label">characters</div>
+        </div>
+      </div>
+      <div class="movement-card">MOVEMENT GAMEPLAY</div>
+      <div class="gameplay-areas">
+        <div class="area-card">AREA 1</div>
+        <div class="area-card">RENDER OF<br>MAP 360</div>
+        <div class="area-card">AREA 2</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section-yellow" id="sec-items">
+    <div class="items-grid-layout">
+      <div class="items-grid-card">
+        <div class="items-grid-title">items</div>
+        <div class="items-grid">
+          <div class="item-cell"></div><div class="item-cell"></div><div class="item-cell"></div><div class="item-cell"></div>
+          <div class="item-cell"></div><div class="item-cell"></div><div class="item-cell"></div><div class="item-cell"></div>
+          <div class="item-cell"></div><div class="item-cell"></div><div class="item-cell"></div><div class="item-cell"></div>
+          <div class="item-cell"></div><div class="item-cell"></div><div class="item-cell"></div><div class="item-cell"></div>
+          <div class="item-cell"></div><div class="item-cell"></div><div class="item-cell"></div><div class="item-cell"></div>
+          <div class="item-cell"></div><div class="item-cell"></div><div class="item-cell"></div><div class="item-cell"></div>
+          <div class="item-cell"></div><div class="item-cell"></div><div class="item-cell"></div><div class="item-cell"></div>
+          <div class="item-cell"></div><div class="item-cell"></div>
+        </div>
+      </div>
+      <div class="item-detail-card">
+        <div class="item-preview"></div>
+        <div>
+          <div class="item-name">item name</div>
+          <div class="item-meta">weight</div>
+          <div class="item-meta">level of importance</div>
+        </div>
+      </div>
+    </div>
+  </section>
+  <script src="landing.js"></script>
+</body>
+</html>
