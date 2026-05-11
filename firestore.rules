@@ -1,0 +1,42 @@
+// Firestore security rules - admins collection pattern
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // helper functions
+    function isAuthenticated() { return request.auth != null; }
+    function isAdmin() { return isAuthenticated() && exists(/databases/$(database)/documents/admins/$(request.auth.uid)); }
+
+    // TEACHERS: admins create/delete; teacher can update own doc; everyone authenticated can read
+    match /teachers/{teacherId} {
+      allow read: if isAuthenticated();
+      allow create: if isAdmin();
+      allow delete: if isAdmin();
+      allow update: if isAdmin() || (isAuthenticated() && request.auth.uid == teacherId);
+    }
+
+    // STUDENTS: admins or the teacher assigned in the document can create/update/delete
+    match /students/{studentId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && (isAdmin() || request.auth.uid == request.resource.data.teacherId);
+      allow update: if isAuthenticated() && (isAdmin() || request.auth.uid == resource.data.teacherId || request.auth.uid == resource.data.authUid);
+      allow delete: if isAuthenticated() && (isAdmin() || request.auth.uid == resource.data.teacherId);
+    }
+
+    // SESSIONS: only authenticated users can read; create/update allowed to owner teacher or admins; delete only admins
+    match /sessions/{sessionId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && (isAdmin() || request.auth.uid == request.resource.data.teacherId);
+      allow update: if isAuthenticated() && (isAdmin() || request.auth.uid == resource.data.teacherId);
+      allow delete: if isAdmin();
+    }
+
+    // Admins collection (readable only by admins)
+    match /admins/{adminId} {
+      allow read: if isAdmin();
+      allow create: if isAdmin();
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+  }
+}
