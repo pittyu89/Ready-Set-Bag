@@ -1145,9 +1145,19 @@ function loadAdminRecentActivity() {
       }
 
       // Render each session with teacher name/section when available
-      snapshot.forEach((doc) => {
-        const session = doc.data();
-        const date = session.createdAt ? new Date(session.createdAt.toDate()).toLocaleDateString('en-US', {month: 'short', day: 'numeric'}) : 'Unknown';
+      const recentSessions = snapshot.docs
+        .map((doc) => ({ id: doc.id, data: doc.data() }))
+        .filter((entry) => entry.data.startedAt || entry.data.status === 'active' || entry.data.endedAt)
+        .sort((left, right) => {
+          const leftTime = left.data.startedAt?.toDate?.() || left.data.updatedAt?.toDate?.() || left.data.createdAt?.toDate?.() || new Date(0);
+          const rightTime = right.data.startedAt?.toDate?.() || right.data.updatedAt?.toDate?.() || right.data.createdAt?.toDate?.() || new Date(0);
+          return rightTime - leftTime;
+        });
+
+      recentSessions.forEach((entry) => {
+        const session = entry.data;
+        const dateSource = session.startedAt || session.updatedAt || session.createdAt;
+        const date = dateSource ? new Date(dateSource.toDate()).toLocaleDateString('en-US', {month: 'short', day: 'numeric'}) : 'Unknown';
         const difficulty = session.difficulty || 'Unknown';
         const playerCount = session.playersList ? session.playersList.length : 0;
         const statusLabel = session.status === 'active' || session.startedAt ? 'Started' : 'Created';

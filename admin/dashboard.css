@@ -1053,17 +1053,23 @@ tbody td {
   .layout {
     flex-direction: column;
     overflow: hidden;
+    min-height: 0;
   }
   .sidebar {
     order: 2;
     flex-shrink: 0;
-    width: 100%; height: auto; min-height: 50px;
+    width: 100%; height: 52px; min-height: 52px;
     flex-direction: row; border-right: none; border-top: 1px solid #000;
-    padding: 6px; overflow-x: auto; display: flex; align-items: center;
+    padding: 6px 8px; overflow-x: hidden; display: flex; align-items: center;
     gap: 4px;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 300;
   }
   .sidebar-user { display: none; }
-  .sidebar-nav { flex: 1; padding: 0; display: flex; flex-direction: row; gap: 4px; }
+  .sidebar-nav { flex: 1; padding: 0; display: flex; flex-direction: row; gap: 4px; min-width: 0; }
   .nav-item {
     display: flex; align-items: center; justify-content: center;
     gap: 4px; padding: 8px 6px; font-family: var(--pixel);
@@ -1079,17 +1085,24 @@ tbody td {
   .main {
     flex: 1;
     min-height: 0;
-    padding: 16px 14px 24px;
+    padding: 16px 14px 76px;
     overflow-y: auto;
+    overflow-x: hidden;
   }
-  /* prevent grid children from stretching to full viewport height */
-  .home-bottom { align-items: start; }
-  .home-bottom > * { align-self: start; }
-
-  /* When stacked on small devices, make the two home-bottom panels each take ~50vh
-     so the right 'wrench/table' area sits below the login/content like on phones */
-  .home-bottom { grid-template-columns: 1fr; }
-  .home-bottom > * { min-height: 50vh; }
+  .home-bottom {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .home-bottom > * {
+    width: 100%;
+    min-height: 0;
+  }
+  /* ensure tables adapt on narrow screens and wrap long content */
+  table { width: 100%; table-layout: fixed; }
+  thead th, tbody td { word-break: break-word; white-space: normal; }
+  /* avoid horizontal overflow on very small screens */
+  body { overflow-x: hidden; }
   .page-header { gap: 8px; margin-bottom: 16px; }
   .page-header h1 { font-size: 12px; letter-spacing: 1px; }
   .page-header svg { width: 18px; height: 18px; }
@@ -1106,7 +1119,7 @@ tbody td {
   .stat-value { font-size: 24px; margin-bottom: 4px; }
   .stat-sub { font-size: 10px; }
   
-  .home-bottom { grid-template-columns: 1fr; gap: 10px; }
+  .home-bottom { display: flex; flex-direction: column; gap: 10px; }
   .panel { padding: 16px; box-shadow: 2px 2px 0px #000; border: 2px solid #4D4D4D; }
   .panel-title { font-size: 7px; margin-bottom: 14px; }
   
@@ -1204,7 +1217,7 @@ tbody td {
   .topbar-title { font-size: 6px; padding-left: 8px; }
   .topbar-avatar { width: 24px; height: 24px; font-size: 7px; }
   
-  .sidebar { min-height: 48px; padding: 4px 2px; gap: 2px; }
+  .sidebar { min-height: 48px; height: 48px; padding: 4px 2px; gap: 2px; }
   .sidebar-nav { gap: 2px; }
   .nav-item { font-size: 6px; padding: 6px 3px; min-width: 40px; gap: 2px; }
   .nav-item svg { width: 10px; height: 10px; }
@@ -1238,7 +1251,7 @@ tbody td {
 
 /* ULTRA SMALL MOBILE (≤320px) */
 @media (max-width: 320px) {
-  .sidebar { min-height: 46px; padding: 3px 1px; gap: 1px; }
+  .sidebar { min-height: 46px; height: 46px; padding: 3px 1px; gap: 1px; }
   .sidebar-nav { gap: 1px; }
   .nav-item { font-size: 5px; padding: 5px 2px; min-width: 35px; gap: 1px; }
   .nav-item svg { width: 8px; height: 8px; }
