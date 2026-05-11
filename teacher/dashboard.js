@@ -5,6 +5,7 @@
 // Global variables
 let teacherId = null;
 let teacherSection = null;
+let teacherRecentActivityListener = null;
 
 // Load teacher info on page load
 window.addEventListener('load', () => {
@@ -138,34 +139,117 @@ function loadTeacherRecentActivity() {
   
   const container = document.getElementById('teacher-recent-activity');
   if (!container) return;
+
+  if (teacherRecentActivityListener) {
+    teacherRecentActivityListener();
+    teacherRecentActivityListener = null;
+  }
   
   // Listen to sessions collection for this teacher
-  window.db.collection('sessions')
+  teacherRecentActivityListener = window.db.collection('sessions')
     .where('teacherId', '==', teacherId)
     .orderBy('createdAt', 'desc')
     .limit(5)
     .onSnapshot((snapshot) => {
       container.innerHTML = '';
       
-      if (snapshot.empty) {
+      const rows = snapshot.docs
+        .map(doc => ({ id: doc.id, data: doc.data() }))
+        .filter(entry => entry.data.startedAt || entry.data.status === 'active' || entry.data.endedAt);
+
+      if (!rows.length) {
         container.innerHTML = '<div class="activity-item"><div class="activity-desc">No recent activity</div></div>';
         return;
       }
       
-      snapshot.forEach((doc) => {
-        const session = doc.data();
+      rows.forEach((entry) => {
+        const session = entry.data;
         const date = session.createdAt ? new Date(session.createdAt.toDate()).toLocaleDateString('en-US', {month: 'short', day: 'numeric'}) : 'Unknown';
         const difficulty = session.difficulty || 'Unknown';
         const playerCount = session.playersList ? session.playersList.length : 0;
+        const statusLabel = session.status === 'active' || session.startedAt ? 'Started' : 'Created';
         
         const activityDiv = document.createElement('div');
         activityDiv.className = 'activity-item';
         activityDiv.innerHTML = `
           <div class="activity-date">${date}</div>
-          <div class="activity-teacher">${difficulty.charAt(0).toUpperCase() + difficulty.slice(1)} Session</div>
-          <div class="activity-desc">Session Code: ${session.sessionCode}<br>(${playerCount} students)</div>
+          <div class="activity-teacher">${statusLabel} ${difficulty.charAt(0).toUpperCase() + difficulty.slice(1)} Session</div>
+          <div class="activity-desc">Section: ${teacherSection || 'Unknown'}<br>Session Code: ${session.sessionCode}<br>${playerCount} students</div>
         `;
         container.appendChild(activityDiv);
       });
     });
+}
+
+// ---- CSV EXPORT HELPERS ----
+function downloadCsv(filename, csv) {
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function formatCsvValue(value) {
+  return '"' + String(value ?? '').replace(/"/g, '""') + '"';
+}
+
+function formatDateValue(value) {
+  if (!value) return '';
+  if (value.toDate) return value.toDate().toISOString();
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? '' : parsed.toISOString();
+}
+
+async function exportTeacherSessionResultsCsv() {
+  if (!window.db || !teacherId) {
+    showToast('Firebase not initialized.', 'error');
+    return;
+  }
+
+  try {
+    const snap = await window.db.collection('sessionResults')
+      .where('teacherId', '==', teacherId)
+      .orderBy('createdAt', 'desc')
+      .get();
+
+    const rows = [[
+      'id', 'sessionId', 'sessionCode', 'teacherId', 'studentId', 'studentName', 'section',
+      'score', 'completionTime', 'attempts', 'stage', 'essentials', 'essentialsMax', 'errors',
+      'difficulty', 'createdAt', 'updatedAt'
+    ].join(',')];
+
+    snap.forEach(doc => {
+      const result = doc.data();
+      rows.push([
+        formatCsvValue(doc.id),
+        formatCsvValue(result.sessionId || ''),
+        formatCsvValue(result.sessionCode || ''),
+        formatCsvValue(result.teacherId || teacherId || ''),
+        formatCsvValue(result.studentId || ''),
+        formatCsvValue(result.studentName || ''),
+        formatCsvValue(result.section || teacherSection || ''),
+        formatCsvValue(result.score || 0),
+        formatCsvValue(result.completionTime || 0),
+        formatCsvValue(result.attempts || 0),
+        formatCsvValue(result.stage || ''),
+        formatCsvValue(result.essentials || 0),
+        formatCsvValue(result.essentialsMax || 0),
+        formatCsvValue(result.errors || 0),
+        formatCsvValue(result.difficulty || ''),
+        formatCsvValue(formatDateValue(result.createdAt)),
+        formatCsvValue(formatDateValue(result.updatedAt))
+      ].join(','));
+    });
+
+    downloadCsv('teacher-session-results.csv', rows.join('\n'));
+    showToast('Teacher CSV exported.');
+  } catch (err) {
+    console.error('Export teacher CSV failed', err);
+    showToast('Error exporting CSV: ' + err.message, 'error');
+  }
 }

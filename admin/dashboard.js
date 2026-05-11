@@ -4,6 +4,7 @@
 
 // Global variable to track Firestore listener
 let teachersListener = null;
+let adminRecentActivityListener = null;
 
 // Store admin credentials for re-authentication after creating users
 let adminCredentials = {
@@ -891,6 +892,26 @@ async function exportAdminStudentsCsv() {
   }
 }
 
+async function exportAdminSessionResultsCsv() {
+  if (!window.db) { showToast('Firebase not initialized.', 'error'); return; }
+  try {
+    const snap = await window.db.collection('sessionResults').orderBy('createdAt', 'desc').get();
+    const rows = [];
+    rows.push(['id','sessionId','sessionCode','teacherId','studentId','studentName','section','score','completionTime','attempts','stage','essentials','essentialsMax','errors','difficulty','createdAt','updatedAt'].join(','));
+    snap.forEach(doc => {
+      const r = doc.data();
+      const created = r.createdAt && r.createdAt.toDate ? r.createdAt.toDate().toISOString() : (r.createdAt ? new Date(r.createdAt).toISOString() : '');
+      const updated = r.updatedAt && r.updatedAt.toDate ? r.updatedAt.toDate().toISOString() : (r.updatedAt ? new Date(r.updatedAt).toISOString() : '');
+      rows.push([doc.id, r.sessionId || '', r.sessionCode || '', r.teacherId || '', r.studentId || '', r.studentName || '', r.section || '', r.score || 0, r.completionTime || 0, r.attempts || 0, r.stage || '', r.essentials || 0, r.essentialsMax || 0, r.errors || 0, r.difficulty || '', created, updated].map(v => '"' + String(v).replace(/"/g,'""') + '"').join(','));
+    });
+    downloadCsv('session-results.csv', rows.join('\n'));
+    showToast('Session results CSV exported.');
+  } catch (err) {
+    console.error('Export session results failed', err);
+    showToast('Error exporting session results: ' + err.message, 'error');
+  }
+}
+
 // ---- LOAD ALL STUDENTS (REAL-TIME) ----
 function loadAdminStudentsFromFirebase() {
   if (!window.db) return;
@@ -1082,9 +1103,14 @@ function loadAdminRecentActivity() {
   
   const container = document.getElementById('admin-recent-activity');
   if (!container) return;
+
+  if (adminRecentActivityListener) {
+    adminRecentActivityListener();
+    adminRecentActivityListener = null;
+  }
   
   // Listen to sessions collection for recent activity
-  window.db.collection('sessions')
+  adminRecentActivityListener = window.db.collection('sessions')
     .orderBy('createdAt', 'desc')
     .limit(5)
     .onSnapshot(async (snapshot) => {
@@ -1115,6 +1141,7 @@ function loadAdminRecentActivity() {
         const date = session.createdAt ? new Date(session.createdAt.toDate()).toLocaleDateString('en-US', {month: 'short', day: 'numeric'}) : 'Unknown';
         const difficulty = session.difficulty || 'Unknown';
         const playerCount = session.playersList ? session.playersList.length : 0;
+        const statusLabel = session.status === 'active' || session.startedAt ? 'Started' : 'Created';
         const teacher = teacherMap[session.teacherId] || null;
         const teacherLabel = teacher ? (`Teacher ${teacher.lastName || teacher.firstName || session.teacherId}`) : (session.teacherId || 'Unknown Teacher');
         const sectionLabel = teacher && teacher.section ? ` – ${teacher.section}` : '';
@@ -1124,7 +1151,7 @@ function loadAdminRecentActivity() {
         activityDiv.innerHTML = `
           <div class="activity-date">${date}</div>
           <div class="activity-teacher">${teacherLabel}${sectionLabel}</div>
-          <div class="activity-desc">${difficulty.charAt(0).toUpperCase() + difficulty.slice(1)} Session<br>Code: ${session.sessionCode} (${playerCount} students)</div>
+          <div class="activity-desc">${statusLabel} ${difficulty.charAt(0).toUpperCase() + difficulty.slice(1)} Session<br>Code: ${session.sessionCode} (${playerCount} students)</div>
         `;
         container.appendChild(activityDiv);
       });
