@@ -3,7 +3,7 @@
   "name": "Ready-Set-Bag",
   "buildCommand": "npm run build || true",
   "framework": "static",
-  "public": ".",
+  "public": true,
   "routes": [
     {
       "src": "/(.*)",
