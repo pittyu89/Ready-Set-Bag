@@ -38,6 +38,26 @@ async function restoreAdminAuth() {
   }
 }
 
+async function getDocumentData(collectionName, documentId) {
+  const snapshot = await window.db.collection(collectionName).doc(documentId).get();
+
+  if (!snapshot.exists) {
+    throw new Error('Record not found.');
+  }
+
+  return snapshot.data();
+}
+
+async function withSignedInAccount(email, password, action) {
+  await firebase.auth().signInWithEmailAndPassword(email, password);
+
+  try {
+    return await action(firebase.auth().currentUser);
+  } finally {
+    await restoreAdminAuth();
+  }
+}
+
 
 // ---- NAVIGATION ----
 function navigate(page, btn) {
@@ -322,6 +342,7 @@ async function updateTeacher(teacherId, btn) {
   const last = document.getElementById('input-last').value.trim();
   const email = document.getElementById('input-email').value.trim();
   const section = document.getElementById('input-section').value;
+  const newPassword = document.getElementById('input-pass').value.trim();
 
   // NEG-2.3: Highlight empty fields and block submission
   const emptyFields = [];
@@ -337,12 +358,29 @@ async function updateTeacher(teacherId, btn) {
   }
 
   try {
-    // Update Firestore document
+    const teacherData = await getDocumentData('teachers', teacherId);
+
+    if (!teacherData.email || !teacherData.password) {
+      throw new Error('Teacher credentials are missing.');
+    }
+
+    await withSignedInAccount(teacherData.email, teacherData.password, async (currentUser) => {
+      if (email !== teacherData.email) {
+        await currentUser.updateEmail(email);
+      }
+
+      if (newPassword) {
+        await currentUser.updatePassword(newPassword);
+      }
+    });
+
+    // Keep Firestore aligned with Auth so login continues to work after edits
     await window.db.collection('teachers').doc(teacherId).update({
       firstName: first,
       lastName: last,
       email: email,
       section: section,
+      ...(newPassword ? { password: newPassword, passwordResetPending: false } : {}),
       updatedAt: new Date()
     });
 
@@ -366,10 +404,17 @@ async function resetPassword(btn) {
 
   if (confirm(`Reset password for ${name} to "${newPassword}"?`)) {
     try {
-      // 1. Update Firebase Auth password via Admin-style reset
-      //    (client SDK can't change OTHER users' passwords, so we store
-      //     it in Firestore and handle it at next login)
-      await db.collection('teachers').doc(teacherId).update({
+      const teacherData = await getDocumentData('teachers', teacherId);
+
+      if (!teacherData.email || !teacherData.password) {
+        throw new Error('Teacher credentials are missing.');
+      }
+
+      await withSignedInAccount(teacherData.email, teacherData.password, async (currentUser) => {
+        await currentUser.updatePassword(newPassword);
+      });
+
+      await window.db.collection('teachers').doc(teacherId).update({
         password: newPassword,
         passwordResetPending: true,
         updatedAt: new Date()
@@ -429,7 +474,17 @@ async function confirmDelete(btn) {
   
   if (confirm(`Delete ${name}?`)) {
     try {
-      // Delete from Firestore
+      const teacherData = await getDocumentData('teachers', teacherId);
+
+      if (!teacherData.email || !teacherData.password) {
+        throw new Error('Teacher credentials are missing.');
+      }
+
+      await withSignedInAccount(teacherData.email, teacherData.password, async (currentUser) => {
+        await currentUser.delete();
+      });
+
+      // Remove the synced Firestore profile after deleting the Auth account
       await window.db.collection('teachers').doc(teacherId).delete();
       
       // The real-time listener will automatically remove the row from the table
@@ -486,6 +541,15 @@ window.addEventListener('load', () => {
     
     updateHomeStats();
     loadTeachersFromFirebase();
+    loadTotalSessionsCount();
+    
+    // Load analytics when reports page is viewed
+    document.addEventListener('click', (e) => {
+      if (e.target.closest('.nav-item') && e.target.closest('.nav-item').textContent.includes('REPORTS')) {
+        loadAdminRecentActivity();
+        flagBelowThresholdSections();
+      }
+    });
   });
 });
 /* ============================================================================
@@ -818,6 +882,18 @@ async function resetAdminStudentPassword(btn) {
   const name = row.querySelector('td:nth-child(2)').textContent;
   if (confirm(`Reset password for ${name} to "Student@123"?`)) {
     try {
+      const studentData = await getDocumentData('students', id);
+
+      if (!studentData.username || !studentData.password) {
+        throw new Error('Student credentials are missing.');
+      }
+
+      const studentEmail = `${studentData.username}@readysetbag.local`;
+
+      await withSignedInAccount(studentEmail, studentData.password, async (currentUser) => {
+        await currentUser.updatePassword('Student@123');
+      });
+
       await window.db.collection('students').doc(id).update({ password: 'Student@123', updatedAt: new Date() });
       showToast(`Password reset for ${name}.`);
     } catch (err) { showToast('Error: ' + err.message, 'error'); }
@@ -832,6 +908,18 @@ async function deleteAdminStudent(btn) {
   const name = row.querySelector('td:nth-child(2)').textContent;
   if (confirm(`Delete ${name}?`)) {
     try {
+      const studentData = await getDocumentData('students', id);
+
+      if (!studentData.username || !studentData.password) {
+        throw new Error('Student credentials are missing.');
+      }
+
+      const studentEmail = `${studentData.username}@readysetbag.local`;
+
+      await withSignedInAccount(studentEmail, studentData.password, async (currentUser) => {
+        await currentUser.delete();
+      });
+
       await window.db.collection('students').doc(id).delete();
       showToast(`${name} deleted.`);
     } catch (err) { showToast('Error: ' + err.message, 'error'); }
@@ -857,4 +945,118 @@ function updateAdminStudentCount() {
   if (footer) footer.textContent = `SHOWING ${visible} OF ${total} STUDENTS`;
   const countEl = document.getElementById('admin-student-count-text');
   if (countEl) countEl.textContent = total;
+}
+
+/* ============================================================================
+   ADMIN ANALYTICS & REPORTING
+   ============================================================================ */
+
+// ---- LOAD TOTAL SESSIONS COUNT ----
+function loadTotalSessionsCount() {
+  if (!window.firebaseReady) {
+    window.firebaseInitPromise.then(() => loadTotalSessionsCount());
+    return;
+  }
+  
+  if (!window.db) return;
+  
+  window.db.collection('sessions').onSnapshot((snapshot) => {
+    const count = snapshot.size;
+    const element = document.getElementById('total-sessions-count');
+    if (element) {
+      element.textContent = count;
+    }
+  });
+}
+
+// ---- FLAG BELOW-70% SECTIONS ----
+function flagBelowThresholdSections() {
+  if (!window.firebaseReady) {
+    window.firebaseInitPromise.then(() => flagBelowThresholdSections());
+    return;
+  }
+  
+  if (!window.db) return;
+  
+  // Get all sessionResults and aggregate by section
+  window.db.collection('sessionResults').onSnapshot((snapshot) => {
+    const sectionStats = {};
+    
+    snapshot.forEach((doc) => {
+      const result = doc.data();
+      const section = result.section || 'Unknown';
+      
+      if (!sectionStats[section]) {
+        sectionStats[section] = { totalScore: 0, count: 0 };
+      }
+      sectionStats[section].totalScore += result.score || 0;
+      sectionStats[section].count++;
+    });
+    
+    // Calculate averages and highlight below-70%
+    const tbody = document.getElementById('section-report-tbody');
+    if (!tbody) return;
+    
+    const rows = tbody.querySelectorAll('tr');
+    rows.forEach((row, index) => {
+      const sectionName = row.querySelector('td:first-child')?.textContent.trim();
+      const scoreCell = row.querySelector('td:nth-child(2)');
+      const statusCell = row.querySelector('td:nth-child(3)');
+      
+      if (sectionName && statusCell && sectionName !== 'SCHOOL AVG') {
+        const score = parseInt(scoreCell?.textContent) || 0;
+        
+        if (score < 70) {
+          row.style.backgroundColor = 'rgba(231, 76, 60, 0.15)';
+          statusCell.innerHTML = '<span class="status-badge below-threshold">⚠ Needs Support</span>';
+        } else {
+          row.style.backgroundColor = '';
+          statusCell.innerHTML = '<span class="status-badge">Good</span>';
+        }
+      }
+    });
+  });
+}
+
+// ---- LOAD ADMIN RECENT ACTIVITY ----
+function loadAdminRecentActivity() {
+  if (!window.firebaseReady) {
+    window.firebaseInitPromise.then(() => loadAdminRecentActivity());
+    return;
+  }
+  
+  if (!window.db) return;
+  
+  const container = document.getElementById('admin-recent-activity');
+  if (!container) return;
+  
+  // Listen to sessions collection for recent activity
+  window.db.collection('sessions')
+    .orderBy('createdAt', 'desc')
+    .limit(5)
+    .onSnapshot((snapshot) => {
+      container.innerHTML = '';
+      
+      if (snapshot.empty) {
+        container.innerHTML = '<div class="activity-item"><div class="activity-desc">No recent activity</div></div>';
+        return;
+      }
+      
+      snapshot.forEach((doc) => {
+        const session = doc.data();
+        const date = session.createdAt ? new Date(session.createdAt.toDate()).toLocaleDateString('en-US', {month: 'short', day: 'numeric'}) : 'Unknown';
+        const difficulty = session.difficulty || 'Unknown';
+        const playerCount = session.playersList ? session.playersList.length : 0;
+        const status = session.status || 'Started';
+        
+        const activityDiv = document.createElement('div');
+        activityDiv.className = 'activity-item';
+        activityDiv.innerHTML = `
+          <div class="activity-date">${date}</div>
+          <div class="activity-teacher">${difficulty.charAt(0).toUpperCase() + difficulty.slice(1)} Session</div>
+          <div class="activity-desc">Code: ${session.sessionCode}<br>(${playerCount} students)</div>
+        `;
+        container.appendChild(activityDiv);
+      });
+    });
 }

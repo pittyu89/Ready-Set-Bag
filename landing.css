@@ -138,7 +138,7 @@
        [ download ] [ items    ]   ← nav-bottom-row (gameplay/items) shown above
        [ 🎒 bag  ] [ gameplay ] [ about ]   ← nav-top-row (bag row) at bottom
   */
-  @media (max-width: 540px) {
+  @media (max-width: 480px) {
     .nav {
       top: auto;
       bottom: 12px;
@@ -181,7 +181,7 @@
     }
   }
 
-  /* EQUAL HEIGHT SECTIONS */
+  /* EQUAL HEIGHT SECTIONS (desktop). On small screens these should be auto-sized */
   .hero,
   .section-blue,
   .section-green,
@@ -200,6 +200,21 @@
     justify-content: center;
     gap: 60px;
     position: relative;
+  }
+
+  /* On tablets/phones do not force full viewport height — allow stacking and remove gaps */
+  @media (max-width: 850px) {
+    .hero,
+    .section-blue,
+    .section-green,
+    .section-red,
+    .section-yellow {
+      min-height: auto;
+      height: auto;
+      padding-top: 28px;
+      padding-bottom: 28px;
+    }
+    .hero { flex-direction: column; align-items: center; }
   }
   .hero-left {
     display: flex;
@@ -428,5 +443,136 @@
     .nav-bag img {
       width: 70% !important;
       height: 70% !important;
+    }
+  }
+
+  @media (min-width: 1280px) {
+    .hero {
+      padding: 56px 72px;
+      gap: 72px;
+    }
+
+    .hero-left svg {
+      width: clamp(360px, 32vw, 620px);
+    }
+
+    .hero-tagline {
+      font-size: clamp(18px, 1.6vw, 32px);
+    }
+
+    .section-blue,
+    .section-green,
+    .section-red,
+    .section-yellow {
+      padding: 48px;
+    }
+  }
+
+  @media (min-width: 769px) and (max-width: 1279px) {
+    .hero {
+      padding: 36px 40px;
+      gap: 36px;
+    }
+
+    .hero-left svg {
+      width: clamp(280px, 34vw, 460px);
+    }
+
+    .hero-tagline {
+      font-size: clamp(16px, 2vw, 24px);
+    }
+
+    .gameplay-grid {
+      grid-template-columns: 0.3fr 0.45fr 0.25fr;
+    }
+
+    .items-grid {
+      grid-template-columns: repeat(5, 1fr);
+    }
+  }
+
+  @media (min-width: 481px) and (max-width: 768px) {
+    .nav {
+      top: auto;
+      bottom: 12px;
+      left: 12px;
+      flex-direction: column-reverse;
+      align-items: flex-start;
+      gap: 10px;
+    }
+
+    .nav-top-row,
+    .nav-bottom-row,
+    .nav-links {
+      display: flex;
+      flex-direction: row;
+      gap: 10px;
+    }
+
+    .nav-bag {
+      width: 60px;
+      height: 60px;
+    }
+
+    .nav-tab {
+      font-size: 20px;
+      height: 58px;
+      padding: 0 18px;
+    }
+
+    .hero {
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 32px 28px;
+      gap: 24px;
+      min-height: 100vh;
+    }
+
+    .hero-tagline {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      white-space: normal;
+      text-align: right;
+      font-size: clamp(16px, 3vw, 22px);
+    }
+
+    .section-blue,
+    .section-green,
+    .section-red,
+    .section-yellow {
+      padding: 24px;
+    }
+
+    .gameplay-grid {
+      grid-template-columns: 0.38fr 0.62fr;
+    }
+
+    .gameplay-left {
+      grid-column: 1;
+      grid-row: 1;
+    }
+
+    .gameplay-areas {
+      grid-column: 2;
+      grid-row: 1;
+    }
+
+    .movement-card {
+      grid-column: 1 / -1;
+      grid-row: 2;
+    }
+
+    .items-grid-layout {
+      grid-template-columns: 1fr;
+    }
+
+    .items-grid-card {
+      gap: 20px;
+    }
+
+    .item-detail-card {
+      grid-template-columns: 1fr 1fr;
     }
   }

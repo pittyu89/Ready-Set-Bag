@@ -28,6 +28,13 @@ window.addEventListener('load', () => {
   
   // Load student count for this teacher
   loadTeacherStudentCount();
+  
+  // Load recent activity when reports page is viewed
+  document.addEventListener('click', (e) => {
+    if (e.target.closest('.nav-item') && e.target.closest('.nav-item').textContent.includes('REPORTS')) {
+      loadTeacherRecentActivity();
+    }
+  });
 });
 
 // ---- LOAD STUDENT COUNT (REAL-TIME) ----
@@ -114,5 +121,51 @@ function filterResults(query) {
     if (match) visible++;
   });
   const total = rows.length;
-  document.getElementById('results-footer').textContent = `SHOWING ${visible} OF ${total} STUDENTS`;
+  const footer = document.getElementById('results-footer');
+  if (footer) {
+    footer.textContent = `SHOWING ${visible} OF ${total} STUDENTS`;
+  }
+}
+
+/* ---- LOAD RECENT ACTIVITY ---- */
+function loadTeacherRecentActivity() {
+  if (!window.firebaseReady) {
+    window.firebaseInitPromise.then(() => loadTeacherRecentActivity());
+    return;
+  }
+  
+  if (!teacherId) return;
+  
+  const container = document.getElementById('teacher-recent-activity');
+  if (!container) return;
+  
+  // Listen to sessions collection for this teacher
+  window.db.collection('sessions')
+    .where('teacherId', '==', teacherId)
+    .orderBy('createdAt', 'desc')
+    .limit(5)
+    .onSnapshot((snapshot) => {
+      container.innerHTML = '';
+      
+      if (snapshot.empty) {
+        container.innerHTML = '<div class="activity-item"><div class="activity-desc">No recent activity</div></div>';
+        return;
+      }
+      
+      snapshot.forEach((doc) => {
+        const session = doc.data();
+        const date = session.createdAt ? new Date(session.createdAt.toDate()).toLocaleDateString('en-US', {month: 'short', day: 'numeric'}) : 'Unknown';
+        const difficulty = session.difficulty || 'Unknown';
+        const playerCount = session.playersList ? session.playersList.length : 0;
+        
+        const activityDiv = document.createElement('div');
+        activityDiv.className = 'activity-item';
+        activityDiv.innerHTML = `
+          <div class="activity-date">${date}</div>
+          <div class="activity-teacher">${difficulty.charAt(0).toUpperCase() + difficulty.slice(1)} Session</div>
+          <div class="activity-desc">Session Code: ${session.sessionCode}<br>(${playerCount} students)</div>
+        `;
+        container.appendChild(activityDiv);
+      });
+    });
 }

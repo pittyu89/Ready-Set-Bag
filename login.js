@@ -118,6 +118,13 @@ async function authenticateTeacher(email, password) {
     const teacher = snapshot.docs[0];
     const teacherData = teacher.data();
 
+    if (teacherData.status && teacherData.status !== 'active') {
+      clearPassword();
+      alert('This teacher account is inactive. Please contact your administrator.');
+      await window.auth.signOut();
+      return;
+    }
+
     // REQ-3: Store login timestamp alongside session data
     sessionStorage.setItem('userRole', 'teacher');
     sessionStorage.setItem('username', teacherData.firstName + ' ' + teacherData.lastName);

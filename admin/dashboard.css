@@ -29,6 +29,13 @@
   --mono: 'Share Tech Mono', monospace;
 }
 
+/* Tablet / small laptop landscape: anchor right-column content to bottom similar to phone layout */
+@media (min-width: 481px) and (max-width: 1024px) and (orientation: landscape) {
+  .home-bottom { grid-template-columns: 1fr 320px; }
+  .home-bottom > *:last-child { align-self: end; }
+}
+
+
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
 body {
@@ -37,8 +44,8 @@ body {
   color: var(--text-primary);
   display: flex;
   flex-direction: column;
-  height: 100vh;
-  overflow: hidden;
+  min-height: 100vh;
+  overflow: auto;
 }
 
 /* ---- TOP BAR ---- */
@@ -626,6 +633,12 @@ tbody td {
 }
 .status-active { background: rgba(161,179,0,0.2); color: var(--accent-green); border: 1px solid var(--accent-green); }
 .status-inactive { background: rgba(136,136,136,0.15); color: #888; border: 1px solid #555; }
+.status-badge.below-threshold {
+  background: rgba(192, 57, 43, 0.25);
+  color: #e74c3c;
+  border: 1px solid #e74c3c;
+  font-weight: bold;
+}
 
 .table-footer {
   margin-top: 14px;
@@ -1003,14 +1016,18 @@ tbody td {
    RESPONSIVE DESIGN
    ============================================================================ */
 
-/* TABLET (768px - 1024px) */
-@media (max-width: 1024px) {
+/* LAPTOP / SMALL PC (769px - 1279px) */
+@media (max-width: 1279px) {
   .sidebar { width: 160px; }
   .topbar-logo { width: 160px; font-size: 6px; height: 44px; }
   .topbar-title { font-size: 8px; padding-left: 16px; }
   .main { padding: 20px 20px 30px; }
   .stat-cards { grid-template-columns: repeat(2, 1fr); gap: 12px; }
   .home-bottom { grid-template-columns: 1fr; }
+
+  /* ensure stacked sections don't stretch and create vertical gaps */
+  .home-bottom { align-items: start; }
+  .home-bottom > * { align-self: start; }
   .reports-stats { grid-template-columns: repeat(2, 1fr); }
   .reports-bottom { grid-template-columns: 1fr; }
   .search-box { width: 150px; font-size: 10px; padding: 6px 10px; }
@@ -1023,8 +1040,8 @@ tbody td {
   .form-row { grid-template-columns: 1fr; }
 }
 
-/* MOBILE (≤767px) */
-@media (max-width: 767px) {
+/* TABLET / MOBILE (≤850px) */
+@media (max-width: 850px) {
   body { height: 100dvh; }
   .topbar { height: 44px;}
   .topbar-logo { width: 50px; height: 44px; font-size: 5px; line-height: 1.2; }
@@ -1065,6 +1082,14 @@ tbody td {
     padding: 16px 14px 24px;
     overflow-y: auto;
   }
+  /* prevent grid children from stretching to full viewport height */
+  .home-bottom { align-items: start; }
+  .home-bottom > * { align-self: start; }
+
+  /* When stacked on small devices, make the two home-bottom panels each take ~50vh
+     so the right 'wrench/table' area sits below the login/content like on phones */
+  .home-bottom { grid-template-columns: 1fr; }
+  .home-bottom > * { min-height: 50vh; }
   .page-header { gap: 8px; margin-bottom: 16px; }
   .page-header h1 { font-size: 12px; letter-spacing: 1px; }
   .page-header svg { width: 18px; height: 18px; }
@@ -1211,8 +1236,8 @@ tbody td {
   .settings-val { font-size: 10px; }
 }
 
-/* ULTRA SMALL MOBILE (≤360px) */
-@media (max-width: 360px) {
+/* ULTRA SMALL MOBILE (≤320px) */
+@media (max-width: 320px) {
   .sidebar { min-height: 46px; padding: 3px 1px; gap: 1px; }
   .sidebar-nav { gap: 1px; }
   .nav-item { font-size: 5px; padding: 5px 2px; min-width: 35px; gap: 1px; }

@@ -277,62 +277,136 @@ body.admin-mode .icon-wrench {
 
 /* ---- RESPONSIVE BREAKPOINTS ---- */
 
-/* Large screens: Fixed dimensions */
-@media (min-width: 1920px) {
+/* Desktop / large laptop */
+@media (min-width: 1280px) {
   .left-panel {
     width: 770px;
     height: 970px;
   }
+
+  .panel-icon {
+    width: 480px;
+    height: 920px;
+  }
 }
 
-/* Tablets and below: Stack vertically */
-@media (max-width: 1024px) {
+/* Laptop / small PC */
+@media (min-width: 769px) and (max-width: 1279px) {
+  .login-title {
+    font-size: clamp(84px, 9vw, 120px);
+    margin-bottom: 28px;
+  }
+
+  .left-panel {
+    width: 86%;
+    height: 84%;
+    padding: 120px 56px;
+  }
+
+  .input-group {
+    margin-bottom: 22px;
+  }
+
+  .input-icon {
+    width: 56px;
+    height: 56px;
+  }
+
+  .input-icon img {
+    width: 28px !important;
+    height: 28px !important;
+  }
+
+  .user-img {
+    transform: translateY(4px);
+  }
+
+  .input-group input {
+    font-size: 18px;
+    padding: 14px 16px 14px 76px;
+  }
+
+  .btn-login-index {
+    font-size: 36px;
+    padding: 8px 52px;
+    margin-top: 14px;
+  }
+
+  .toggle-row {
+    margin-top: 22px;
+    gap: 14px;
+  }
+
+  .toggle-label {
+    font-size: 16px;
+  }
+
+  .panel-icon {
+    width: 360px;
+    height: 700px;
+  }
+
+  .icon-pencil,
+  .icon-wrench {
+    width: 140px;
+    height: 460px;
+  }
+}
+
+/* Tablet */
+@media (min-width: 481px) and (max-width: 850px) {
   body {
     overflow: auto;
-    height: auto;
+    min-height: 100dvh;
   }
 
   .login-wrapper {
     flex-direction: column;
     height: auto;
     width: 100vw;
+    min-height: 100dvh;
+  }
+
+  .left-half,
+  .right-panel {
+    width: 100%;
+    height: auto;
+    flex-shrink: 0;
   }
 
   .left-half {
-    width: 100%;
-    height: 100vh;
-    flex-shrink: 0;
+    padding: 24px 0 12px;
   }
 
   .right-panel {
-    width: 100%;
-    height: 100vh;
-    flex-shrink: 0;
+    min-height: 360px;
+    padding: 12px 0 28px;
   }
 
   .login-title {
-    font-size: 100px;
-    margin-bottom: 24px;
+    font-size: clamp(68px, 10vw, 88px);
+    margin-bottom: 20px;
   }
 
   .left-panel {
-    width: 420px;
-    height: 600px;
-    padding: 40px;
+    width: min(500px, 88vw);
+    height: auto;
+    min-height: auto;
+    padding: 44px 32px;
   }
 
   .input-group {
-    margin-bottom: 25px;
+    margin-bottom: 18px;
   }
 
   .input-icon {
-    width: 50px;
-    height: 50px;
+    width: 44px;
+    height: 44px;
   }
 
   .input-icon img {
-    width: 25px !important;
-    height: 25px !important;
+    width: 22px !important;
+    height: 22px !important;
   }
 
   .user-img {
@@ -341,13 +415,13 @@ body.admin-mode .icon-wrench {
 
   .input-group input {
     font-size: 14px;
-    padding: 10px 12px 10px 65px;
+    padding: 9px 10px 9px 58px;
   }
 
   .btn-login-index {
-    font-size: 32px;
-    padding: 6px 40px;
-    margin-top: 12px;
+    font-size: 24px;
+    padding: 6px 28px;
+    margin-top: 10px;
   }
 
   .toggle-row {
@@ -360,42 +434,84 @@ body.admin-mode .icon-wrench {
   }
 
   .panel-icon {
-    width: 300px;
-    height: 600px;
+    width: min(260px, 70vw);
+    height: 320px;
   }
 
   .icon-pencil,
   .icon-wrench {
-    width: 120px;
-    height: 400px;
+    width: 104px;
+    height: 300px;
   }
 }
 
-/* Small phones */
-@media (max-width: 480px) {
+/* Tablet landscape: keep right-panel icon anchored to bottom to match smartphone layout
+   extend to larger tablets/laptop-tables for consistent behavior */
+@media (min-width: 481px) and (max-width: 1200px) and (orientation: landscape) {
+  .right-panel {
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    padding-bottom: 12px; /* small breathing space */
+  }
+  .panel-icon { margin-bottom: 6px; }
+}
+
+/* Small phones and narrow tablets: stack halves (top = login, bottom = icon) */
+@media (max-width: 850px) {
+  body {
+    overflow: auto;
+    min-height: 100dvh;
+  }
+
+  .login-wrapper {
+    flex-direction: column;
+    height: auto;
+    width: 100vw;
+    min-height: 100dvh;
+  }
+
+  .left-half,
+  .right-panel {
+    width: 100%;
+    height: auto;
+    flex-shrink: 0;
+  }
+
+  .left-half {
+    padding: 18px 0 10px;
+  }
+
+  .right-panel {
+    min-height: 260px;
+    padding: 8px 0 22px;
+  }
+
   .login-title {
-    font-size: 70px;
-    margin-bottom: 16px;
+    font-size: clamp(52px, 15vw, 66px);
+    margin-bottom: 14px;
   }
 
   .left-panel {
-    width: 320px;
-    height: 480px;
-    padding: 20px;
+    width: min(320px, 92vw);
+    height: auto;
+    min-height: auto;
+    padding: 20px 16px;
+    border-radius: 28px;
   }
 
   .input-group {
-    margin-bottom: 20px;
+    margin-bottom: 14px;
   }
 
   .input-icon {
-    width: 40px;
-    height: 40px;
+    width: 36px;
+    height: 36px;
   }
 
   .input-icon img {
-    width: 25px !important;
-    height: 25px !important;
+    width: 20px !important;
+    height: 20px !important;
   }
 
   .user-img {
@@ -404,13 +520,20 @@ body.admin-mode .icon-wrench {
 
   .input-group input {
     font-size: 12px;
-    padding: 8px 10px 8px 55px;
+    padding: 8px 10px 8px 50px;
   }
 
   .btn-login-index {
-    font-size: 24px;
-    padding: 5px 28px;
+    font-size: 20px;
+    padding: 5px 22px;
     margin-top: 8px;
+  }
+
+  .toggle-row {
+    margin-top: 16px;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: center;
   }
 
   .toggle-switch {
@@ -430,4 +553,40 @@ body.admin-mode .icon-wrench {
   .toggle-label {
     font-size: 12px;
   }
+
+  .panel-icon {
+    width: min(200px, 76vw);
+    height: 240px;
+  }
+
+  .icon-pencil,
+  .icon-wrench {
+    width: 84px;
+    height: 220px;
+  }
+
+  /* Ensure right-panel content sits directly below left panel without extra gap */
+  .right-panel {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding-bottom: 8px;
+  }
+  .panel-icon { margin-top: 0; }
+
+  /* Make the two halves each occupy ~50% of the viewport height so login sits above and wrench below */
+  .login-wrapper {
+    flex-direction: column;
+    height: 100vh;
+    overflow: hidden;
+  }
+  .left-half, .right-panel {
+    width: 100%;
+    height: 50vh;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .left-panel { width: min(500px, 92vw); height: auto; min-height: 0; }
 }

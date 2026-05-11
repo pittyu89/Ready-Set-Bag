@@ -87,7 +87,7 @@
         </div>
         <div class="stat-card orange">
           <div class="stat-label">SESSIONS</div>
-          <div class="stat-value">48</div>
+          <div class="stat-value" id="total-sessions-count">0</div>
           <div class="stat-sub">total</div>
         </div>
       </div>
@@ -133,30 +133,32 @@
 
         <div class="panel">
           <div class="panel-title">RECENT ACTIVITY</div>
-          <div class="activity-item">
-            <div class="activity-date">Apr 15</div>
-            <div class="activity-teacher">Teacher Santos</div>
-            <div class="activity-desc">Started Beginner session<br>G6-Sampaguita (35 students)</div>
-          </div>
-          <div class="activity-item">
-            <div class="activity-date">Apr 15</div>
-            <div class="activity-teacher">Teacher Cruz</div>
-            <div class="activity-desc">Started Intermediate session<br>G6-Roses (38 students)</div>
-          </div>
-          <div class="activity-item">
-            <div class="activity-date">Apr 14</div>
-            <div class="activity-teacher">Teacher Reyes</div>
-            <div class="activity-desc">Completed Advanced session<br>G6-Sunflowers (40 students)</div>
-          </div>
-          <div class="activity-item">
-            <div class="activity-date">Apr 14</div>
-            <div class="activity-teacher">Teacher Garcia</div>
-            <div class="activity-desc">Started Beginner session<br>G6-Lilies (36 students)</div>
-          </div>
-          <div class="activity-item">
-            <div class="activity-date">Apr 13</div>
-            <div class="activity-teacher">Teacher Mendoza</div>
-            <div class="activity-desc">Completed Intermediate session<br>G6-Jasmine (39 students)</div>
+          <div id="admin-recent-activity">
+            <div class="activity-item">
+              <div class="activity-date">Apr 15</div>
+              <div class="activity-teacher">Teacher Santos</div>
+              <div class="activity-desc">Started Beginner session<br>G6-Sampaguita (35 students)</div>
+            </div>
+            <div class="activity-item">
+              <div class="activity-date">Apr 15</div>
+              <div class="activity-teacher">Teacher Cruz</div>
+              <div class="activity-desc">Started Intermediate session<br>G6-Roses (38 students)</div>
+            </div>
+            <div class="activity-item">
+              <div class="activity-date">Apr 14</div>
+              <div class="activity-teacher">Teacher Reyes</div>
+              <div class="activity-desc">Completed Advanced session<br>G6-Sunflowers (40 students)</div>
+            </div>
+            <div class="activity-item">
+              <div class="activity-date">Apr 14</div>
+              <div class="activity-teacher">Teacher Garcia</div>
+              <div class="activity-desc">Started Beginner session<br>G6-Lilies (36 students)</div>
+            </div>
+            <div class="activity-item">
+              <div class="activity-date">Apr 13</div>
+              <div class="activity-teacher">Teacher Mendoza</div>
+              <div class="activity-desc">Completed Intermediate session<br>G6-Jasmine (39 students)</div>
+            </div>
           </div>
         </div>
       </div>
@@ -291,37 +293,33 @@
         </div>
       </div>
 
-      <div class="skill-table">
-        <div class="panel-title">SKILL PROGRESSION BY SECTION</div>
-        <table>
+     <div class="skill-table">
+        <div class="panel-title">AVERAGE SCORES BY SECTION</div>
+        <table id="section-report-table">
           <thead>
             <tr>
               <th>SECTION</th>
-              <th>COGNITIVE</th>
-              <th>ASSOCIATIVE</th>
-              <th>AUTONOMOUS</th>
               <th>AVG SCORE</th>
+              <th>STATUS</th>
             </tr>
           </thead>
-          <tbody>
-            <tr><td>Sampaguita</td><td class="td-cog">75%</td><td class="td-assoc">18%</td><td class="td-auto">7%</td><td class="td-avg">75</td></tr>
-            <tr><td>Roses</td><td class="td-cog">72%</td><td class="td-assoc">20%</td><td class="td-auto">8%</td><td class="td-avg">74</td></tr>
-            <tr><td>Sunflowers</td><td class="td-cog">68%</td><td class="td-assoc">25%</td><td class="td-auto">7%</td><td class="td-avg">78</td></tr>
-            <tr><td>Lilies</td><td class="td-cog">80%</td><td class="td-assoc">15%</td><td class="td-auto">5%</td><td class="td-avg">68</td></tr>
-            <tr><td>Jasmine</td><td class="td-cog">70%</td><td class="td-assoc">22%</td><td class="td-auto">8%</td><td class="td-avg">77</td></tr>
-            <tr><td>Orchids</td><td class="td-cog">74%</td><td class="td-assoc">19%</td><td class="td-auto">7%</td><td class="td-avg">73</td></tr>
-            <tr><td>Daisies</td><td class="td-cog">76%</td><td class="td-assoc">17%</td><td class="td-auto">7%</td><td class="td-avg">72</td></tr>
-            <tr><td>Tulips</td><td class="td-cog">71%</td><td class="td-assoc">21%</td><td class="td-auto">8%</td><td class="td-avg">71</td></tr>
+          <tbody id="section-report-tbody">
+            <tr><td>Sampaguita</td><td class="td-avg">75</td><td><span class="status-badge">Good</span></td></tr>
+            <tr><td>Roses</td><td class="td-avg">74</td><td><span class="status-badge">Good</span></td></tr>
+            <tr><td>Sunflowers</td><td class="td-avg">78</td><td><span class="status-badge">Good</span></td></tr>
+            <tr><td>Lilies</td><td class="td-avg">68</td><td><span class="status-badge below-threshold">⚠ Needs Support</span></td></tr>
+            <tr><td>Jasmine</td><td class="td-avg">77</td><td><span class="status-badge">Good</span></td></tr>
+            <tr><td>Orchids</td><td class="td-avg">73</td><td><span class="status-badge">Good</span></td></tr>
+            <tr><td>Daisies</td><td class="td-avg">72</td><td><span class="status-badge">Good</span></td></tr>
+            <tr><td>Tulips</td><td class="td-avg">71</td><td><span class="status-badge">Good</span></td></tr>
             <tr style="border-top:2px solid #444;">
               <td class="td-school-avg">SCHOOL AVG</td>
-              <td class="td-cog td-school-avg">73%</td>
-              <td class="td-assoc td-school-avg">20%</td>
-              <td class="td-auto td-school-avg">7%</td>
               <td class="td-avg td-school-avg">75</td>
+              <td><span class="status-badge">Good</span></td>
             </tr>
           </tbody>
         </table>
-      </div>
+      </div> 
 
       <div class="reports-bottom">
         <div class="panel">
