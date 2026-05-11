@@ -1085,7 +1085,7 @@ tbody td {
   .main {
     flex: 1;
     min-height: 0;
-    padding: 16px 14px 76px;
+    padding: 16px 14px 80px;
     overflow-y: auto;
     overflow-x: hidden;
   }
@@ -1214,16 +1214,16 @@ tbody td {
 @media (max-width: 480px) {
   .topbar { height: 40px;}
   .topbar-logo { width: 44px; height: 40px; font-size: 4px; }
-  .topbar-title { font-size: 6px; padding-left: 8px; }
-  .topbar-avatar { width: 24px; height: 24px; font-size: 7px; }
+  .topbar-title { font-size: 5px; padding-left: 8px; }
+  .topbar-avatar { width: 24px; height: 24px; font-size: 6px; }
   
   .sidebar { min-height: 48px; height: 48px; padding: 4px 2px; gap: 2px; }
   .sidebar-nav { gap: 2px; }
-  .nav-item { font-size: 6px; padding: 6px 3px; min-width: 40px; gap: 2px; }
+  .nav-item { font-size: 5px; padding: 6px 3px; min-width: 40px; gap: 2px; }
   .nav-item svg { width: 10px; height: 10px; }
   
-  .main { padding: 12px 10px 20px; }
-  .page-header h1 { font-size: 11px; }
+  .main { padding: 12px 10px 64px; }
+  .page-header h1 { font-size: 10px; }
   
   .school-card { padding: 10px 12px; gap: 10px; margin-bottom: 12px; }
   .stat-cards { gap: 8px; margin-bottom: 12px; }
@@ -1234,19 +1234,19 @@ tbody td {
   .panel { padding: 12px; margin-bottom: 10px; }
   .panel-title { font-size: 6px; margin-bottom: 10px; }
   .cta-btn { padding: 14px 14px; font-size: 7px; }
-  .btn-add { padding: 8px 10px; font-size: 6px; }
+  .btn-add { padding: 8px 10px; font-size: 5px; }
   
-  .search-box { font-size: 9px; padding: 5px 8px; }
+  .search-box { font-size: 8px; padding: 5px 8px; }
   table { min-width: max-content; }
   thead th { font-size: 5px; padding: 6px 3px; }
-  tbody td { padding: 6px 3px; font-size: 9px; }
+  tbody td { padding: 6px 3px; font-size: 8px; }
   .btn-sm { display: inline-block; font-size: 5px; padding: 2px 4px; margin-left: 1px; white-space: nowrap; }
   
   .modal { width: 96vw; padding: 16px; }
   .modal-title { font-size: 8px; }
   .filter-select { font-size: 5px; padding: 4px 20px 4px 6px; min-width: 100px; }
-  .btn-export { padding: 8px 10px; font-size: 6px; }
-  .settings-val { font-size: 10px; }
+  .btn-export { padding: 8px 10px; font-size: 5px; }
+  .settings-val { font-size: 9px; }
 }
 
 /* ULTRA SMALL MOBILE (≤320px) */
