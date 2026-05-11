@@ -1,0 +1,12 @@
+{
+  "name": "ready-set-bag",
+  "version": "1.0.0",
+  "description": "Ready-Set-Bag! Educational Game Platform",
+  "main": "index.html",
+  "scripts": {
+    "build": "echo 'Static site - no build needed'"
+  },
+  "keywords": ["game", "education", "firebase"],
+  "author": "",
+  "license": "MIT"
+}

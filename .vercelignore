@@ -1,0 +1,9 @@
+functions/
+.firebaserc
+firebase.json
+FIRESTORE_SETUP_GUIDE.md
+.git
+.vscode
+.env.local
+example_students.csv
+scripts/
