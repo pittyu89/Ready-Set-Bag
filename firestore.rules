@@ -23,12 +23,12 @@ service cloud.firestore {
       allow delete: if isAuthenticated() && (isAdmin() || request.auth.uid == resource.data.teacherId);
     }
 
-    // SESSIONS: authenticated users can read; teachers/admins create/manage; students can update (join)
+    // SESSIONS: authenticated users can read/create/update (for joining); only admin/teacher can delete
     match /sessions/{sessionId} {
       allow read: if isAuthenticated();
-      allow create: if isAuthenticated() && (isAdmin() || request.auth.uid == request.resource.data.teacherId);
-      allow update: if isAuthenticated() && (isAdmin() || request.auth.uid == resource.data.teacherId || request.auth.uid in resource.data.playersList);
-      allow delete: if isAdmin();
+      allow create: if isAuthenticated();
+      allow update: if isAuthenticated();
+      allow delete: if isAdmin() || (isAuthenticated() && request.auth.uid == resource.data.teacherId);
     }
 
     // SESSION RESULTS: authenticated users can read/write (for recording game results)
