@@ -114,6 +114,17 @@ async function generateCode() {
       updatedAt: timestamp
     });
 
+    // Update teacher document with last session info so admin recent-activity can show it
+    try {
+      await window.db.collection('teachers').doc(teacherId).update({
+        lastSessionCreatedAt: timestamp,
+        updatedAt: timestamp
+      });
+    } catch (e) {
+      // Non-fatal: ignore if teacher doc update fails
+      console.warn('Failed to update teacher lastSessionCreatedAt', e);
+    }
+
     currentSessionCode = code;
     currentSessionId = sessionRef.id;
     currentDifficulty = difficulty;

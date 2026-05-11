@@ -185,7 +185,10 @@
           <h2>Caruhatan East Elementary School</h2>
           <p id="total-teachers-text">TOTAL TEACHERS: 8</p>
         </div>
-        <button class="btn-add" onclick="openModal()">+ ADD NEW TEACHER</button>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <button class="btn-add" onclick="openModal()">+ ADD NEW TEACHER</button>
+          <button class="btn-add" style="background:#5D8ED7;" onclick="exportTeachersCsv()">⬇ EXPORT TEACHERS (CSV)</button>
+        </div>
       </div>
 
       <div class="teacher-table-panel">
@@ -226,6 +229,7 @@
         <div style="display:flex;gap:10px;">
           <button class="btn-add" onclick="openStudentModal('single')">+ ADD STUDENT</button>
           <button class="btn-add" style="background:#5D8ED7;" onclick="openStudentModal('csv')">&#11014; IMPORT CSV</button>
+          <button class="btn-add" style="background:#333;color:#fff;" onclick="exportAdminStudentsCsv()">⬇ EXPORT STUDENTS (CSV)</button>
         </div>
       </div>
 

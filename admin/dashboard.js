@@ -838,6 +838,59 @@ async function importAdminStudentsFromCSV() {
   }
 }
 
+// ---- CSV EXPORT HELPERS ----
+function downloadCsv(filename, csv) {
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+async function exportTeachersCsv() {
+  if (!window.db) { showToast('Firebase not initialized.', 'error'); return; }
+  try {
+    const snap = await window.db.collection('teachers').orderBy('lastName').get();
+    const rows = [];
+    rows.push(['uid','firstName','lastName','email','section','status','createdAt','updatedAt'].join(','));
+    snap.forEach(doc => {
+      const t = doc.data();
+      const created = t.createdAt && t.createdAt.toDate ? t.createdAt.toDate().toISOString() : (t.createdAt? new Date(t.createdAt).toISOString() : '');
+      const updated = t.updatedAt && t.updatedAt.toDate ? t.updatedAt.toDate().toISOString() : (t.updatedAt? new Date(t.updatedAt).toISOString() : '');
+      rows.push([doc.id, t.firstName || '', t.lastName || '', t.email || '', t.section || '', t.status || '', created, updated].map(v => '"' + String(v).replace(/"/g,'""') + '"').join(','));
+    });
+    downloadCsv('teachers.csv', rows.join('\n'));
+    showToast('Teachers CSV exported.');
+  } catch (err) {
+    console.error('Export teachers failed', err);
+    showToast('Error exporting teachers: ' + err.message, 'error');
+  }
+}
+
+async function exportAdminStudentsCsv() {
+  if (!window.db) { showToast('Firebase not initialized.', 'error'); return; }
+  try {
+    const snap = await window.db.collection('students').orderBy('section').orderBy('studentNumber').get();
+    const rows = [];
+    rows.push(['id','authUid','username','displayName','section','teacherId','studentNumber','createdAt','updatedAt'].join(','));
+    snap.forEach(doc => {
+      const s = doc.data();
+      const created = s.createdAt && s.createdAt.toDate ? s.createdAt.toDate().toISOString() : (s.createdAt? new Date(s.createdAt).toISOString() : '');
+      const updated = s.updatedAt && s.updatedAt.toDate ? s.updatedAt.toDate().toISOString() : (s.updatedAt? new Date(s.updatedAt).toISOString() : '');
+      rows.push([doc.id, s.authUid || '', s.username || '', s.displayName || '', s.section || '', s.teacherId || '', s.studentNumber || '', created, updated].map(v => '"' + String(v).replace(/"/g,'""') + '"').join(','));
+    });
+    downloadCsv('students.csv', rows.join('\n'));
+    showToast('Students CSV exported.');
+  } catch (err) {
+    console.error('Export students failed', err);
+    showToast('Error exporting students: ' + err.message, 'error');
+  }
+}
+
 // ---- LOAD ALL STUDENTS (REAL-TIME) ----
 function loadAdminStudentsFromFirebase() {
   if (!window.db) return;
@@ -1034,27 +1087,44 @@ function loadAdminRecentActivity() {
   window.db.collection('sessions')
     .orderBy('createdAt', 'desc')
     .limit(5)
-    .onSnapshot((snapshot) => {
+    .onSnapshot(async (snapshot) => {
       container.innerHTML = '';
       
       if (snapshot.empty) {
         container.innerHTML = '<div class="activity-item"><div class="activity-desc">No recent activity</div></div>';
         return;
       }
-      
+
+      // Gather teacherIds referenced in these sessions
+      const teacherIds = Array.from(new Set(snapshot.docs.map(d => d.data().teacherId).filter(Boolean)));
+      const teacherMap = {};
+      try {
+        if (teacherIds.length) {
+          // Firestore 'in' query (safe for up to 10 ids)
+          const tSnap = await window.db.collection('teachers').where(firebase.firestore.FieldPath.documentId(), 'in', teacherIds).get();
+          tSnap.forEach(td => teacherMap[td.id] = td.data());
+        }
+      } catch (e) {
+        // ignore lookup errors; we'll fallback to unknown
+        console.warn('Failed to load teacher names for recent activity', e);
+      }
+
+      // Render each session with teacher name/section when available
       snapshot.forEach((doc) => {
         const session = doc.data();
         const date = session.createdAt ? new Date(session.createdAt.toDate()).toLocaleDateString('en-US', {month: 'short', day: 'numeric'}) : 'Unknown';
         const difficulty = session.difficulty || 'Unknown';
         const playerCount = session.playersList ? session.playersList.length : 0;
-        const status = session.status || 'Started';
-        
+        const teacher = teacherMap[session.teacherId] || null;
+        const teacherLabel = teacher ? (`Teacher ${teacher.lastName || teacher.firstName || session.teacherId}`) : (session.teacherId || 'Unknown Teacher');
+        const sectionLabel = teacher && teacher.section ? ` – ${teacher.section}` : '';
+
         const activityDiv = document.createElement('div');
         activityDiv.className = 'activity-item';
         activityDiv.innerHTML = `
           <div class="activity-date">${date}</div>
-          <div class="activity-teacher">${difficulty.charAt(0).toUpperCase() + difficulty.slice(1)} Session</div>
-          <div class="activity-desc">Code: ${session.sessionCode}<br>(${playerCount} students)</div>
+          <div class="activity-teacher">${teacherLabel}${sectionLabel}</div>
+          <div class="activity-desc">${difficulty.charAt(0).toUpperCase() + difficulty.slice(1)} Session<br>Code: ${session.sessionCode} (${playerCount} students)</div>
         `;
         container.appendChild(activityDiv);
       });
