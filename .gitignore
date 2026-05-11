@@ -1,0 +1,27 @@
+# Node
+node_modules/
+npm-debug.log*
+package-lock.json
+
+# Env
+.env
+.env.*
+.env.local
+
+# Firebase service account (do NOT commit)
+scripts/serviceAccountKey.json
+
+# Build outputs
+dist/
+build/
+
+# IDEs
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Firebase files you might not want in repo
+.firebase
