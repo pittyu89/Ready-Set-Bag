@@ -41,13 +41,7 @@
         { "fieldPath": "createdAt", "order": "DESCENDING" }
       ]
     },
-    {
-      "collectionGroup": "sessionResults",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "section", "order": "ASCENDING" }
-      ]
-    }
+    
   ],
   "fieldOverrides": []
 }
