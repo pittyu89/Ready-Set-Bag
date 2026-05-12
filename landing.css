@@ -198,8 +198,9 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 60px;
+    gap: clamp(28px, 4vw, 72px);
     position: relative;
+    overflow: hidden;
   }
 
   /* On tablets/phones do not force full viewport height — allow stacking and remove gaps */
@@ -214,16 +215,68 @@
       padding-top: 28px;
       padding-bottom: 28px;
     }
-    .hero { flex-direction: column; align-items: center; }
+    .hero { flex-direction: column; align-items: center; justify-content: center; gap: 18px; }
+    .bag-scene { width: min(100%, 620px); }
+    .bag-container { width: min(100%, 580px); }
+    .hero-tagline { margin-left: 0; text-align: center; white-space: normal; }
   }
   .hero-left {
     display: flex;
     flex-direction: column;
     align-items: center;
+    justify-content: center;
+    flex: 0 1 auto;
+    min-width: 0;
   }
-  .hero-left svg {
-    width: clamp(260px, 35vw, 520px);
-    height: auto;
+  .bag-scene {
+    width: min(100%, 720px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+  }
+  .bag-container {
+    position: relative;
+    width: min(100%, 680px);
+    aspect-ratio: 1 / 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  #display-bag {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    user-select: none;
+    pointer-events: none;
+  }
+  .pouch-zone {
+    position: absolute;
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+    padding: 0;
+    transition: background 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+  }
+  .pouch-zone:hover,
+  .pouch-zone:focus-visible,
+  .pouch-zone.active {
+    background: rgba(255, 255, 255, 0.14);
+    box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.35);
+    outline: none;
+  }
+  #top-zone    { top: 12%; left: 26%; width: 48%; height: 20%; }
+  #middle-zone { top: 35%; left: 29%; width: 42%; height: 26%; }
+  #bottom-zone { top: 65%; left: 35%; width: 30%; height: 14%; }
+  #side-zone   { top: 43%; right: 10%; width: 18%; height: 28%; }
+  #side-2-zone { top: 43%; left: 10%; width: 18%; height: 28%; }
+  .bag-caption {
+    font-family: 'Jersey 25', sans-serif;
+    font-size: clamp(12px, 1.3vw, 18px);
+    color: #555;
+    text-align: center;
+    max-width: 500px;
   }
   .hero-tagline {
     font-family: var(--pixel);
@@ -234,6 +287,7 @@
     white-space: nowrap;
     text-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
     margin-left: auto;
+    flex: 0 0 auto;
   }
 
   /* BLUE */
@@ -449,11 +503,17 @@
   @media (min-width: 1280px) {
     .hero {
       padding: 56px 72px;
-      gap: 72px;
+      gap: 44px;
+      max-width: 1200px;
+      margin: 0 auto;
     }
 
-    .hero-left svg {
-      width: clamp(360px, 32vw, 620px);
+    .bag-scene {
+      width: clamp(460px, 38vw, 760px);
+    }
+
+    .bag-container {
+      width: clamp(420px, 34vw, 680px);
     }
 
     .hero-tagline {
@@ -471,11 +531,15 @@
   @media (min-width: 769px) and (max-width: 1279px) {
     .hero {
       padding: 36px 40px;
-      gap: 36px;
+      gap: 28px;
     }
 
-    .hero-left svg {
-      width: clamp(280px, 34vw, 460px);
+    .bag-scene {
+      width: clamp(360px, 38vw, 620px);
+    }
+
+    .bag-container {
+      width: clamp(320px, 34vw, 560px);
     }
 
     .hero-tagline {
@@ -524,10 +588,12 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      padding: 32px 28px;
-      gap: 24px;
+      padding: 28px 20px;
+      gap: 18px;
       min-height: 100vh;
     }
+    .bag-scene { width: min(100%, 560px); }
+    .bag-container { width: min(100%, 520px); }
 
     .hero-tagline {
       position: absolute;
@@ -536,6 +602,7 @@
       white-space: normal;
       text-align: right;
       font-size: clamp(16px, 3vw, 22px);
+      max-width: 34vw;
     }
 
     .section-blue,
@@ -575,4 +642,44 @@
     .item-detail-card {
       grid-template-columns: 1fr 1fr;
     }
+    #top-zone    { top: 12%; left: 26%; width: 48%; height: 20%; }
+    #middle-zone { top: 35%; left: 29%; width: 42%; height: 26%; }
+    #bottom-zone { top: 65%; left: 35%; width: 30%; height: 14%; }
+    #side-zone   { top: 43%; right: 10%; width: 18%; height: 28%; }
+    #side-2-zone { top: 43%; left: 10%; width: 18%; height: 28%; }
+  }
+
+  @media (max-width: 540px) {
+    .hero {
+      flex-direction: column;
+      align-items: center;
+      height: auto;
+      min-height: 100vh;
+      padding: 24px 16px 32px;
+    }
+    .bag-scene {
+      width: min(100%, 520px);
+    }
+    .bag-container {
+      width: min(96vw, 500px);
+    }
+    .bag-caption {
+      font-size: 12px;
+      max-width: 92vw;
+    }
+    .hero-tagline {
+      position: absolute;
+      top: 18px;
+      right: 18px;
+      text-align: right;
+      white-space: normal;
+      max-width: 36vw;
+      line-height: 1.5;
+      font-size: clamp(12px, 3.8vw, 18px);
+    }
+    #top-zone    { top: 12%; left: 26%; width: 48%; height: 20%; }
+    #middle-zone { top: 35%; left: 29%; width: 42%; height: 26%; }
+    #bottom-zone { top: 65%; left: 35%; width: 30%; height: 14%; }
+    #side-zone   { top: 43%; right: 10%; width: 18%; height: 28%; }
+    #side-2-zone { top: 43%; left: 10%; width: 18%; height: 28%; }
   }
