@@ -1,5 +1,8 @@
 {
   "projects": {
-    "default": "readysetbag-da917"
-  }
+    "default": "readysetbag-da917",
+    "production": "readysetbag-da917"
+  },
+  "targets": {},
+  "etags": {}
 }

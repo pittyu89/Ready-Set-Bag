@@ -40,7 +40,7 @@
         { "fieldPath": "teacherId", "order": "ASCENDING" },
         { "fieldPath": "createdAt", "order": "DESCENDING" }
       ]
-    },
+    }
     
   ],
   "fieldOverrides": []
