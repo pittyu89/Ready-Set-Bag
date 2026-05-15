@@ -246,7 +246,7 @@
   }
   #display-bag {
     display: block;
-    width: 100%;
+    width: 100;
     height: 100%;
     object-fit: contain;
     user-select: none;
@@ -268,10 +268,10 @@
     outline: none;
   }
   #top-zone    { top: 12%; left: 26%; width: 48%; height: 20%; }
-  #middle-zone { top: 35%; left: 29%; width: 42%; height: 26%; }
-  #bottom-zone { top: 65%; left: 35%; width: 30%; height: 14%; }
-  #side-zone   { top: 43%; right: 10%; width: 18%; height: 28%; }
-  #side-2-zone { top: 43%; left: 10%; width: 18%; height: 28%; }
+  #middle-zone { top: 50%; left: 29%; width: 42%; height: 26%; }
+  #bottom-zone { top: 80%; left: 35%; width: 30%; height: 14%; }
+  #side-zone   { top: 43%; right: 5%; width: 18%; height: 28%; }
+  #side-2-zone { top: 43%; left: 5%; width: 18%; height: 28%; }
   .bag-caption {
     font-family: 'Jersey 25', sans-serif;
     font-size: clamp(12px, 1.3vw, 18px);
@@ -341,6 +341,7 @@
     grid-template-columns: 0.25fr 0.5fr 0.25fr;
     gap: clamp(10px, 1.2vw, 20px);
     flex: 1;
+    min-height: auto;
   }
   .gameplay-left {
     display: flex;
@@ -403,79 +404,278 @@
     color: #D94F4F;
     flex: 1;
   }
-  .gameplay-areas {
-    display: flex;
-    flex-direction: column;
-    gap: clamp(8px, 1vw, 16px);
-    flex: 2;
-  }
-  .area-card {
-    background: #E8E8E8;
-    border-radius: 12px;
-    font-family: 'Jersey 25', sans-serif;
-    font-size: clamp(16px, 1.6vw, 26px);
-    color: var(--red);
-    text-align: center;
-    line-height: 1.4;
-    cursor: pointer;
-    flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
 
-  /* YELLOW */
-  .section-yellow { background: var(--yellow); padding: clamp(16px, 2.5vw, 40px); display: flex; flex-direction: column; }
-  .items-grid-layout { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(10px, 1.2vw, 20px); flex: 1; }
-  .items-grid-card { background: transparent; border-radius: 16px; display: flex; flex-direction: column; gap: clamp(20px, 2vw, 32px); }
-  .items-grid-title {
-    font-family: 'Jersey 25', sans-serif;
-    font-size: clamp(16px, 1.6vw, 26px);
-    color: #E8C84A;
-    text-align: center;
-    background: #E8E8E8;
-    border-radius: 8px;
-    padding: clamp(4px, 0.6vw, 10px) 0;
-    flex-shrink: 0;
-  }
-  .items-grid {
-    display: grid; 
-    grid-template-columns: repeat(6, 1fr); 
-    gap: clamp(6px, 0.7vw, 12px); 
-    flex: 1; 
-    align-content: start; 
-  }
-  .item-cell { 
-    background: #fff; 
-    border-radius: 10px; 
-    aspect-ratio: 1; 
-    box-shadow: inset 0 2px 4px rgba(0,0,0,0.15); 
-    cursor: pointer; 
-    transition: all 0.2s ease; 
-    border: 3px solid transparent; 
-  }
-  .item-cell:hover { 
-    transform: scale(1.05); 
-    box-shadow: 0 4px 12px rgba(0,0,0,0.2), inset 0 2px 4px rgba(0,0,0,0.15); 
-  }
-  .item-cell.active { 
-    border-color: #E8C84A; 
-    box-shadow: 0 0 12px rgba(232, 200, 74, 0.6), inset 0 2px 4px rgba(0,0,0,0.15); 
-    transform: scale(1.08); 
-  }
-  .item-detail-card {
-    background: #FFFFFF;
-    border-radius: 16px;
-    padding: clamp(12px, 1.4vw, 24px);
-    display: flex;
-    flex-direction: column;
-    gap: clamp(8px, 1vw, 16px);
-    box-shadow: inset 0 3px 8px rgba(0,0,0,0.15);
-  }
-  .item-preview { background: #bbb; border-radius: 10px; flex: 0.5; }
-  .item-name { font-family: 'Jersey 25', sans-serif; font-size: clamp(16px, 1.6vw, 26px); color: #555; }
-  .item-meta { font-family: 'Jersey 25', sans-serif; font-size: clamp(13px, 1.3vw, 20px); color: #888; }
+.movement-card {
+  display: flex;
+  flex-direction: column;
+  padding: 20px !important;
+  height: auto; /* Force full height of the parent */
+}
+.loop-title {
+  margin-bottom: 15px;
+}
 
+/* The stack that fills the remaining vertical space */
+.loop-vertical-stack {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: 12px; /* Space between the rounded rectangles */
+  flex: 1; /* Take up remaining space */
+}
+
+/* Individual Phase Cards */
+.loop-phase-card {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  background: white;
+  border-radius: 12px; /* Rounded rectangle shape */
+  padding: 10px;
+  flex: 1;
+  box-shadow: 4px 4px 0px rgba(0, 0, 0, 0.2);
+  transition: transform 0.2s ease;
+  gap: 12px;
+}
+
+.loop-phase-card:hover {
+  transform: scale(1.02);
+}
+
+/* Image container within the card */
+.phase-image-container {
+  width: clamp(70px, 8vw, 120px);
+  height: clamp(70px, 8vw, 120px);
+  flex-shrink: 0;
+  display: flex;
+  background: #f0f0f0;
+  border-radius: 8px; /* Internal rounded rectangle */
+  overflow: hidden;
+  border: 2px solid #ccc;
+}
+
+.phase-image-container {
+  flex-shrink: 0;
+  display: flex;
+  background: #f0f0f0;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 2px solid #ccc;
+  width: auto;
+  height: auto;
+  max-height: clamp(70px, 8vw, 120px);
+}
+
+.phase-text-content {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  text-align: left;
+}
+
+.phase-label {
+  font-size: 18px;
+  color: var(--red); /* Using your site's primary red */
+  margin-bottom: 4px;
+}
+
+.phase-desc {
+  font-size: 13px;
+  color: #333;
+  line-height: 1.4;
+  margin: 0;
+}
+
+
+.phase-image-container img {
+  width: auto;
+  height: 100%;
+  max-height: clamp(70px, 8vw, 120px);
+  object-fit: contain;
+  image-rendering: pixelated;
+}
+
+.phase-image-container.dual-image {
+  flex-direction: column;
+  gap: 4px;
+  padding: 2px;
+}
+
+.phase-image-container.dual-image img {
+  height: calc(50% - 2px);
+  width: 100%;
+  object-fit: contain;
+  image-rendering: pixelated;
+}
+
+/* Custom scrollbar to keep it looking clean */
+.movement-card::-webkit-scrollbar {
+  width: 5px;
+}
+.movement-card::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.3);
+  border-radius: 10px;
+}
+.gameplay-areas {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(8px, 1vw, 16px);
+  flex: 0 0 auto;
+  align-self: stretch;
+}
+
+.area-card {
+  background: #E8E8E8;
+  border-radius: 12px;
+  overflow: hidden;
+  cursor: pointer;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  min-height: 0;
+}
+
+.area-1, .area-2 {
+  display: block;
+  width: 100%;
+  height: 100%;
+  transform: none;
+  border-radius: 12px;
+  object-fit: cover;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+.area-vid {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+ /* YELLOW */
+.section-yellow { 
+  background: var(--yellow); 
+  padding: clamp(16px, 2.5vw, 40px); 
+  display: flex; 
+  flex-direction: column; 
+}
+.items-grid-layout { 
+  display: grid; 
+  grid-template-columns: 1fr 1fr; 
+  gap: clamp(10px, 1.2vw, 20px); 
+  flex: 1; 
+}
+.items-grid-card { 
+  background: transparent; 
+  border-radius: 16px; 
+  display: flex; 
+  flex-direction: column; 
+  gap: clamp(20px, 2vw, 32px); 
+}
+.items-grid-title {
+  font-family: 'Jersey 25', sans-serif;
+  font-size: clamp(16px, 1.6vw, 26px);
+  color: #E8C84A;
+  text-align: center;
+  background: #E8E8E8;
+  color: var(--yellow);
+  border-radius: 8px;
+  padding: clamp(4px, 0.6vw, 10px) 0;
+  flex-shrink: 0;
+}
+.items-grid {
+  display: grid; 
+  grid-template-columns: repeat(6, 1fr); 
+  gap: clamp(6px, 0.7vw, 12px); 
+  flex: 1; 
+  align-content: start; 
+}
+.item-cell { 
+  background: #fff; 
+  border-radius: 10px; 
+  aspect-ratio: 1; 
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.15); 
+  cursor: pointer; 
+  transition: all 0.2s ease; 
+  border: 3px solid transparent; 
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+.item-cell:hover { 
+  transform: scale(1.05); 
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2), inset 0 2px 4px rgba(0,0,0,0.15); 
+}
+.item-cell.active { 
+  border-color: #E8C84A; 
+  box-shadow: 0 0 12px rgba(232, 200, 74, 0.6), inset 0 2px 4px rgba(0,0,0,0.15); 
+  transform: scale(1.08); 
+}
+.item-cell img.item {
+  width: 100%;
+  height: 100%;
+  object-fit: contain; 
+  padding: 15%;        
+  display: block;
+  image-rendering: pixelated; 
+  image-rendering: crisp-edges;
+}
+
+/* MODIFIED: Tighter Card Layout to remove the bottom white gap */
+.item-detail-card {
+  background: #FFFFFF;
+  border-radius: 16px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: inset 0 3px 8px rgba(0,0,0,0.15);
+  height: fit-content; /* Ensures the card only grows as much as the content */
+  align-self: start;   /* Prevents the card from stretching to fill the vertical height */
+}
+
+/* MODIFIED: Uniform Preview Dimension */
+.item-preview { 
+  background: #bbb; 
+  border-radius: 10px; 
+  width: 100%;
+  aspect-ratio: 16 / 9; /* Locks the dimension regardless of the image shape */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+/* ADDED: Ensures the preview image follows the uniform size rules */
+.item-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  padding: 10%;
+  image-rendering: pixelated;
+}
+
+.item-name { 
+  font-family: 'Jersey 25', sans-serif; 
+  font-size: clamp(16px, 1.6vw, 26px); 
+  color: #555; 
+  margin: 0; /* Removed default margins */
+}
+
+.item-meta { 
+  font-family: 'Jersey 25', sans-serif; 
+  font-size: clamp(13px, 1.3vw, 20px); 
+  color: #888; 
+  margin: 0; /* Tightened spacing */
+  line-height: 1.2;
+}
   /* MOBILE */
   @media (max-width: 540px) {
     .hero { flex-direction: column; align-items: flex-start; height: auto; min-height: 100vh; }
@@ -510,6 +710,7 @@
       flex-direction: column;
       gap: clamp(8px, 1vw, 16px);
       flex: 1;
+      align-self: stretch;
     }
     .movement-card {
       grid-column: 1 / -1;
@@ -703,7 +904,9 @@
     .section-yellow {
       padding: 24px;
     }
-
+    .section-yellow {
+      padding-bottom: 100px;
+    }
     .gameplay-grid {
       grid-template-columns: 0.38fr 0.62fr;
     }
@@ -735,10 +938,10 @@
       grid-template-columns: 1fr 1fr;
     }
     #top-zone    { top: 12%; left: 26%; width: 48%; height: 20%; }
-    #middle-zone { top: 35%; left: 29%; width: 42%; height: 26%; }
-    #bottom-zone { top: 65%; left: 35%; width: 30%; height: 14%; }
-    #side-zone   { top: 43%; right: 10%; width: 18%; height: 28%; }
-    #side-2-zone { top: 43%; left: 10%; width: 18%; height: 28%; }
+    #middle-zone { top: 50%; left: 29%; width: 42%; height: 26%; }
+    #bottom-zone { top: 80%; left: 35%; width: 30%; height: 14%; }
+    #side-zone   { top: 43%; right: 5%; width: 18%; height: 28%; }
+    #side-2-zone { top: 43%; left: 5%; width: 18%; height: 28%; }
   }
 
   @media (max-width: 540px) {
@@ -767,17 +970,22 @@
       right: auto;
       text-align: center;
       white-space: normal;
-      max-width: 92vw;
+      max-width: 34vw;
       line-height: 1.4;
-      font-size: clamp(12px, 3.8vw, 18px);
+      font-size: clamp(12px, 2.8vw, 18px);
       margin: 0 0 12px 0;
       order: -1; /* place before bag-scene */
     }
     #top-zone    { top: 12%; left: 26%; width: 48%; height: 20%; }
-    #middle-zone { top: 35%; left: 29%; width: 42%; height: 26%; }
-    #bottom-zone { top: 65%; left: 35%; width: 30%; height: 14%; }
-    #side-zone   { top: 43%; right: 10%; width: 18%; height: 28%; }
-    #side-2-zone { top: 43%; left: 10%; width: 18%; height: 28%; }
+    #middle-zone { top: 50%; left: 29%; width: 42%; height: 26%; }
+    #bottom-zone { top: 80%; left: 35%; width: 30%; height: 14%; }
+    #side-zone   { top: 43%; right: 5%; width: 18%; height: 28%; }
+    #side-2-zone { top: 43%; left: 5%; width: 18%; height: 28%; }
+   
+    .section-yellow {
+    padding-bottom: 80px;
+  }
+ 
   }
 
   /* ensure caption sits under the bag and stays visible */

@@ -172,79 +172,81 @@ function cycleCharAnimation2() {
 }
 cycleCharAnimation2();
 
-  // ====== ITEM SELECTION - Update detail card on click ======
-  const itemCells = document.querySelectorAll('.item-cell');
-  const itemDetailCard = document.querySelector('.item-detail-card');
-  
-  // Sample item data (you can customize with actual items)
-  const itemsDatabase = [
-    { id: 1, name: 'Water Bottle', weight: '500g', importance: 'Critical' },
-    { id: 2, name: 'First Aid Kit', weight: '300g', importance: 'Critical' },
-    { id: 3, name: 'Flashlight', weight: '150g', importance: 'High' },
-    { id: 4, name: 'Whistle', weight: '50g', importance: 'High' },
-    { id: 5, name: 'ID Card', weight: '5g', importance: 'Critical' },
-    { id: 6, name: 'Phone Charger', weight: '100g', importance: 'Medium' },
-    { id: 7, name: 'Medications', weight: '50g', importance: 'Critical' },
-    { id: 8, name: 'Snacks', weight: '200g', importance: 'High' },
-    { id: 9, name: 'Blanket', weight: '500g', importance: 'Medium' },
-    { id: 10, name: 'Rope', weight: '200g', importance: 'Medium' },
-    { id: 11, name: 'Gloves', weight: '100g', importance: 'Medium' },
-    { id: 12, name: 'Mask', weight: '20g', importance: 'High' },
-    { id: 13, name: 'Cash', weight: '0g', importance: 'High' },
-    { id: 14, name: 'Documents', weight: '100g', importance: 'Critical' },
-    { id: 15, name: 'Photos', weight: '50g', importance: 'Medium' },
-    { id: 16, name: 'Knife', weight: '150g', importance: 'Medium' },
-    { id: 17, name: 'Map', weight: '30g', importance: 'Medium' },
-    { id: 18, name: 'Matches', weight: '20g', importance: 'High' },
-    { id: 19, name: 'Lighter', weight: '50g', importance: 'High' },
-    { id: 20, name: 'Paperclips', weight: '10g', importance: 'Low' },
-    { id: 21, name: 'Tape', weight: '50g', importance: 'Medium' },
-    { id: 22, name: 'Bandages', weight: '100g', importance: 'High' },
-    { id: 23, name: 'Scissors', weight: '50g', importance: 'Medium' },
-    { id: 24, name: 'Tweezers', weight: '20g', importance: 'Low' },
-    { id: 25, name: 'Thermometer', weight: '30g', importance: 'Medium' },
-    { id: 26, name: 'Antibiotic', weight: '20g', importance: 'High' },
-    { id: 27, name: 'Painkillers', weight: '20g', importance: 'High' },
-    { id: 28, name: 'Hand Sanitizer', weight: '150g', importance: 'Medium' },
-    { id: 29, name: 'Wet Wipes', weight: '100g', importance: 'Medium' },
-    { id: 30, name: 'Trash Bags', weight: '50g', importance: 'Low' }
-  ];
-  
-  itemCells.forEach((cell, index) => {
-    cell.addEventListener('click', function() {
-      // Remove active class from all cells
-      itemCells.forEach(c => c.classList.remove('active'));
+// ====== ITEM SELECTION - Update detail card on click ======
+const itemCells = document.querySelectorAll('.item-cell');
+const itemDetailCard = document.querySelector('.item-detail-card');
+
+// Revised 20-item database following your project specifications
+const itemsDatabase = {
+  "water": { name: 'Water Bottle', weight: '1.5 kg', importance: 'Critical', desc: 'Clean drinking water for 72-hour hydration. The average person needs water for survival. PHIVOLCS Priority #1', img: 'images/items/Water Bottle.png' },
+  "canned-food": { name: 'Canned Food', weight: '800g', importance: 'Critical', desc: 'Non-perishable energy source (sardines, corned beef, or canned tuna). 3-day food supply.', img: 'images/items/cannedgood.png' },
+  "ziplock": { name: 'Ziplock Bag', weight: '30g', importance: 'Medium', desc: 'Waterproof storage, waste disposal, and a makeshift raincoat.', img: 'images/items/ziplock.png' },
+  "whistle": { name: 'Whistle', weight: '20g', importance: 'Critical', desc: 'Signal rescuers without exhausting your voice. Sound travels farther than shouting. Essential for trapped victims.', img: 'images/items/whistle.png' },
+  "flashlight": { name: 'Hand-Pressing Flashlight', weight: '200g', importance: 'Critical', desc: 'Provides light during power outages or night.', img: 'images/items/flashlight2.png' },
+  "first-aid-kit": { name: 'First Aid Kit', weight: '500g', importance: 'Critical', desc: 'Basic medical supplies: bandages, gauze, alcohol, betadine, and tape. Treats injuries and prevents infection. Supplies for treating minor injuries and wounds.', img: 'images/items/medkit.png ' },
+  "maintenance-meds": { name: 'Prescription Medication', weight: '100g', importance: 'Low', desc: 'Required medicines for chronic conditions (asthma, diabetes, allergies). Only if the student has medical needs.', img: 'images/items/medication.png' },
+  "Toiletries": { name: 'Toiletries (mini kit)', weight: '150g', importance: 'Medium', desc: 'A small soap, toothbrush, and toothpaste. Maintains hygiene during an extended shelter stay.', img: 'images/items/toiletries.png' },
+  "face-mask": { name: 'Dust Mask (N95)', weight: '20g', importance: 'High', desc: 'Protects the respiratory system from dust and ash.', img: 'images/items/95 mask.png' },
+  "blanket": { name: 'Emergency Thermal Blanket', weight: '200g', importance: 'High', desc: 'Thermal/space blanket. Prevents hypothermia, reflects body heat. Compact and lightweight.', img: 'images/items/blanket.png' },
+  "radio": { name: 'Radio', weight: '220g', importance: 'High', desc: 'Receives emergency broadcasts and government updates. Situational awareness when networks down.', img: 'images/items/radio.png' },
+  "batteries": { name: 'Batteries (4× AA)', weight: '100g', importance: 'High', desc: 'Power backup for radio. Extends usability when original batteries drain. Replacement power for radio and flashlight.', img: 'images/items/aa batteries.png' },
+  "glowsticks": { name: 'Glowsticks', weight: '100g', importance: 'Medium', desc: 'Backup lighting when batteries fail. Store matches in a waterproof container.', img: 'images/items/glowsticks.png' },
+  "pocketknife": { name: 'Pocket Knife', weight: '150g', importance: 'Medium', desc: 'Multi-use tool for cutting, opening cans, and minor repairs.', img: 'images/items/pockeknife.png' },
+  "clothes": { name: 'Spare Clothes (1 set)', weight: '500g', importance: 'High', desc: 'Clean underwear, shirt, and pants. Maintains hygiene and warmth after evacuation.', img: 'images/items/clothes.png' },
+  "id-documents": { name: 'Important Documents', weight: '100g', importance: 'High', desc: 'Photocopies of ID, birth certificate, and insurance. Needed for aid claims and identification.', img: 'images/items/importantdocuments.png' },
+  "cash": { name: 'Emergency Cash', weight: '50g', importance: 'Low', desc: 'Emergency purchases, transportation. Small bills for easier transactions when stores open.', img: 'images/items/money.png' },
+  "emergency-contacts": { name: 'Emergency Contact Card', weight: '10g', importance: 'High', desc: 'Names; phone numbers of family, barangay, hospital, and police. Critical for separated families.', img: 'images/items/contactcard.png' },
+  "Rope": { name: 'Rope', weight: '200g', importance: 'High', desc: 'Rescue operations, securing items, climbing. Multi-purpose emergency tool.', img: 'images/items/rope.png' },
+  "notebook-pen": { name: 'Pen & Paper', weight: '50g', importance: 'Medium', desc: 'Write emergency notes, leave messages for family, and record important information.', img: 'images/items/penpaper.png' }
+};
+
+const importanceColors = {
+  'Critical': '#FF4444',
+  'High': '#FF9944',
+  'Medium': '#FFDD44',
+  'Low': '#44DD44'
+};
+
+itemCells.forEach((cell) => {
+  cell.addEventListener('click', function() {
+    // Remove active class from all cells
+    itemCells.forEach(c => c.classList.remove('active'));
+    
+    // Add active class to clicked cell
+    this.classList.add('active');
+    
+    const itemKey = this.getAttribute('data-item');
+    const item = itemsDatabase[itemKey];
+
+    if (itemDetailCard && item) {
+      const itemPreview = itemDetailCard.querySelector('.item-preview');
+      const itemName = itemDetailCard.querySelector('.item-name');
+      const itemMetas = itemDetailCard.querySelectorAll('.item-meta');
       
-      // Add active class to clicked cell
-      this.classList.add('active');
-      
-      // Update detail card with item info
-      if (itemDetailCard && index < itemsDatabase.length) {
-        const item = itemsDatabase[index];
-        const itemPreview = itemDetailCard.querySelector('.item-preview');
-        const itemName = itemDetailCard.querySelector('.item-name');
-        const itemMetas = itemDetailCard.querySelectorAll('.item-meta');
-        
-        // Update preview (add color based on importance)
-        const importanceColors = {
-          'Critical': '#FF4444',
-          'High': '#FF9944',
-          'Medium': '#FFDD44',
-          'Low': '#44DD44'
-        };
-        if (itemPreview) {
-          itemPreview.style.backgroundColor = importanceColors[item.importance] || '#CCCCCC';
-        }
-        
-        // Update name and details
-        if (itemName) itemName.textContent = item.name;
-        if (itemMetas[0]) itemMetas[0].textContent = 'Weight: ' + item.weight;
-        if (itemMetas[1]) itemMetas[1].textContent = 'Importance: ' + item.importance;
+      // Update preview background and inner image
+      if (itemPreview) {
+        itemPreview.style.backgroundColor = importanceColors[item.importance] || '#CCCCCC';
+        itemPreview.innerHTML = `<img src="${item.img}" style="width:100%; height:100%; object-fit:contain; image-rendering:pixelated; padding:15%;">`;
       }
-    });
+      
+      // Update name and details
+      if (itemName) itemName.textContent = item.name;
+      if (itemMetas[0]) itemMetas[0].textContent = 'Weight: ' + item.weight;
+      if (itemMetas[1]) itemMetas[1].textContent = 'Importance: ' + item.importance;
+      
+      // Check for description element, create if missing
+      let itemDesc = itemDetailCard.querySelector('.item-description');
+      if (!itemDesc) {
+        itemDesc = document.createElement('div');
+        itemDesc.className = 'item-meta item-description';
+        itemDetailCard.querySelector('div:last-child').appendChild(itemDesc);
+      }
+      itemDesc.textContent = 'Info: ' + item.desc;
+    }
   });
-  
-  // Select first item by default
-  if (itemCells.length > 0) {
-    itemCells[0].click();
-  }
+});
+
+// Select first item by default
+if (itemCells.length > 0) {
+  itemCells[0].click();
+}

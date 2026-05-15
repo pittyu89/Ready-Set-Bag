@@ -64,18 +64,64 @@
   <section class="section-red" id="sec-gameplay">
     <div class="gameplay-grid">
       <div class="gameplay-left">
-        <div class="gameplay-label">gameplay</div>
+        <div class="gameplay-label">CHARACTERS</div>
         <div class="character-container">
           <div class="char-thumb"><img class="char-animation" src="images/char-walk-towards.gif" alt="Character walking"></div>
           <div class="char-thumb2"><img class="char-animation2" src="images/char-walk-towards2.gif" alt="Character walking2"></div>
-          <div class="char-label">characters</div>
         </div>
       </div>
-      <div class="movement-card">MOVEMENT GAMEPLAY</div>
+<div class="movement-card">
+  <h2 class="loop-title">GAMEPLAY LOOP</h2>
+  
+  <div class="loop-vertical-stack">
+    <div class="loop-phase-card">
+      <div class="phase-image-container">
+        <img src="images/loop/exploration.png" alt="Exploration">
+      </div>
+      <div class="phase-content">
+        <div class="phase-label">1. EXPLORATION</div>
+        <p class="phase-desc">The player navigates a locally themed virtual house — kitchen, bathroom, bedroom — clicking and collecting items they believe are go-bag essentials. Each item displays a short description explaining its survival purpose, building item recognition from the ground up. </p>
+      </div>
+    </div>
+
+    <div class="loop-phase-card">
+      <div class="phase-image-container">
+        <img src="images/loop/pack1.jpg" alt="Packing Top">
+      </div>
+      <div class="phase-text-content">
+        <div class="phase-label">2. PACKING</div>
+        <p class="phase-desc">The player navigates through the home — kitchen, bathroom, bedroom — tapping or grabbing items found in realistic locations (e.g., water in the kitchen, first aid kit in the bathroom, important documents in the bedroom).
+</p>
+      </div>
+    </div>
+
+    <div class="loop-phase-card">
+      <div class="phase-image-container">
+        <img src="images/loop/pack2.jpg" alt="Packing Bottom">
+      </div>
+      <div class="phase-text-content">
+        <p class="phase-desc">Drag and Pack: The player drags items from inventory into the go-bag using a drag-and-drop interface. A real-time weight meter reflects the total load.</p>
+      </div>
+    </div>
+
+    <div class="loop-phase-card">
+      <div class="phase-image-container">
+        <img src="images/loop/completion.jpg" alt="Completion">
+      </div>
+      <div class="phase-text-content">
+        <div class="phase-label">3. COMPLETION</div>
+        <p class="phase-desc">Scenario Quiz: After packing, the player answers scenario-based questions by dragging their answer to the correct response area. Questions are tied to earthquake survival contexts, and both correct and incorrect answers are followed by feedback explaining the survival rationale.</p>
+      </div>
+    </div>
+  </div>
+</div>
       <div class="gameplay-areas">
-        <div class="area-card">AREA 1</div>
-        <div class="area-card">RENDER OF<br>MAP 360</div>
-        <div class="area-card">AREA 2</div>
+        <div class="area-card"><img class="area-1" src="images/area-1.png"></div>
+        <div class="area-card"><video class="area-vid" autoplay loop muted playsinline>
+                <source src="images/map-render.mp4" type="video/mp4">
+                Your browser does not support the video tag.
+              </video></div>
+        <div class="area-card"><img class="area-2" src="images/area-2.png"></div>
       </div>
     </div>
   </section>
@@ -85,15 +131,27 @@
       <div class="items-grid-card">
         <div class="items-grid-title">items</div>
         <div class="items-grid">
-          <div class="item-cell"></div><div class="item-cell"></div><div class="item-cell"></div><div class="item-cell"></div>
-          <div class="item-cell"></div><div class="item-cell"></div><div class="item-cell"></div><div class="item-cell"></div>
-          <div class="item-cell"></div><div class="item-cell"></div><div class="item-cell"></div><div class="item-cell"></div>
-          <div class="item-cell"></div><div class="item-cell"></div><div class="item-cell"></div><div class="item-cell"></div>
-          <div class="item-cell"></div><div class="item-cell"></div><div class="item-cell"></div><div class="item-cell"></div>
-          <div class="item-cell"></div><div class="item-cell"></div><div class="item-cell"></div><div class="item-cell"></div>
-          <div class="item-cell"></div><div class="item-cell"></div><div class="item-cell"></div><div class="item-cell"></div>
-          <div class="item-cell"></div><div class="item-cell"></div>
-        </div>
+              <div class="item-cell" data-item="water"><img class="item" src="images/items/Water Bottle.png"></div>
+              <div class="item-cell" data-item="canned-food"><img class="item" src="images/items/cannedgood.png"></div>
+              <div class="item-cell" data-item="ziplock"><img class="item" src="images/items/ziplock.png"></div>
+              <div class="item-cell" data-item="whistle"><img class="item" src="images/items/whistle.png"></div>
+              <div class="item-cell" data-item="flashlight"><img class="item" src="images/items/flashlight2.png"></div>
+              <div class="item-cell" data-item="first-aid-kit"><img class="item" src="images/items/medkit.png "></div>
+              <div class="item-cell" data-item="maintenance-meds"><img class="item" src="images/items/medication.png"></div>
+              <div class="item-cell" data-item="Toiletries"><img class="item" src="images/items/toiletries.png"></div>
+              <div class="item-cell" data-item="face-mask"><img class="item" src="images/items/95 mask.png"></div>
+              <div class="item-cell" data-item="blanket"><img class="item" src="images/items/blanket.png"></div>
+              <div class="item-cell" data-item="radio"><img class="item" src="images/items/radio.png"></div>
+              <div class="item-cell" data-item="batteries"><img class="item" src="images/items/aa batteries.png"></div>
+              <div class="item-cell" data-item="glowsticks"><img class="item" src="images/items/glowsticks.png"></div>
+              <div class="item-cell" data-item="pocketknife"><img class="item" src="images/items/pockeknife.png"></div>
+              <div class="item-cell" data-item="clothes"><img class="item" src="images/items/clothes.png"></div>
+              <div class="item-cell" data-item="id-documents"><img class="item" src="images/items/importantdocuments.png"></div>
+              <div class="item-cell" data-item="cash"><img class="item" src="images/items/money.png"></div>
+              <div class="item-cell" data-item="emergency-contacts"><img class="item" src="images/items/contactcard.png"></div>
+              <div class="item-cell" data-item="Rope"><img class="item" src="images/items/rope.png"></div>
+              <div class="item-cell" data-item="notebook-pen"><img class="item" src="images/items/penpaper.png"></div>
+            </div>
       </div>
       <div class="item-detail-card">
         <div class="item-preview"></div>
