@@ -16,7 +16,7 @@ let adminCredentials = {
 async function restoreAdminAuth() {
   if (!adminCredentials.email || !adminCredentials.password) {
     console.warn('Admin credentials not available:', adminCredentials);
-    return;
+    return false;
   }
 
   try {
@@ -27,15 +27,17 @@ async function restoreAdminAuth() {
     // Check if already authenticated as admin
     if (currentUser && currentUser.email === adminCredentials.email) {
 
-      return;
+      return true;
     }
 
 
-    const result = await firebase.auth().signInWithEmailAndPassword(adminCredentials.email, adminCredentials.password);
+    await firebase.auth().signInWithEmailAndPassword(adminCredentials.email, adminCredentials.password);
+    return true;
 
   } catch (err) {
     console.error('Failed to restore admin auth:', err.code, err.message);
     // Try to continue anyway - the session might still be valid
+    return false;
   }
 }
 
@@ -52,10 +54,17 @@ async function getDocumentData(collectionName, documentId) {
 async function withSignedInAccount(email, password, action) {
   await firebase.auth().signInWithEmailAndPassword(email, password);
 
+  let actionError = null;
   try {
     return await action(firebase.auth().currentUser);
+  } catch (error) {
+    actionError = error;
+    throw error;
   } finally {
-    await restoreAdminAuth();
+    const restored = await restoreAdminAuth();
+    if (!restored && !actionError) {
+      throw new Error('Unable to restore admin authentication after the operation. Check the admin account and Firestore admin document.');
+    }
   }
 }
 
@@ -128,6 +137,46 @@ function closeModalOutside(e) {
   if (e.target === document.getElementById('modal-overlay')) closeModal();
 }
 
+// Prompt admin to add a new section name and append it to all section selects
+function promptAddSection() {
+  const name = prompt('Enter new section name (e.g. G6-NewSection):');
+  if (!name) return;
+  const sectionName = name.trim();
+  if (!sectionName) return;
+
+  // Targets to update
+  const ids = ['input-section', 's-input-section', 's-csv-section', 'admin-section-filter'];
+  let added = false;
+  ids.forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+
+    // Check if option already exists (case-insensitive)
+    const exists = Array.from(el.options).some(o => o.value.toLowerCase() === sectionName.toLowerCase());
+    if (!exists) {
+      const opt = document.createElement('option');
+      opt.value = sectionName;
+      opt.textContent = sectionName;
+      el.appendChild(opt);
+      added = true;
+    }
+
+    // Select the newly added/selected option where appropriate (for input fields)
+    if (id === 'input-section' || id === 's-input-section' || id === 's-csv-section') {
+      el.value = sectionName;
+    }
+  });
+
+  if (added) {
+    showToast('Section "' + sectionName + '" added.');
+  } else {
+    showToast('Section already exists.', 'info');
+  }
+
+  // Update local mapping if we have teacher data available (no teacherId for new section yet)
+  // populateSectionDropdowns will refresh mappings from teachers later when needed.
+}
+
 // ---- LOAD TEACHERS FROM FIREBASE (REAL-TIME) ----
 function loadTeachersFromFirebase() {
   if (typeof db === 'undefined') {
@@ -171,9 +220,6 @@ function loadTeachersFromFirebase() {
             <td class="td-actions">
               <button class="btn-sm btn-edit" onclick="openEditModal(this)" ${!isActive ? 'disabled' : ''}>✏ EDIT</button>
               <button class="btn-sm btn-reset" onclick="resetPassword(this)" ${!isActive ? 'disabled' : ''}>↺ RESET</button>
-              <button class="btn-sm ${isActive ? 'btn-deactivate' : 'btn-activate'}" onclick="toggleTeacherStatus(this)">
-                ${isActive ? '⏸ DEACTIVATE' : '▶ ACTIVATE'}
-              </button>
               <button class="btn-sm btn-delete" onclick="confirmDelete(this)">🗑 DELETE</button>
             </td>`;
           tbody.appendChild(row);
@@ -277,13 +323,21 @@ async function createTeacher() {
     return;
   }
 
+  const wasListening = !!teachersListener;
+  if (wasListening) {
+    teachersListener();
+    teachersListener = null;
+  }
+
   try {
     // 1. Create Firebase Auth account
     const userCredential = await firebase.auth().createUserWithEmailAndPassword(email, password);
     const uid = userCredential.user.uid;
 
     // 2. Restore admin authentication
-    await restoreAdminAuth();
+    if (!(await restoreAdminAuth())) {
+      throw new Error('Unable to restore admin authentication. Check the admin account and Firestore admin document.');
+    }
 
     // 3. Create Firestore document (use Auth UID as doc ID for easy lookup)
     await window.db.collection('teachers').doc(uid).set({
@@ -307,6 +361,13 @@ async function createTeacher() {
       showToast('That email is already registered.', 'error');
     } else {
       showToast('Error: ' + error.message, 'error');
+    }
+  } finally {
+    if (!(await restoreAdminAuth())) {
+      showToast('Admin session could not be restored after creating the teacher.', 'error');
+    }
+    if (wasListening) {
+      loadTeachersFromFirebase();
     }
   }
 }
@@ -433,34 +494,6 @@ function resetModalToCreate() {
   document.getElementById('modal-title').textContent = 'ADD NEW TEACHER';
   document.getElementById('create-btn').textContent = 'CREATE TEACHER';
   document.getElementById('create-btn').onclick = () => createTeacher();
-}
-
-// Deactivate or reactivate a teacher (REQ-4)
-async function toggleTeacherStatus(btn) {
-  if (!window.db) {
-    showToast('Firebase is not initialized.', 'error');
-    return;
-  }
-
-  const row = btn.closest('tr');
-  const teacherId = row.getAttribute('data-teacher-id');
-  const name = row.querySelector('.td-name').textContent;
-  const isCurrentlyActive = btn.classList.contains('btn-deactivate');
-  const newStatus = isCurrentlyActive ? 'inactive' : 'active';
-  const action = isCurrentlyActive ? 'deactivate' : 'reactivate';
-
-  if (confirm(`${action.charAt(0).toUpperCase() + action.slice(1)} ${name}? ${isCurrentlyActive ? 'They will no longer be able to log in.' : 'They will be able to log in again.'}`)) {
-    try {
-      await window.db.collection('teachers').doc(teacherId).update({
-        status: newStatus,
-        updatedAt: new Date()
-      });
-      showToast(`${name} ${newStatus === 'inactive' ? 'deactivated' : 'reactivated'} successfully.`);
-    } catch (error) {
-      console.error('Error updating teacher status:', error);
-      showToast('Error: ' + error.message, 'error');
-    }
-  }
 }
 
 async function confirmDelete(btn) {
@@ -668,7 +701,9 @@ async function addSingleStudent() {
     const authUid = userCredential.user.uid;
     
     // Restore admin authentication
-    await restoreAdminAuth();
+    if (!(await restoreAdminAuth())) {
+      throw new Error('Unable to restore admin authentication. Check the admin account and Firestore admin document.');
+    }
 
     // Create Firestore document with auth UID
     await window.db.collection('students').add({
@@ -782,7 +817,9 @@ async function importAdminStudentsFromCSV() {
         const authUid = userCredential.user.uid;
         
         // Restore admin authentication
-        await restoreAdminAuth();
+        if (!(await restoreAdminAuth())) {
+          throw new Error('Unable to restore admin authentication. Check the admin account and Firestore admin document.');
+        }
 
         // Create Firestore document with auth UID
         const docRef = await window.db.collection('students').add({
