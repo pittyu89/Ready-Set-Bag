@@ -115,8 +115,8 @@
       </div>
 
       <div class="home-bottom">
-        <div>
-          <div class="panel" style="margin-bottom:14px;">
+        <div class="home-left">
+          <div class="panel">
             <div class="panel-title">SCHOOL-WIDE STATISTICS</div>
             <div class="stats-inline">
               <div class="stat-inline-item">
@@ -124,32 +124,19 @@
                 <div class="stat-inline-val" id="sw-avg-score">—</div>
               </div>
               <div class="stat-inline-item">
-                <div class="stat-inline-label">SESSIONS</div>
-                <div class="stat-inline-val" id="sw-sessions">—</div>
-              </div>
-              <div class="stat-inline-item">
                 <div class="stat-inline-label">COMPLETION</div>
                 <div class="stat-inline-val" id="sw-completion">—</div>
               </div>
             </div>
           </div>
-          <div class="panel">
-            <div class="panel-title" style="margin-bottom:14px;">SKILL PROGRESSION (ALL SECTIONS)</div>
-            <div class="skill-bar-row">
-              <div class="skill-bar-label">COGNITIVE</div>
-              <div class="skill-bar-track"><div class="skill-bar-fill red" id="sw-skill-cognitive" style="width:0%"></div></div>
-              <div class="skill-bar-pct" id="sw-skill-cognitive-pct">0%</div>
-            </div>
-            <div class="skill-bar-row">
-              <div class="skill-bar-label">ASSOCIATIVE</div>
-              <div class="skill-bar-track"><div class="skill-bar-fill orange" id="sw-skill-associative" style="width:0%"></div></div>
-              <div class="skill-bar-pct" id="sw-skill-associative-pct">0%</div>
-            </div>
-            <div class="skill-bar-row">
-              <div class="skill-bar-label">AUTONOMOUS</div>
-              <div class="skill-bar-track"><div class="skill-bar-fill green" id="sw-skill-autonomous" style="width:0%"></div></div>
-              <div class="skill-bar-pct" id="sw-skill-autonomous-pct">0%</div>
-            </div>
+
+          <div class="cta-row">
+            <button class="cta-btn blue" onclick="navigate('teachers', document.querySelector('.nav-item:nth-child(2)'))">
+              <span>MANAGE TEACHERS</span><span class="arrow">→</span>
+            </button>
+            <button class="cta-btn green" onclick="navigate('reports', document.querySelector('.nav-item:nth-child(4)'))">
+              <span>VIEW REPORTS</span><span class="arrow">→</span>
+            </button>
           </div>
         </div>
 
@@ -163,15 +150,6 @@
               </div>
             </div>
         </div>
-      </div>
-
-      <div class="cta-row">
-        <button class="cta-btn blue" onclick="navigate('teachers', document.querySelector('.nav-item:nth-child(2)'))">
-          <span>MANAGE TEACHERS</span><span class="arrow">→</span>
-        </button>
-        <button class="cta-btn green" onclick="navigate('reports', document.querySelector('.nav-item:nth-child(4)'))">
-          <span>VIEW REPORTS</span><span class="arrow">→</span>
-        </button>
       </div>
     </div>
 
@@ -266,8 +244,7 @@
           <option value="">ALL SECTIONS</option>
         </select>
         <select class="filter-select" id="reports-level-filter" onchange="renderAdminReports()">
-          <option value="">ALL LEVELS</option>
-          <option value="beginner">Beginner</option>
+          <option value="beginner" selected>Beginner</option>
           <option value="intermediate">Intermediate</option>
           <option value="advanced">Advanced</option>
         </select>
@@ -291,6 +268,16 @@
         </div>
       </div>
 
+      <!-- Surfaced directly under the summary cards: naming the students who
+           need help is the most actionable thing on this page, so it comes
+           before the section breakdown and the full table. -->
+      <div class="panel" style="margin-bottom:18px;">
+        <div class="panel-title" style="color:#e74c3c;">⚠ NEEDS SUPPORT</div>
+        <div id="needs-support-list">
+          <div class="needs-support-item"><div class="needs-support-name" style="color:var(--text-muted);">Loading…</div></div>
+        </div>
+      </div>
+
      <div class="skill-table">
         <div class="panel-title">AVERAGE SCORES BY SECTION</div>
         <table id="section-report-table">
@@ -307,20 +294,6 @@
         </table>
       </div>
 
-      <div class="reports-bottom">
-        <div class="panel">
-          <div class="panel-title">🏆 TOP PERFORMING SECTIONS</div>
-          <div id="top-sections-list">
-            <div class="top-section-item"><span class="top-section-name" style="color:var(--text-muted);">Loading…</span></div>
-          </div>
-        </div>
-        <div class="panel">
-          <div class="panel-title" style="color:#e74c3c;">⚠ NEEDS SUPPORT</div>
-          <div id="needs-support-list">
-            <div class="needs-support-item"><div class="needs-support-name" style="color:var(--text-muted);">Loading…</div></div>
-          </div>
-        </div>
-      </div>
 
       <div class="individual-panel">
         <div class="individual-header">
@@ -333,14 +306,12 @@
               <th>Student</th>
               <th>Section</th>
               <th>Score</th>
-              <th>Time</th>
-              <th>Stage</th>
-              <th>Essentials</th>
-              <th>Errors</th>
+              <th>Best Time</th>
+              <th>Skill Tier</th>
             </tr>
           </thead>
           <tbody id="admin-individual-tbody">
-            <tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:18px;">Loading…</td></tr>
+            <tr><td colspan="5" style="text-align:center;color:var(--text-muted);padding:18px;">Loading…</td></tr>
           </tbody>
         </table>
         <div class="table-footer" id="admin-individual-footer"></div>

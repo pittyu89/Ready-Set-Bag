@@ -1591,9 +1591,6 @@ function loadTotalSessionsCount() {
     const count = snapshot.size;
     const element = document.getElementById('total-sessions-count');
     if (element) element.textContent = count;
-    // School-wide statistics panel (Home) also shows a SESSIONS figure
-    const swSessions = document.getElementById('sw-sessions');
-    if (swSessions) swSessions.textContent = count;
   });
 }
 
@@ -1662,24 +1659,24 @@ function renderAdminReports() {
 
   const metrics = A.computeMetrics(results, students, filters);
   const sections = A.sectionAverages(results, students, filters);
-  const dist = A.stageDistribution(results, filters);
 
   // --- Reports stat cards ---
+  const scopeSub = (filters.section || 'all sections') +
+    (filters.difficulty ? ' · ' + filters.difficulty : '');
   setText('reports-total-students', metrics.totalStudents);
   setText('reports-total-students-sub', metrics.sectionsCount + (metrics.sectionsCount === 1 ? ' section' : ' sections'));
   setText('reports-avg-score', metrics.hasData ? metrics.avgScore + '/100' : '—');
-  setText('reports-avg-score-sub', filters.section ? filters.section : 'all sections');
+  setText('reports-avg-score-sub', scopeSub);
   setText('reports-completion', metrics.totalStudents ? metrics.completionRate + '%' : '—');
   setText('reports-completion-sub', metrics.playedCount + '/' + metrics.totalStudents);
 
   // --- Home School-wide statistics panel ---
-  setText('sw-avg-score', metrics.hasData ? metrics.avgScore + '/100' : '—');
-  setText('sw-completion', metrics.totalStudents ? metrics.completionRate + '%' : '—');
-
-  // --- Skill progression bars (stage distribution) ---
-  setSkillBar('sw-skill-cognitive', dist.Cognitive);
-  setSkillBar('sw-skill-associative', dist.Associative);
-  setSkillBar('sw-skill-autonomous', dist.Autonomous);
+  // Computed unfiltered on purpose: the panel is labelled school-wide, and the
+  // Reports dropdowns that would otherwise scope it live on a different page
+  // where an admin looking at Home cannot see what they are set to.
+  const swide = A.computeMetrics(results, students, {});
+  setText('sw-avg-score', swide.hasData ? swide.avgScore + '/100' : '—');
+  setText('sw-completion', swide.totalStudents ? swide.completionRate + '%' : '—');
 
   // --- Average scores by section table ---
   const tbody = document.getElementById('section-report-tbody');
@@ -1699,16 +1696,6 @@ function renderAdminReports() {
       html += `<tr style="border-top:2px solid #444;"><td class="td-school-avg">SCHOOL AVG</td><td class="td-avg td-school-avg">${schoolAvg}</td><td><span class="status-badge${schoolAvg < A.SUPPORT_THRESHOLD ? ' below-threshold' : ''}">${schoolAvg < A.SUPPORT_THRESHOLD ? '⚠ Needs Support' : 'Good'}</span></td></tr>`;
       tbody.innerHTML = html;
     }
-  }
-
-  // --- Top performing sections ---
-  const topList = document.getElementById('top-sections-list');
-  if (topList) {
-    const medals = ['🥇', '🥈', '🥉'];
-    const top = sections.slice(0, 3);
-    topList.innerHTML = top.length
-      ? top.map((s, i) => `<div class="top-section-item"><span class="medal">${medals[i] || '🏅'}</span><span class="top-section-name">${A.esc(s.section)}</span><span class="top-section-score">${s.avg}/100</span></div>`).join('')
-      : '<div class="top-section-item"><span class="top-section-name" style="color:var(--text-muted);">No results yet</span></div>';
   }
 
   // --- Needs support (students below threshold) ---
@@ -1737,33 +1724,33 @@ function renderAdminIndividualResults() {
   if (q) rows = rows.filter(r => (r.studentName || '').toLowerCase().includes(q) || (r.section || '').toLowerCase().includes(q));
 
   if (!rows.length) {
-    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:18px;">No results yet</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text-muted);padding:18px;">No results yet</td></tr>';
     if (footer) footer.textContent = '';
     return;
   }
   tbody.innerHTML = rows.map(r => {
-    const errClass = r.errors >= 3 ? ' class="td-err-high"' : '';
     return `<tr>
       <td>${A.esc(r.studentName)}</td>
       <td>${A.esc(r.section)}</td>
       <td>${r.bestScore}</td>
-      <td class="td-time">${A.formatTime(r.best.completionTime)}</td>
-      <td class="td-stage">${A.esc(r.stage)}</td>
-      <td class="td-essentials">${r.essentials}/${r.essentialsMax}</td>
-      <td${errClass}>${r.errors}</td>
+      <td class="td-time">${A.formatTime(r.bestTime)}</td>
+      <td class="td-stage">${A.stageLabel(r.stage)}</td>
     </tr>`;
   }).join('');
-  if (footer) footer.textContent = `SHOWING ${rows.length} STUDENT${rows.length === 1 ? '' : 'S'} WITH RESULTS`;
+  if (footer) {
+    // Flag results whose level no filter can match, rather than dropping them
+    // out of every report with no trace.
+    const excluded = A.countUnknownLevel(adminResultsCache);
+    let html = `SHOWING ${rows.length} STUDENT${rows.length === 1 ? '' : 'S'} WITH RESULTS`;
+    if (excluded) {
+      html += `<span class="table-footer-warn">⚠ ${excluded} RESULT${excluded === 1 ? '' : 'S'} NOT SHOWN (MISSING LEVEL)</span>`;
+    }
+    footer.innerHTML = html;
+  }
 }
 
 // Small DOM helpers
 function setText(id, val) { const el = document.getElementById(id); if (el) el.textContent = val; }
-function setSkillBar(id, pct) {
-  const el = document.getElementById(id);
-  if (el) el.style.width = Math.max(0, Math.min(100, pct)) + '%';
-  const pctEl = document.getElementById(id + '-pct');
-  if (pctEl) pctEl.textContent = Math.round(pct) + '%';
-}
 
 // Backwards-compatible alias (init + nav still call this name)
 function flagBelowThresholdSections() { loadAdminReports(); }
@@ -1795,8 +1782,6 @@ function loadAdminRecentActivity() {
     .orderBy('createdAt', 'desc')
     .limit(5)
     .onSnapshot(async (snapshot) => {
-      container.innerHTML = '';
-      
       if (snapshot.empty) {
         container.innerHTML = '<div class="activity-item"><div class="activity-desc">No recent activity</div></div>';
         return;
@@ -1826,7 +1811,11 @@ function loadAdminRecentActivity() {
           return rightTime - leftTime;
         });
 
-      recentSessions.forEach((entry) => {
+      // Build the whole list, then write it in one assignment. Appending in a
+      // loop after the `await` above let two overlapping invocations each add
+      // their own five rows, so the panel showed every session twice.
+      const esc = (window.RSBAnalytics && window.RSBAnalytics.esc) || ((s) => s);
+      container.innerHTML = recentSessions.map((entry) => {
         const session = entry.data;
         const dateSource = session.startedAt || session.updatedAt || session.createdAt;
         const date = dateSource ? new Date(dateSource.toDate()).toLocaleDateString('en-US', {month: 'short', day: 'numeric'}) : 'Unknown';
@@ -1837,14 +1826,11 @@ function loadAdminRecentActivity() {
         const teacherLabel = teacher ? (`Teacher ${teacher.lastName || teacher.firstName || session.teacherId}`) : (session.teacherId || 'Unknown Teacher');
         const sectionLabel = teacher && teacher.section ? ` – ${teacher.section}` : '';
 
-        const activityDiv = document.createElement('div');
-        activityDiv.className = 'activity-item';
-        activityDiv.innerHTML = `
-          <div class="activity-date">${date}</div>
-          <div class="activity-teacher">${teacherLabel}${sectionLabel}</div>
-          <div class="activity-desc">${statusLabel} ${difficulty.charAt(0).toUpperCase() + difficulty.slice(1)} Session<br>Code: ${session.sessionCode} (${playerCount} students)</div>
-        `;
-        container.appendChild(activityDiv);
-      });
+        return `<div class="activity-item">
+          <div class="activity-date">${esc(date)}</div>
+          <div class="activity-teacher">${esc(teacherLabel)}${esc(sectionLabel)}</div>
+          <div class="activity-desc">${statusLabel} ${esc(difficulty.charAt(0).toUpperCase() + difficulty.slice(1))} Session<br>Code: ${esc(session.sessionCode)} (${playerCount} students)</div>
+        </div>`;
+      }).join('');
     });
 }
