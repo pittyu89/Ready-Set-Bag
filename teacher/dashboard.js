@@ -402,7 +402,7 @@ function renderTeacherIndividualResults() {
   if (!tbody) return;
 
   if (!rows.length) {
-    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text-muted);padding:18px;">No results yet</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:18px;">No results yet</td></tr>';
     if (footer) footer.textContent = '';
     return;
   }
@@ -411,7 +411,6 @@ function renderTeacherIndividualResults() {
       <td>${A.esc(r.studentName)}</td>
       <td>${r.bestScore}</td>
       <td class="td-time">${A.formatTime(r.bestTime)}</td>
-      <td>${r.attempts}</td>
       <td class="td-stage">${A.stageLabel(r.stage)}</td>
     </tr>`;
   }).join('');
