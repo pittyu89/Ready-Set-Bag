@@ -324,16 +324,19 @@ function renderTeacherReports() {
   const filters = getTeacherFilters();
   const m = A.computeMetrics(teacherResultsCache, teacherStudentsCache, filters);
 
-  // Reports metric cards
+  // Reports metric cards — scoped to the level chosen in the Reports filter
   setTeacherText('tr-avg-score', m.hasData ? m.avgScore + '/100' : '—');
   setTeacherText('tr-completion', m.totalStudents ? m.completionRate + '%' : '—');
   setTeacherText('tr-avg-time', m.hasData ? A.formatTime(m.avgTime) : '—');
 
-  // Home quick-stats
-  setTeacherText('home-my-students', m.totalStudents || 0);
+  // Home quick-stats deliberately ignore the Reports filter: the cards are
+  // labelled for the whole class, and that dropdown lives on another page
+  // where the teacher cannot see what it is set to.
+  const all = A.computeMetrics(teacherResultsCache, teacherStudentsCache, {});
+  setTeacherText('home-my-students', all.totalStudents || 0);
   setTeacherText('home-sessions-run', typeof teacherSessionsCount === 'number' ? teacherSessionsCount : '—');
-  setTeacherText('home-avg-score', m.hasData ? m.avgScore : '—');
-  setTeacherText('home-completion', m.totalStudents ? m.completionRate + '%' : '—');
+  setTeacherText('home-avg-score', all.hasData ? all.avgScore : '—');
+  setTeacherText('home-completion', all.totalStudents ? all.completionRate + '%' : '—');
 
   renderTeacherLeaderboard();
   renderTeacherIndividualResults();
@@ -342,7 +345,9 @@ function renderTeacherReports() {
 function renderTeacherLeaderboard() {
   const A = window.RSBAnalytics;
   if (!A) return;
-  const board = A.leaderboard(teacherResultsCache, getTeacherFilters());
+  const mode = document.getElementById('lb-sort')?.value || 'score';
+  const timeLed = mode === 'time';
+  const board = A.leaderboard(teacherResultsCache, getTeacherFilters(), mode);
   const podium = document.getElementById('lb-podium');
   const list = document.getElementById('leaderboard-list');
   if (!list) return;
@@ -361,24 +366,29 @@ function renderTeacherLeaderboard() {
     const disp = [top[1], top[0], top[2]].filter(Boolean);
     podium.innerHTML = disp.map((s) => {
       const i = s.rank - 1;
+      // Headline value follows whatever the board is ranked by.
       return `<div class="lb-podium-card ${cls[i] || ''}">
         <div class="lb-podium-medal">${medals[i] || '🏅'}</div>
         <div class="lb-podium-name">${A.esc(s.studentName)}</div>
-        <div class="lb-podium-score">${s.bestScore}</div>
+        <div class="lb-podium-score">${timeLed ? A.formatTime(s.bestTime) : s.bestScore}</div>
+        <div class="lb-podium-sub">${timeLed ? s.bestScore + ' PTS' : A.formatTime(s.bestTime)}</div>
       </div>`;
     }).join('');
   }
 
-  // Full ranked list with score bars
+  // Full ranked list. Both numbers always show, so the ranking is legible in
+  // either mode without needing a bar to fill in the gap.
   list.innerHTML = board.map((s) => {
     const rc = s.rank === 1 ? 'gold' : s.rank === 2 ? 'silver' : s.rank === 3 ? 'bronze' : '';
     return `<div class="lb-row">
       <div class="lb-rank ${rc}">${s.rank}</div>
       <div class="lb-main">
         <div class="lb-name">${A.esc(s.studentName)}</div>
-        <div class="lb-bar-track"><div class="lb-bar-fill" style="width:${Math.max(0, Math.min(100, s.bestScore))}%"></div></div>
       </div>
-      <div class="lb-score">${s.bestScore}</div>
+      <div class="lb-score${timeLed ? ' lead-time' : ''}">
+        <span class="lb-score-val">${s.bestScore}</span>
+        <span class="lb-time-val">${A.formatTime(s.bestTime)}</span>
+      </div>
     </div>`;
   }).join('');
 }
@@ -392,23 +402,32 @@ function renderTeacherIndividualResults() {
   if (!tbody) return;
 
   if (!rows.length) {
-    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:18px;">No results yet</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text-muted);padding:18px;">No results yet</td></tr>';
     if (footer) footer.textContent = '';
     return;
   }
   tbody.innerHTML = rows.map((r) => {
-    const errClass = r.errors >= 3 ? ' class="td-err-high"' : '';
     return `<tr>
       <td>${A.esc(r.studentName)}</td>
       <td>${r.bestScore}</td>
-      <td class="td-time">${A.formatTime(r.best.completionTime)}</td>
+      <td class="td-time">${A.formatTime(r.bestTime)}</td>
       <td>${r.attempts}</td>
-      <td class="td-stage">${A.esc(r.stage)}</td>
-      <td class="td-essentials">${r.essentials}/${r.essentialsMax}</td>
-      <td${errClass}>${r.errors}</td>
+      <td class="td-stage">${A.stageLabel(r.stage)}</td>
     </tr>`;
   }).join('');
-  if (footer) footer.textContent = `SHOWING ${rows.length} OF ${rows.length} STUDENTS`;
+  if (footer) footer.innerHTML = teacherFooterText(rows.length);
+}
+
+// Footer text plus a warning when results carry a level the filters cannot
+// match — without this they would vanish from every report silently.
+function teacherFooterText(shown) {
+  const A = window.RSBAnalytics;
+  const excluded = A.countUnknownLevel(teacherResultsCache);
+  let html = `SHOWING ${shown} STUDENT${shown === 1 ? '' : 'S'}`;
+  if (excluded) {
+    html += `<span class="table-footer-warn">⚠ ${excluded} RESULT${excluded === 1 ? '' : 'S'} NOT SHOWN (MISSING LEVEL)</span>`;
+  }
+  return html;
 }
 
 function setTeacherText(id, val) { const el = document.getElementById(id); if (el) el.textContent = val; }

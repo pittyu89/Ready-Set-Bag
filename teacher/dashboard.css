@@ -788,6 +788,14 @@ tbody td {
   letter-spacing: 1px;
 }
 
+/* Flags results the level filter could not match, so they are visibly
+   excluded rather than silently missing. */
+.table-footer-warn {
+  display: block;
+  margin-top: 5px;
+  color: var(--accent-orange);
+}
+
 /* ============= REPORTS PAGE ============= */
 .filter-bar {
   background: var(--bg-panel);
@@ -1022,10 +1030,8 @@ tbody td {
   margin-bottom: 16px;
 }
 
-.td-err-high { color: var(--accent-red); font-weight: bold; }
 .td-time { color: var(--text-secondary); }
 .td-stage { color: var(--text-secondary); }
-.td-essentials { color: var(--text-secondary); }
 
 .export-bar {
   display: flex;
@@ -1663,6 +1669,13 @@ tbody td {
   font-size: 12px;
   color: var(--accent-green);
 }
+/* Secondary metric under the podium headline (whichever one isn't ranking) */
+.lb-podium-sub {
+  font-size: 10px;
+  color: var(--text-secondary);
+  margin-top: 5px;
+  font-variant-numeric: tabular-nums;
+}
 
 /* Ranked list */
 .lb-row {
@@ -1692,31 +1705,30 @@ tbody td {
 .lb-name {
   font-size: 12px;
   color: var(--text-primary);
-  margin-bottom: 5px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.lb-bar-track {
-  height: 8px;
-  background: #3a3a3a;
-  overflow: hidden;
-}
-.lb-bar-fill {
-  height: 100%;
-  background: var(--card-green);
-  transition: width 0.8s ease;
-}
+/* Holds both metrics stacked. Whichever the board is ranked by gets the
+   emphasis, so the sort order stays readable at a glance. */
 .lb-score {
   font-family: var(--pixel);
-  font-size: 10px;
-  color: var(--text-secondary);
   background: #3a3a3a;
   padding: 5px 10px;
   flex-shrink: 0;
-  min-width: 46px;
-  text-align: center;
+  min-width: 62px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 3px;
+  font-variant-numeric: tabular-nums;
 }
+
+.lb-score-val { font-size: 10px; color: var(--text-primary); }
+.lb-time-val  { font-size: 8px;  color: var(--text-secondary); }
+
+.lb-score.lead-time .lb-score-val { font-size: 8px;  color: var(--text-secondary); }
+.lb-score.lead-time .lb-time-val  { font-size: 10px; color: var(--text-primary); }
 
 @media (max-width: 768px) {
   .home-stats { grid-template-columns: repeat(2, 1fr); }
@@ -1724,4 +1736,11 @@ tbody td {
 @media (max-width: 480px) {
   .home-stats { grid-template-columns: 1fr; }
   .lb-podium { grid-template-columns: 1fr; }
+  /* Keep the two-value score box from squeezing the name column */
+  .lb-row { gap: 8px; padding: 9px 10px; }
+  .lb-score { min-width: 52px; padding: 4px 7px; }
+  .lb-score-val { font-size: 9px; }
+  .lb-time-val { font-size: 7px; }
+  .lb-score.lead-time .lb-score-val { font-size: 7px; }
+  .lb-score.lead-time .lb-time-val { font-size: 9px; }
 }

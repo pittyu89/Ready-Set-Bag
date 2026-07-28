@@ -91,18 +91,27 @@ async function main() {
   }
 
   // ---- Sessions (a few per teacher) ----
+  // Every teacher gets at least one session per difficulty. The dashboards no
+  // longer offer an "all levels" option — the level filter always picks one
+  // specific difficulty — so a teacher whose sessions happened to skip a
+  // level would show an empty leaderboard/reports by default, which reads
+  // exactly like "this teacher has no students."
   const teacherIds = roster.teachers.map(t => t.id);
   const sessionByTeacher = {};
   for (const t of roster.teachers) {
     sessionByTeacher[t.id] = [];
-    const n = randInt(2, 4);
-    for (let i = 0; i < n; i++) {
+    const extra = randInt(0, 1);
+    const diffsForTeacher = DIFFICULTIES.concat(
+      Array.from({ length: extra }, () => pick(DIFFICULTIES))
+    );
+    for (let i = 0; i < diffsForTeacher.length; i++) {
       const code = Array.from({ length: 5 }, () => 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'[randInt(0, 29)]).join('');
       const createdAt = new Date(now - randInt(1, 20) * 86400000);
+      const sessionDiff = diffsForTeacher[i];
       const ref = await db.collection('sessions').add({
         sessionCode: code,
         teacherId: t.id,
-        difficulty: pick(DIFFICULTIES),
+        difficulty: sessionDiff,
         playersJoined: randInt(3, 8),
         playersList: [],
         status: 'ended',
@@ -111,7 +120,7 @@ async function main() {
         endedAt: admin.firestore.Timestamp.fromDate(new Date(createdAt.getTime() + 20 * 60000)),
         updatedAt: admin.firestore.Timestamp.fromDate(createdAt)
       });
-      sessionByTeacher[t.id].push({ id: ref.id, code });
+      sessionByTeacher[t.id].push({ id: ref.id, code, diff: sessionDiff });
     }
   }
 
@@ -119,23 +128,32 @@ async function main() {
   // Leave a portion of students with NO results so completion rate < 100%.
   let resultCount = 0;
   const students = roster.students.slice();
+  // Round-robin through a teacher's sessions instead of picking one at random
+  // per result. A random pick can clump by chance and leave a session (and
+  // therefore a whole difficulty) with zero results for that teacher; a
+  // counter guarantees every session gets its share.
+  const sessionCursor = {};
   for (let idx = 0; idx < students.length; idx++) {
     const s = students[idx];
     // ~15% of students have not played yet
     if (rand() < 0.15) continue;
     const teacherSessions = sessionByTeacher[s.teacherId] || [];
     if (!teacherSessions.length) continue;
+    if (sessionCursor[s.teacherId] === undefined) sessionCursor[s.teacherId] = 0;
 
     const runs = randInt(1, 3);
     for (let r = 0; r < runs; r++) {
       // base ability per student (some students consistently need support)
       const ability = 45 + ((idx * 7) % 50); // 45..94 spread
-      const score = Math.max(30, Math.min(100, Math.round(ability + randInt(-12, 12))));
+      // Real scores come from 20 quiz questions worth 5 points each, so they
+      // are always multiples of 5 — keep test data the same shape.
+      const score = Math.max(30, Math.min(100, Math.round((ability + randInt(-12, 12)) / 5) * 5));
       const essentialsMax = 15;
       const essentials = Math.max(0, Math.min(essentialsMax, Math.round((score / 100) * essentialsMax + randInt(-2, 1))));
       const errors = Math.max(0, Math.round((100 - score) / 12) + randInt(0, 2));
       const completionTime = randInt(90, 300);
-      const sess = pick(teacherSessions);
+      const sess = teacherSessions[sessionCursor[s.teacherId] % teacherSessions.length];
+      sessionCursor[s.teacherId]++;
       const createdAt = new Date(now - randInt(0, 18) * 86400000 - randInt(0, 20) * 3600000);
       await db.collection('sessionResults').add({
         sessionId: sess.id,
@@ -151,7 +169,10 @@ async function main() {
         essentials,
         essentialsMax,
         errors,
-        difficulty: pick(DIFFICULTIES),
+        // Must match the session's own difficulty — a random level per result
+        // scatters each student's runs across levels, which makes the
+        // per-student averaging impossible to observe under a level filter.
+        difficulty: sess.diff,
         createdAt: admin.firestore.Timestamp.fromDate(createdAt),
         updatedAt: admin.firestore.Timestamp.fromDate(createdAt)
       });

@@ -13,12 +13,25 @@
      errors, difficulty, createdAt.
 
    Completion rate definition (confirmed): students who have >= 1 result
-   divided by total students in scope.
+   divided by total students in scope. The difficulty filter narrows the
+   RESULTS but never the student roster, so once a specific level is always
+   selected this reads as "% of the roster who played that level".
+
+   Averaging rule: headline averages aggregate PER STUDENT, not per result
+   row, so a student with 3 runs does not count 3x. Each student contributes
+   the mean across their own runs, which keeps sectionAverages(),
+   studentsNeedingSupport() and the school-average row consistent with each
+   other by construction.
    ============================================================================ */
 (function () {
   'use strict';
 
   var SUPPORT_THRESHOLD = 70; // avg score below this = "needs support"
+
+  // The only difficulty values the dashboards filter on. A result carrying
+  // anything else matches no filter and would silently vanish from every
+  // report, so callers surface a count of these instead of hiding them.
+  var KNOWN_LEVELS = ['beginner', 'intermediate', 'advanced'];
 
   // ---- small utilities -----------------------------------------------------
   function num(v) { var n = Number(v); return isFinite(n) ? n : 0; }
@@ -90,8 +103,24 @@
     return sum / arr.length;
   }
 
-  // Reduce results to one "best" row per student (highest score; tiebreak: fewer
-  // errors, then faster time). Also carries per-student averages + run count.
+  // Fastest run for a student, ignoring 0/missing times. normalizeResult()
+  // coerces a missing completionTime to 0, so a plain Math.min would return 0
+  // and rank that student FIRST in fastest-time mode. Returns 0 when the
+  // student has no usable time; formatTime(0) already renders "—".
+  function fastestTime(runs) {
+    var best = 0;
+    for (var i = 0; i < runs.length; i++) {
+      var t = num(runs[i].completionTime);
+      if (t > 0 && (best === 0 || t < best)) best = t;
+    }
+    return best;
+  }
+
+  // Reduce results to one "best" row per student (highest score, tiebreak faster
+  // time). Also carries per-student averages + run count. `errors` and
+  // `essentials` deliberately are not surfaced here: scoring is quiz-based now,
+  // so per-item counts no longer drive any reported number. They remain on the
+  // raw docs and in the CSV exports.
   function perStudentBest(results) {
     var byStudent = {};
     results.forEach(function (r) {
@@ -103,8 +132,8 @@
       byStudent[key].runs.push(r);
       var b = byStudent[key].best;
       if (r.score > b.score ||
-        (r.score === b.score && r.errors < b.errors) ||
-        (r.score === b.score && r.errors === b.errors && r.completionTime < b.completionTime)) {
+        (r.score === b.score && num(r.completionTime) > 0 &&
+          (num(b.completionTime) === 0 || r.completionTime < b.completionTime))) {
         byStudent[key].best = r;
       }
     });
@@ -116,13 +145,11 @@
         studentName: entry.best.studentName,
         section: entry.best.section,
         bestScore: round(entry.best.score),
+        bestTime: fastestTime(runs),
         avgScore: round(avg(runs, 'score')),
         avgTime: round(avg(runs, 'completionTime')),
         attempts: runs.length,
         stage: entry.best.stage,
-        essentials: entry.best.essentials,
-        essentialsMax: entry.best.essentialsMax,
-        errors: entry.best.errors,
         best: entry.best
       };
     });
@@ -150,11 +177,14 @@
     var sectionCount = {};
     scopedStudents.forEach(function (s) { if (s.section) sectionCount[s.section] = true; });
 
+    // Average per student, not per result row (see header note).
+    var perStudent = perStudentBest(results);
+
     return {
       totalStudents: totalStudents,
       sectionsCount: Object.keys(sectionCount).length,
-      avgScore: results.length ? round(avg(results, 'score')) : 0,
-      avgTime: results.length ? round(avg(results, 'completionTime')) : 0,
+      avgScore: perStudent.length ? round(avg(perStudent, 'avgScore')) : 0,
+      avgTime: perStudent.length ? round(avg(perStudent, 'avgTime')) : 0,
       completionRate: totalStudents ? round((playedCount / totalStudents) * 100) : 0,
       playedCount: playedCount,
       resultCount: results.length,
@@ -162,44 +192,53 @@
     };
   }
 
-  // Average score per section: [{section, avg, count, played}] sorted desc.
+  // Average score per section: [{section, avg, count, needsSupport}] sorted desc.
+  // `count` is the number of STUDENTS in that section who have played, and each
+  // student contributes their own mean once (see header note).
   function sectionAverages(rawResults, students, filters) {
     var results = applyFilters((rawResults || []).map(normalizeResult), filters);
     var bySection = {};
-    results.forEach(function (r) {
-      if (!bySection[r.section]) bySection[r.section] = { section: r.section, total: 0, count: 0, students: {} };
-      bySection[r.section].total += r.score;
-      bySection[r.section].count++;
-      if (r.studentId) bySection[r.section].students[r.studentId] = true;
+    perStudentBest(results).forEach(function (p) {
+      if (!bySection[p.section]) bySection[p.section] = { section: p.section, total: 0, count: 0 };
+      bySection[p.section].total += p.avgScore;
+      bySection[p.section].count++;
     });
     var arr = Object.keys(bySection).map(function (k) {
       var s = bySection[k];
+      var mean = s.count ? (s.total / s.count) : 0;
       return {
         section: s.section,
-        avg: s.count ? round(s.total / s.count) : 0,
+        avg: round(mean),
         count: s.count,
-        played: Object.keys(s.students).length,
-        needsSupport: (s.count ? (s.total / s.count) : 0) < SUPPORT_THRESHOLD
+        needsSupport: mean < SUPPORT_THRESHOLD
       };
     });
     arr.sort(function (a, b) { return b.avg - a.avg; });
     return arr;
   }
 
-  // Stage distribution across results as percentages {Cognitive, Associative, Autonomous}.
-  function stageDistribution(rawResults, filters) {
-    var results = applyFilters((rawResults || []).map(normalizeResult), filters);
-    var buckets = { Cognitive: 0, Associative: 0, Autonomous: 0 };
-    results.forEach(function (r) {
-      if (buckets[r.stage] !== undefined) buckets[r.stage]++;
+  // Friendly display label for the learning stage. Data keeps the Fitts &
+  // Posner names; teachers see the level vocabulary they already use.
+  var STAGE_LABELS = {
+    Cognitive: 'Beginner',
+    Associative: 'Intermediate',
+    Autonomous: 'Advanced'
+  };
+
+  function stageLabel(stage) {
+    return STAGE_LABELS[stage] || '—';
+  }
+
+  // How many results carry a difficulty the filters cannot match. Every filter
+  // is a specific level now, so these would otherwise disappear from reports
+  // with no warning — callers show the count instead.
+  function countUnknownLevel(rawResults) {
+    var n = 0;
+    (rawResults || []).forEach(function (d) {
+      var diff = (d && d.difficulty ? String(d.difficulty) : '').toLowerCase();
+      if (KNOWN_LEVELS.indexOf(diff) === -1) n++;
     });
-    var total = results.length;
-    return {
-      total: total,
-      Cognitive: total ? round((buckets.Cognitive / total) * 100) : 0,
-      Associative: total ? round((buckets.Associative / total) * 100) : 0,
-      Autonomous: total ? round((buckets.Autonomous / total) * 100) : 0
-    };
+    return n;
   }
 
   // Students who need support: per-student avg score below threshold, ascending.
@@ -212,15 +251,25 @@
       .sort(function (a, b) { return a.avgScore - b.avgScore; });
   }
 
-  // Leaderboard ranked by best score (tiebreak fewer errors, faster time).
-  function leaderboard(rawResults, filters) {
+  // Leaderboard, one row per student. mode 'time' ranks by each student's
+  // fastest run ascending (tiebreak higher score); anything else ranks by best
+  // score (tiebreak faster time). Students with no usable time sort last
+  // rather than first.
+  function leaderboard(rawResults, filters, mode) {
     var results = applyFilters((rawResults || []).map(normalizeResult), filters);
     var perStudent = perStudentBest(results);
-    perStudent.sort(function (a, b) {
-      if (b.bestScore !== a.bestScore) return b.bestScore - a.bestScore;
-      if (a.errors !== b.errors) return a.errors - b.errors;
-      return (a.best.completionTime || 0) - (b.best.completionTime || 0);
-    });
+    if (mode === 'time') {
+      perStudent.sort(function (a, b) {
+        var at = a.bestTime || Infinity, bt = b.bestTime || Infinity;
+        if (at !== bt) return at - bt;
+        return b.bestScore - a.bestScore;
+      });
+    } else {
+      perStudent.sort(function (a, b) {
+        if (b.bestScore !== a.bestScore) return b.bestScore - a.bestScore;
+        return (a.bestTime || Infinity) - (b.bestTime || Infinity);
+      });
+    }
     perStudent.forEach(function (s, i) { s.rank = i + 1; });
     return perStudent;
   }
@@ -243,12 +292,14 @@
 
   window.RSBAnalytics = {
     SUPPORT_THRESHOLD: SUPPORT_THRESHOLD,
+    KNOWN_LEVELS: KNOWN_LEVELS,
     esc: esc,
     formatTime: formatTime,
+    stageLabel: stageLabel,
+    countUnknownLevel: countUnknownLevel,
     normalizeResult: normalizeResult,
     computeMetrics: computeMetrics,
     sectionAverages: sectionAverages,
-    stageDistribution: stageDistribution,
     studentsNeedingSupport: studentsNeedingSupport,
     leaderboard: leaderboard,
     individualRows: individualRows,

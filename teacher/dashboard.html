@@ -297,8 +297,7 @@
       <div class="filter-bar">
         <span class="filter-label">FILTER:</span>
         <select class="filter-select" id="tr-level-filter" onchange="renderTeacherReports()">
-          <option value="">All Levels</option>
-          <option value="beginner">Beginner</option>
+          <option value="beginner" selected>Beginner</option>
           <option value="intermediate">Intermediate</option>
           <option value="advanced">Advanced</option>
         </select>
@@ -334,22 +333,15 @@
         </div>
       </div>
 
-      <div class="recent-activity-section">
-        <div class="panel-title">RECENT ACTIVITY</div>
-        <div id="teacher-recent-activity">
-          <!-- initial loader placeholder; JS will replace when data arrives -->
-          <div class="gif-loader" style="display:flex;align-items:center;gap:12px;justify-content:center;padding:18px 0;">
-            <img src="/images/loading.gif" width="72" height="72" class="gif-loader-image" style="width:72px;height:72px;object-fit:contain;image-rendering:pixelated;" onerror="this.onerror=null;this.src='../images/loading.gif'">
-            <div class="gif-loader-text">LOADING ACTIVITY...</div>
-          </div>
-        </div>
-      </div>
-
       <!-- ==================== CLASS LEADERBOARD ==================== -->
       <div class="leaderboard-section">
         <div class="leaderboard-header">
           <div class="skill-prog-title" style="margin:0;">🏆 CLASS LEADERBOARD</div>
-          <div class="leaderboard-sub">Ranked by best score</div>
+          <select class="filter-select" id="lb-sort" aria-label="Leaderboard ranking"
+                  onchange="renderTeacherLeaderboard()">
+            <option value="score" selected>TOP SCORES</option>
+            <option value="time">FASTEST TIMES</option>
+          </select>
         </div>
         <!-- Top-3 podium -->
         <div class="lb-podium" id="lb-podium"></div>
@@ -369,18 +361,29 @@
             <tr>
               <th>Student</th>
               <th>Scores</th>
-              <th>Completion Time</th>
+              <th>Best Time</th>
               <th>Attempts</th>
-              <th>Stage</th>
-              <th>Essentials</th>
-              <th>Errors</th>
+              <th>Skill Tier</th>
             </tr>
           </thead>
           <tbody id="results-tbody">
-            <tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:18px;">Loading…</td></tr>
+            <tr><td colspan="5" style="text-align:center;color:var(--text-muted);padding:18px;">Loading…</td></tr>
           </tbody>
         </table>
         <div class="table-footer" id="results-footer"></div>
+      </div>
+
+      <!-- Session history sits after the analysis: it is context you go looking
+           for, not something that should interrupt summary -> findings -> detail. -->
+      <div class="recent-activity-section">
+        <div class="panel-title">RECENT ACTIVITY</div>
+        <div id="teacher-recent-activity">
+          <!-- initial loader placeholder; JS will replace when data arrives -->
+          <div class="gif-loader" style="display:flex;align-items:center;gap:12px;justify-content:center;padding:18px 0;">
+            <img src="/images/loading.gif" width="72" height="72" class="gif-loader-image" style="width:72px;height:72px;object-fit:contain;image-rendering:pixelated;" onerror="this.onerror=null;this.src='../images/loading.gif'">
+            <div class="gif-loader-text">LOADING ACTIVITY...</div>
+          </div>
+        </div>
       </div>
 
       <div class="export-bar">
