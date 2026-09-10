@@ -82,16 +82,20 @@
     };
   }
 
-  // Apply {section, difficulty} filters. Empty / "all" values mean no filter.
+  // Apply {section, difficulty, sessionId} filters. Empty / "all" values mean
+  // no filter. sessionId narrows to a single drill run, which is what the
+  // "view report for this session" links in Recent Activity pass in.
   function applyFilters(results, filters) {
     filters = filters || {};
     var section = (filters.section || '').trim();
     var difficulty = (filters.difficulty || '').trim().toLowerCase();
+    var sessionId = (filters.sessionId || '').trim();
     var wantAllSection = !section || /^all/i.test(section);
     var wantAllDiff = !difficulty || /^all/i.test(difficulty);
     return results.filter(function (r) {
       if (!wantAllSection && r.section !== section) return false;
       if (!wantAllDiff && r.difficulty !== difficulty) return false;
+      if (sessionId && r.sessionId !== sessionId) return false;
       return true;
     });
   }
@@ -290,6 +294,174 @@
     return Object.keys(set).sort();
   }
 
+  /* ==========================================================================
+     CHART FEEDS
+     Everything below returns plain numbers/arrays for the hand-rolled SVG
+     charts on the two dashboards. They all go through the same
+     normalize -> filter -> aggregate -> round path as the tables above, so a
+     chart can never disagree with the number printed next to it.
+     ========================================================================== */
+
+  // Readiness tiers by per-student average score.
+  //   mastered   >= 90
+  //   proficient 70-89
+  //   needsSupport < 70 (same threshold as the tables)
+  // onTrackPct is (mastered + proficient) / evaluated - the headline the donut
+  // prints in its hole.
+  function readinessTiers(rawResults, filters) {
+    var perStudent = perStudentBest(applyFilters((rawResults || []).map(normalizeResult), filters));
+    var mastered = 0, proficient = 0, needsSupport = 0;
+    perStudent.forEach(function (p) {
+      if (p.avgScore >= 90) mastered++;
+      else if (p.avgScore >= SUPPORT_THRESHOLD) proficient++;
+      else needsSupport++;
+    });
+    var evaluated = perStudent.length;
+    return {
+      mastered: mastered,
+      proficient: proficient,
+      needsSupport: needsSupport,
+      evaluated: evaluated,
+      onTrackPct: evaluated ? round(((mastered + proficient) / evaluated) * 100) : 0
+    };
+  }
+
+  // Per-section participation: what share of the section roster has at least
+  // one result in scope. Unlike sectionAverages() this needs the roster, since
+  // the students who never played are exactly the point.
+  function participationRates(rawResults, students, filters) {
+    var results = applyFilters((rawResults || []).map(normalizeResult), filters);
+    var rosterBySection = {};
+    var anon = 0;
+    (students || []).forEach(function (s) {
+      var sec = s.section || 'Unknown';
+      if (!rosterBySection[sec]) rosterBySection[sec] = {};
+      var key = s.id || s.authUid || s.username || s.displayName || ('anon-' + (anon++));
+      rosterBySection[sec][key] = true;
+    });
+    var playedBySection = {};
+    results.forEach(function (r) {
+      if (!r.studentId) return;
+      if (!playedBySection[r.section]) playedBySection[r.section] = {};
+      playedBySection[r.section][r.studentId] = true;
+    });
+    var sections = Object.keys(rosterBySection);
+    // A section can appear in results without a matching roster entry (imported
+    // results, renamed section). Show it rather than dropping it silently.
+    Object.keys(playedBySection).forEach(function (sec) {
+      if (sections.indexOf(sec) === -1) sections.push(sec);
+    });
+    return sections.map(function (sec) {
+      var total = Object.keys(rosterBySection[sec] || {}).length;
+      var played = Object.keys(playedBySection[sec] || {}).length;
+      return {
+        section: sec,
+        played: played,
+        total: total,
+        pct: total ? round((played / total) * 100) : (played ? 100 : 0)
+      };
+    }).sort(function (a, b) { return b.pct - a.pct; });
+  }
+
+  // Curriculum progression: for each difficulty level, how many distinct
+  // students attempted it and what they averaged. Deliberately ignores the
+  // difficulty filter - comparing the three levels IS the chart.
+  function levelProgression(rawResults, filters) {
+    var scoped = {};
+    Object.keys(filters || {}).forEach(function (k) {
+      if (k !== 'difficulty') scoped[k] = filters[k];
+    });
+    var results = applyFilters((rawResults || []).map(normalizeResult), scoped);
+    return KNOWN_LEVELS.map(function (level) {
+      var forLevel = results.filter(function (r) { return r.difficulty === level; });
+      var perStudent = perStudentBest(forLevel);
+      return {
+        level: level,
+        label: level.charAt(0).toUpperCase() + level.slice(1),
+        students: perStudent.length,
+        avgScore: perStudent.length ? round(avg(perStudent, 'avgScore')) : 0
+      };
+    });
+  }
+
+  // Go-bag packing accuracy: how close students came to a full essentials set.
+  // Buckets are per RUN (a student can pack well once and badly the next time,
+  // and both runs are real evidence about the packing step).
+  function packingAccuracy(rawResults, filters) {
+    var results = applyFilters((rawResults || []).map(normalizeResult), filters);
+    var high = 0, moderate = 0, low = 0, essSum = 0, errSum = 0, maxSum = 0;
+    results.forEach(function (r) {
+      var max = r.essentialsMax || 15;
+      var pct = max ? (r.essentials / max) * 100 : 0;
+      if (pct >= 90) high++;
+      else if (pct >= SUPPORT_THRESHOLD) moderate++;
+      else low++;
+      essSum += r.essentials;
+      errSum += r.errors;
+      maxSum += max;
+    });
+    var n = results.length;
+    return {
+      high: high,
+      moderate: moderate,
+      low: low,
+      runs: n,
+      avgEssentials: n ? round(essSum / n, 1) : 0,
+      avgEssentialsMax: n ? round(maxSum / n) : 15,
+      avgErrors: n ? round(errSum / n, 1) : 0,
+      avgAccuracyPct: maxSum ? round((essSum / maxSum) * 100) : 0
+    };
+  }
+
+  // One point per student for the speed-vs-score scatter: their best score
+  // against their fastest time. Students with no usable time are dropped -
+  // there is nowhere honest to plot them on a time axis.
+  function scoreTimePoints(rawResults, filters) {
+    return perStudentBest(applyFilters((rawResults || []).map(normalizeResult), filters))
+      .filter(function (p) { return p.bestTime > 0; })
+      .map(function (p) {
+        var tier = p.bestScore >= 90 ? 'mastered'
+          : p.bestScore >= SUPPORT_THRESHOLD ? 'proficient' : 'needsSupport';
+        return {
+          studentName: p.studentName,
+          section: p.section,
+          score: p.bestScore,
+          time: p.bestTime,
+          tier: tier
+        };
+      });
+  }
+
+  // Trend over time: average score and average completion time per calendar
+  // day that has results, oldest first. Buckets by local date so a teacher
+  // sees the days they actually ran drills.
+  function progressionOverTime(rawResults, filters, maxBuckets) {
+    var results = applyFilters((rawResults || []).map(normalizeResult), filters)
+      .filter(function (r) { return r.createdAt instanceof Date && !isNaN(r.createdAt.getTime()); });
+    var buckets = {};
+    results.forEach(function (r) {
+      var d = r.createdAt;
+      var key = d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2);
+      if (!buckets[key]) buckets[key] = { key: key, date: d, scores: 0, times: 0, timeCount: 0, runs: 0 };
+      buckets[key].scores += r.score;
+      buckets[key].runs++;
+      if (r.completionTime > 0) { buckets[key].times += r.completionTime; buckets[key].timeCount++; }
+    });
+    var arr = Object.keys(buckets).sort().map(function (k) {
+      var b = buckets[k];
+      return {
+        key: b.key,
+        date: b.date,
+        label: b.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        avgScore: round(b.scores / b.runs),
+        avgTime: b.timeCount ? round(b.times / b.timeCount) : 0,
+        runs: b.runs
+      };
+    });
+    if (maxBuckets && arr.length > maxBuckets) arr = arr.slice(arr.length - maxBuckets);
+    return arr;
+  }
+
   window.RSBAnalytics = {
     SUPPORT_THRESHOLD: SUPPORT_THRESHOLD,
     KNOWN_LEVELS: KNOWN_LEVELS,
@@ -303,6 +475,12 @@
     studentsNeedingSupport: studentsNeedingSupport,
     leaderboard: leaderboard,
     individualRows: individualRows,
-    distinctSections: distinctSections
+    distinctSections: distinctSections,
+    readinessTiers: readinessTiers,
+    participationRates: participationRates,
+    levelProgression: levelProgression,
+    packingAccuracy: packingAccuracy,
+    scoreTimePoints: scoreTimePoints,
+    progressionOverTime: progressionOverTime
   };
 })();

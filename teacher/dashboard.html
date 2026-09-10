@@ -6,6 +6,9 @@
   <title>Ready-Set-Bag! Teacher Dashboard</title>
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Share+Tech+Mono&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="dashboard.css">
+  <!-- Shared chart / session-card / export / print styles (loaded second so it
+       can build on the tokens dashboard.css defines) -->
+  <link rel="stylesheet" href="../dashboard-charts.css">
   <link rel="icon" type="image/png" sizes="256x256" href="../images/logo.png">
   <script>
     // Pre-paint restore: set saved teacher page before paint to avoid tab-flash
@@ -179,6 +182,36 @@
         <button class="action-btn orange" onclick="navigate('reports', document.querySelectorAll('.nav-item')[2])">VIEW REPORTS →</button>
       </div>
       </div>
+
+      <!-- Master archive. Recent Activity on the Reports tab only reaches the
+           last five sessions, so a complete class record comes from here. -->
+      <div class="archive-panel">
+        <div class="archive-head">
+          <div class="archive-icon">&#128451;</div>
+          <div>
+            <div class="archive-title">MASTER DATA ARCHIVING &amp; EXPORTS</div>
+            <div class="archive-sub">Cumulative class earthquake drill records and preparedness reports across all sessions</div>
+          </div>
+          <div class="archive-badge">&#9679; ALL-TIME DATABASE</div>
+        </div>
+        <div class="archive-options">
+          <div class="archive-option">
+            <div class="archive-kind">FULL DATASET</div>
+            <h4>Raw Session Results</h4>
+            <p>Complete record of student drill runs with student names, scores, completion times,
+               essentials collected, difficulty, and timestamps.</p>
+            <button class="btn-archive green" onclick="exportTeacherSessionResultsCsv()">&#11015; DOWNLOAD MASTER CSV</button>
+          </div>
+          <div class="archive-option">
+            <div class="archive-kind doc">DOCUMENT</div>
+            <h4>Printable Class Summary</h4>
+            <p>Print-optimized emergency preparedness report ready for filing, school compliance, or PDF export.</p>
+            <button class="btn-archive dark" onclick="printTeacherReport()">&#128424; PRINT / SAVE PDF</button>
+          </div>
+        </div>
+        <div class="archive-hint">&#128161; Looking to export just a single drill session? Use the quick
+          [ &#11015; EXPORT CSV ] button on any session card in Recent Activity on the Reports tab.</div>
+      </div>
     </div>
 
 
@@ -287,6 +320,23 @@
         <h1>PERFORMANCE REPORTS</h1>
       </div>
 
+      <!-- Print-only letterhead; filled in by printTeacherReport() -->
+      <div class="print-header">
+        <h1>Class Earthquake Preparedness Report</h1>
+        <div class="print-sub" id="teacher-print-class">Caruhatan East Elementary School</div>
+        <div class="print-meta" id="teacher-print-meta"></div>
+      </div>
+
+      <!-- Shown only while the page is scoped to one session (opened from a
+           Recent Activity card), so the narrowed numbers can't be mistaken for
+           whole-class ones. -->
+      <div class="session-scope-banner" id="teacher-session-scope" style="display:none;">
+        <span>Showing one session only:</span>
+        <span class="session-scope-code" id="teacher-session-scope-code">&mdash;</span>
+        <span id="teacher-session-scope-meta"></span>
+        <button class="btn-clear-scope" onclick="clearTeacherSessionScope()">&#10005; BACK TO ALL SESSIONS</button>
+      </div>
+
       <div class="filter-bar">
         <span class="filter-label">FILTER:</span>
         <select class="filter-select" id="tr-level-filter" onchange="renderTeacherReports()">
@@ -326,6 +376,54 @@
         </div>
       </div>
 
+      <!-- Visual diagnostics. Board feedback was that plain text hides the
+           finding; these answer "who is ready, who is guessing, is the class
+           improving" without reading a table. -->
+      <div class="chart-caption">&#128202; Interactive drill metrics and readiness diagnostics for your class</div>
+      <div class="chart-grid">
+        <div class="chart-panel">
+          <div class="chart-head">
+            <div class="chart-title"><span class="chart-dot"></span>PREPAREDNESS PROFICIENCY</div>
+            <div class="chart-tag" id="tr-chart-proficiency-tag">&mdash; EVALUATED</div>
+          </div>
+          <div id="tr-chart-proficiency"></div>
+        </div>
+
+        <div class="chart-panel">
+          <div class="chart-head">
+            <div class="chart-title"><span class="chart-dot neutral"></span>PREPAREDNESS MATRIX (SPEED VS SCORE)</div>
+            <div class="chart-tag">STUDENT POSITIONING</div>
+          </div>
+          <div id="tr-chart-matrix"></div>
+        </div>
+
+        <div class="chart-panel">
+          <div class="chart-head">
+            <div class="chart-title"><span class="chart-dot warn"></span>GO-BAG PACKING ACCURACY</div>
+            <div class="chart-tag" id="tr-chart-packing-tag">&mdash; AVG ACCURACY</div>
+          </div>
+          <div id="tr-chart-packing"></div>
+          <div class="chart-metrics">
+            <div class="chart-metric">
+              <div class="chart-metric-val" id="tr-avg-essentials">&mdash;</div>
+              <div class="chart-metric-label">Avg. Essentials Packed</div>
+            </div>
+            <div class="chart-metric">
+              <div class="chart-metric-val" id="tr-avg-errors">&mdash;</div>
+              <div class="chart-metric-label">Avg. Mistakes Made</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="chart-panel">
+          <div class="chart-head">
+            <div class="chart-title"><span class="chart-dot neutral"></span>DRILL PROGRESSION OVER TIME</div>
+            <div class="chart-tag">HISTORICAL TREND</div>
+          </div>
+          <div id="tr-chart-progression"></div>
+        </div>
+      </div>
+
       <!-- ==================== CLASS LEADERBOARD ==================== -->
       <div class="leaderboard-section">
         <div class="leaderboard-header">
@@ -336,12 +434,11 @@
             <option value="time">FASTEST TIMES</option>
           </select>
         </div>
-        <!-- Top-3 podium -->
+        <!-- Top-3 only, per the revision board: the full ranked list turned a
+             class celebration into a public ranking of who came last. Everyone
+             still sees their own numbers in Individual Results below. -->
         <div class="lb-podium" id="lb-podium"></div>
-        <!-- Ranked list -->
-        <div class="lb-list" id="leaderboard-list">
-          <div class="lb-empty" style="color:var(--text-muted);text-align:center;padding:18px;">Loading…</div>
-        </div>
+        <div class="lb-empty" id="lb-empty" style="color:var(--text-muted);text-align:center;padding:18px;">Loading…</div>
       </div>
 
       <div class="individual-panel">
@@ -353,13 +450,12 @@
           <thead>
             <tr>
               <th>Student</th>
-              <th>Scores</th>
+              <th>Score</th>
               <th>Best Time</th>
-              <th>Skill Tier</th>
             </tr>
           </thead>
           <tbody id="results-tbody">
-            <tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:18px;">Loading…</td></tr>
+            <tr><td colspan="3" style="text-align:center;color:var(--text-muted);padding:18px;">Loading…</td></tr>
           </tbody>
         </table>
         <div class="table-footer" id="results-footer"></div>
@@ -368,8 +464,16 @@
       <!-- Session history sits after the analysis: it is context you go looking
            for, not something that should interrupt summary -> findings -> detail. -->
       <div class="recent-activity-section">
-        <div class="panel-title">RECENT ACTIVITY</div>
-        <div id="teacher-recent-activity">
+        <div class="activity-panel-head">
+          <div class="panel-title" style="margin:0;">RECENT ACTIVITY (LAST 5 SESSIONS)</div>
+          <button class="btn-activity-export" onclick="exportRecentTeacherSessionsCsv()">&#11015; EXPORT 5 SESSIONS (CSV)</button>
+        </div>
+        <div class="archive-reminder">
+          <span>&#9888;</span>
+          <div><strong>Archive Reminder:</strong> Only your 5 most recent sessions are listed below.
+            Export session results regularly to keep a complete class archive.</div>
+        </div>
+        <div id="teacher-recent-activity" class="activity-scroll">
           <!-- initial loader placeholder; JS will replace when data arrives -->
           <div class="gif-loader" style="display:flex;align-items:center;gap:12px;justify-content:center;padding:18px 0;">
             <img src="/images/loading.gif" width="72" height="72" class="gif-loader-image" style="width:72px;height:72px;object-fit:contain;image-rendering:pixelated;" onerror="this.onerror=null;this.src='../images/loading.gif'">
@@ -380,7 +484,7 @@
 
       <div class="export-bar">
         <button class="btn-export green" onclick="exportTeacherSessionResultsCsv()">⬇ EXPORT MY RESULTS (CSV)</button>
-        <button class="btn-export dark" onclick="window.print()">🖨 PRINT</button>
+        <button class="btn-export dark" onclick="printTeacherReport()">🖨 PRINT</button>
       </div>
     </div>
 
@@ -407,6 +511,9 @@
 
 <!-- Shared reports analytics helper -->
 <script src="../reports-analytics.js"></script>
+
+<!-- Shared chart renderers -->
+<script src="../dashboard-charts.js"></script>
 
 <!-- Dashboard Script -->
 <script src="dashboard.js"></script>

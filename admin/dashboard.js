@@ -1646,8 +1646,46 @@ function populateAdminSectionFilter() {
 function getAdminReportFilters() {
   return {
     section: (document.getElementById('reports-section-filter')?.value) || '',
-    difficulty: (document.getElementById('reports-level-filter')?.value) || ''
+    difficulty: (document.getElementById('reports-level-filter')?.value) || '',
+    sessionId: adminSessionScope ? adminSessionScope.sessionId : ''
   };
+}
+
+/* ---- SESSION-SCOPED REPORTS ----
+   Clicking a session card in Recent Activity opens the reports page filtered
+   to that one drill run. The scope lives here rather than in the dropdowns so
+   the section/level filters still work inside it. */
+let adminSessionScope = null;
+
+function viewAdminSessionReport(sessionId, code, difficulty, meta) {
+  adminSessionScope = { sessionId: sessionId, code: code || '', meta: meta || '' };
+  const level = document.getElementById('reports-level-filter');
+  // A session runs at one difficulty; matching the filter to it avoids an
+  // empty report when the session isn't the level currently selected.
+  if (level && difficulty && window.RSBAnalytics &&
+      window.RSBAnalytics.KNOWN_LEVELS.indexOf(String(difficulty).toLowerCase()) !== -1) {
+    level.value = String(difficulty).toLowerCase();
+  }
+  const reportsNav = document.querySelectorAll('.nav-item')[3];
+  navigate('reports', reportsNav);
+  syncAdminSessionScopeBanner();
+  renderAdminReports();
+  document.querySelector('.main')?.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function clearAdminSessionScope() {
+  adminSessionScope = null;
+  syncAdminSessionScopeBanner();
+  renderAdminReports();
+}
+
+function syncAdminSessionScopeBanner() {
+  const bar = document.getElementById('admin-session-scope');
+  if (!bar) return;
+  if (!adminSessionScope) { bar.style.display = 'none'; return; }
+  bar.style.display = '';
+  setText('admin-session-scope-code', adminSessionScope.code || adminSessionScope.sessionId);
+  setText('admin-session-scope-meta', adminSessionScope.meta || '');
 }
 
 function renderAdminReports() {
@@ -1707,8 +1745,85 @@ function renderAdminReports() {
       : '<div class="needs-support-item"><div class="needs-support-name" style="color:var(--accent-green);">✓ All students on track</div><div class="needs-support-note">No students below ' + A.SUPPORT_THRESHOLD + '%</div></div>';
   }
 
+  // --- Visual diagnostics ---
+  renderAdminCharts(results, students, filters, sections);
+
   // --- Individual results table ---
   renderAdminIndividualResults();
+}
+
+/* ---- REPORT CHARTS ----
+   All four read from RSBAnalytics, so every bar agrees with the table under
+   it by construction. Drawn by dashboard-charts.js (hand-rolled HTML/SVG —
+   there is no charting library in this project on purpose). */
+function renderAdminCharts(results, students, filters, sections) {
+  const A = window.RSBAnalytics;
+  const C = window.RSBCharts;
+  if (!A || !C) return;
+
+  // 1. Section performance against the 70% support threshold.
+  setText('chart-sections-tag', sections.length + (sections.length === 1 ? ' SECTION' : ' SECTIONS'));
+  C.hBars('chart-section-performance', {
+    rows: sections.map(sec => ({
+      label: sec.section,
+      pct: sec.avg,
+      display: sec.avg,
+      color: sec.needsSupport ? 'var(--chart-bad)' : 'var(--chart-good)'
+    })),
+    benchmark: { pct: A.SUPPORT_THRESHOLD, label: '70%' },
+    axis: ['0', '20', '40', '60', '80', '100'],
+    labelWidth: 116,
+    emptyText: 'NO SECTION RESULTS YET'
+  });
+
+  // 2. Readiness tiers.
+  const tiers = A.readinessTiers(results, filters);
+  setText('chart-readiness-tag', tiers.evaluated + ' EVALUATED');
+  C.donut('chart-readiness', {
+    segments: [
+      { label: 'Mastered (90-100%)', value: tiers.mastered, color: 'var(--chart-good)' },
+      { label: 'Proficient (70-89%)', value: tiers.proficient, color: 'var(--chart-warn)' },
+      { label: 'Needs Support (<70%)', value: tiers.needsSupport, color: 'var(--chart-bad)' }
+    ],
+    centerValue: tiers.onTrackPct + '%',
+    centerLabel: 'On Track',
+    emptyText: 'NO STUDENTS EVALUATED YET'
+  });
+
+  // 3. Participation: how much of each section's roster has actually drilled.
+  const participation = A.participationRates(results, students, filters);
+  C.hBars('chart-participation', {
+    rows: participation.map(p => ({
+      label: p.section,
+      pct: p.pct,
+      display: p.pct + '%',
+      color: 'var(--chart-neutral)'
+    })),
+    axis: ['0', '20', '40', '60', '80', '100'],
+    labelWidth: 116,
+    emptyText: 'NO ROSTER DATA YET'
+  });
+
+  // 4. Curriculum progression across the three difficulty tiers. Student
+  // counts are scaled against the largest tier so the shorter bars still read;
+  // scores are already a 0-100 scale.
+  const levels = A.levelProgression(results, filters);
+  const maxStudents = Math.max(1, ...levels.map(l => l.students));
+  C.groupedBars('chart-level-progression', {
+    legend: [
+      { label: 'Students Attempted', color: 'var(--chart-neutral)' },
+      { label: 'Avg Score (%)', color: 'var(--chart-good)' }
+    ],
+    groups: levels.map(l => ({
+      label: l.label,
+      sub: l.students + ' student' + (l.students === 1 ? '' : 's') + ' \u00b7 avg ' + l.avgScore,
+      bars: [
+        { pct: (l.students / maxStudents) * 100, display: l.students, color: 'var(--chart-neutral)' },
+        { pct: l.avgScore, display: l.avgScore, color: 'var(--chart-good)' }
+      ]
+    })),
+    emptyText: 'NO LEVEL DATA YET'
+  });
 }
 
 function renderAdminIndividualResults() {
@@ -1724,17 +1839,19 @@ function renderAdminIndividualResults() {
   if (q) rows = rows.filter(r => (r.studentName || '').toLowerCase().includes(q) || (r.section || '').toLowerCase().includes(q));
 
   if (!rows.length) {
-    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text-muted);padding:18px;">No results yet</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:18px;">No results yet</td></tr>';
     if (footer) footer.textContent = '';
     return;
   }
+  // Skill tier / attempts / mistakes were dropped from this table per the
+  // revision board: they are diagnostic detail that belongs in the charts and
+  // the CSV export, not in the at-a-glance roster view.
   tbody.innerHTML = rows.map(r => {
     return `<tr>
       <td>${A.esc(r.studentName)}</td>
       <td>${A.esc(r.section)}</td>
       <td>${r.bestScore}</td>
       <td class="td-time">${A.formatTime(r.bestTime)}</td>
-      <td class="td-stage">${A.stageLabel(r.stage)}</td>
     </tr>`;
   }).join('');
   if (footer) {
@@ -1815,22 +1932,126 @@ function loadAdminRecentActivity() {
       // loop after the `await` above let two overlapping invocations each add
       // their own five rows, so the panel showed every session twice.
       const esc = (window.RSBAnalytics && window.RSBAnalytics.esc) || ((s) => s);
+
+      // Cached so the "export these 5" button doesn't have to re-query.
+      adminRecentSessions = recentSessions.map((entry) => {
+        const session = entry.data;
+        const teacher = teacherMap[session.teacherId] || null;
+        return {
+          id: entry.id,
+          code: session.sessionCode || '',
+          difficulty: session.difficulty || '',
+          section: (teacher && teacher.section) || '',
+          teacherLabel: teacher
+            ? `Teacher ${teacher.lastName || teacher.firstName || session.teacherId}`
+            : (session.teacherId || 'Unknown Teacher')
+        };
+      });
+
       container.innerHTML = recentSessions.map((entry) => {
         const session = entry.data;
         const dateSource = session.startedAt || session.updatedAt || session.createdAt;
         const date = dateSource ? new Date(dateSource.toDate()).toLocaleDateString('en-US', {month: 'short', day: 'numeric'}) : 'Unknown';
         const difficulty = session.difficulty || 'Unknown';
         const playerCount = session.playersList ? session.playersList.length : 0;
-        const statusLabel = session.status === 'active' || session.startedAt ? 'Started' : 'Created';
+        const started = session.status === 'active' || !!session.startedAt;
+        const statusLabel = started ? 'Started' : 'Created';
         const teacher = teacherMap[session.teacherId] || null;
         const teacherLabel = teacher ? (`Teacher ${teacher.lastName || teacher.firstName || session.teacherId}`) : (session.teacherId || 'Unknown Teacher');
         const sectionLabel = teacher && teacher.section ? ` – ${teacher.section}` : '';
+        const meta = `${teacherLabel}${sectionLabel}`;
 
-        return `<div class="activity-item">
-          <div class="activity-date">${esc(date)}</div>
-          <div class="activity-teacher">${esc(teacherLabel)}${esc(sectionLabel)}</div>
-          <div class="activity-desc">${statusLabel} ${esc(difficulty.charAt(0).toUpperCase() + difficulty.slice(1))} Session<br>Code: ${esc(session.sessionCode)} (${playerCount} students)</div>
+        return `<div class="session-card${started ? '' : ' is-created'}">
+          <div class="session-card-date">● ${esc(date)}</div>
+          <div class="session-card-who">${esc(meta)}</div>
+          <div class="session-card-title">${statusLabel} ${esc(difficulty.charAt(0).toUpperCase() + difficulty.slice(1))} Session</div>
+          <div class="session-card-meta">Code: <b>${esc(session.sessionCode)}</b> (${playerCount} student${playerCount === 1 ? '' : 's'})</div>
+          <div class="session-card-actions">
+            <button class="session-link" onclick="viewAdminSessionReport('${jsArg(entry.id)}','${jsArg(session.sessionCode || '')}','${jsArg(difficulty)}','${jsArg(meta)}')">▤ Click to view report for this session</button>
+            <button class="session-export" onclick="exportSingleSessionCsv('${jsArg(entry.id)}','${jsArg(session.sessionCode || '')}')">⬇ EXPORT CSV</button>
+          </div>
         </div>`;
       }).join('');
     });
+}
+
+/* ============================================================================
+   SESSION EXPORTS + PRINTABLE REPORT
+   ============================================================================ */
+let adminRecentSessions = [];
+
+// Values interpolated into an inline onclick are parsed as HTML *then* as JS,
+// so HTML-escaping alone is not enough: "&#39;" decodes back to a real quote
+// and closes the string literal early. Escape for JS first, then for HTML.
+function jsArg(value) {
+  const esc = (window.RSBAnalytics && window.RSBAnalytics.esc) || ((v) => String(v));
+  return esc(String(value == null ? '' : value).replace(/\\/g, '\\\\').replace(/'/g, "\\'"));
+}
+
+
+const SESSION_RESULT_CSV_HEADER = ['id','sessionId','sessionCode','teacherId','studentId','studentName','section','score','completionTime','attempts','stage','essentials','essentialsMax','errors','difficulty','createdAt','updatedAt'].join(',');
+
+function sessionResultCsvRow(doc) {
+  const r = doc.data();
+  const created = r.createdAt && r.createdAt.toDate ? r.createdAt.toDate().toISOString() : (r.createdAt ? new Date(r.createdAt).toISOString() : '');
+  const updated = r.updatedAt && r.updatedAt.toDate ? r.updatedAt.toDate().toISOString() : (r.updatedAt ? new Date(r.updatedAt).toISOString() : '');
+  return [doc.id, r.sessionId || '', r.sessionCode || '', r.teacherId || '', r.studentId || '', r.studentName || '',
+    r.section || '', r.score || 0, r.completionTime || 0, r.attempts || 0, r.stage || '', r.essentials || 0,
+    r.essentialsMax || 0, r.errors || 0, r.difficulty || '', created, updated]
+    .map(v => '"' + String(v).replace(/"/g, '""') + '"').join(',');
+}
+
+// One session's results. Keyed on sessionId rather than sessionCode because
+// codes are short and get reused across terms.
+async function exportSingleSessionCsv(sessionId, sessionCode) {
+  if (!window.db) { showToast('Firebase not initialized.', 'error'); return; }
+  try {
+    const snap = await window.db.collection('sessionResults').where('sessionId', '==', sessionId).get();
+    if (snap.empty) { showToast('No results recorded for this session yet.', 'error'); return; }
+    const rows = [SESSION_RESULT_CSV_HEADER];
+    snap.forEach(doc => rows.push(sessionResultCsvRow(doc)));
+    downloadCsv(`session-${(sessionCode || sessionId)}-results.csv`, rows.join('\n'));
+    showToast('Session CSV exported.');
+  } catch (err) {
+    console.error('Export session CSV failed', err);
+    showToast('Error exporting session: ' + err.message, 'error');
+  }
+}
+
+// The five sessions currently listed in Recent Activity, in one file. This is
+// the panel's answer to its own archive warning.
+async function exportRecentSessionsCsv() {
+  if (!window.db) { showToast('Firebase not initialized.', 'error'); return; }
+  const ids = adminRecentSessions.map(s => s.id).filter(Boolean);
+  if (!ids.length) { showToast('No recent sessions to export yet.', 'error'); return; }
+  try {
+    // Firestore caps an 'in' query at 10 values; this list is capped at 5.
+    const snap = await window.db.collection('sessionResults').where('sessionId', 'in', ids).get();
+    if (snap.empty) { showToast('No results recorded for these sessions yet.', 'error'); return; }
+    const rows = [SESSION_RESULT_CSV_HEADER];
+    snap.forEach(doc => rows.push(sessionResultCsvRow(doc)));
+    downloadCsv('recent-5-sessions-results.csv', rows.join('\n'));
+    showToast('Recent sessions CSV exported.');
+  } catch (err) {
+    console.error('Export recent sessions CSV failed', err);
+    showToast('Error exporting sessions: ' + err.message, 'error');
+  }
+}
+
+// Stamps the print letterhead with what is actually on screen before handing
+// off to the browser, so a saved PDF says which scope it covers.
+function printAdminReport() {
+  const filters = getAdminReportFilters();
+  const scope = [
+    filters.section || 'All sections',
+    filters.difficulty ? filters.difficulty.charAt(0).toUpperCase() + filters.difficulty.slice(1) + ' level' : '',
+    adminSessionScope ? 'Session ' + (adminSessionScope.code || adminSessionScope.sessionId) : ''
+  ].filter(Boolean).join('  \u00b7  ');
+  const generated = new Date().toLocaleString('en-US', {
+    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+    hour: 'numeric', minute: '2-digit'
+  });
+  setText('admin-print-meta', `Scope: ${scope}     Generated: ${generated}`);
+  // Let the DOM paint the stamped header before the print dialog freezes it.
+  setTimeout(() => window.print(), 60);
 }

@@ -1,0 +1,857 @@
+/* ============================================================================
+   READY-SET-BAG! — SHARED DASHBOARD COMPONENTS
+   ----------------------------------------------------------------------------
+   Loaded by BOTH admin/dashboard.html and teacher/dashboard.html, after each
+   dashboard's own stylesheet, so the pieces that must look identical on both
+   pages are defined exactly once:
+
+     1. the chart panels + chart primitives drawn by dashboard-charts.js
+     2. the Recent Activity session cards (with per-session export/report links)
+     3. the master data archive / export panel
+     4. the print stylesheet that turns either dashboard into a filable report
+
+   It relies on the colour tokens each dashboard defines in :root
+   (--accent-*, --card-*, --text-*, --pixel, --mono), so it inherits whichever
+   dashboard it is loaded into rather than hardcoding a second palette.
+   ============================================================================ */
+
+:root {
+  /* Chart roles, mapped onto the existing dashboard palette. Green = on track,
+     yellow = watch, red = intervene, blue = neutral volume. No new hues. */
+  --chart-good: #8FBF3F;
+  --chart-warn: #E8B32C;
+  --chart-bad: #E05252;
+  --chart-neutral: #5D9CEC;
+  --chart-panel-bg: #2b2b2b;
+  --chart-grid: #3d3d3d;
+}
+
+/* ---- PANEL SHELL -------------------------------------------------------- */
+.chart-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.chart-panel {
+  background: var(--chart-panel-bg);
+  border: 3px solid #4D4D4D;
+  box-shadow: 4px 4px 0px #000;
+  padding: 14px 16px 16px;
+  min-width: 0;
+}
+
+.chart-panel-wide { grid-column: 1 / -1; }
+
+.chart-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.chart-title {
+  font-family: var(--pixel);
+  font-size: 11px;
+  line-height: 1.5;
+  letter-spacing: 1px;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.chart-dot {
+  width: 9px;
+  height: 9px;
+  flex-shrink: 0;
+  background: var(--chart-good);
+}
+.chart-dot.warn { background: var(--chart-warn); }
+.chart-dot.bad { background: var(--chart-bad); }
+.chart-dot.neutral { background: var(--chart-neutral); }
+
+.chart-tag {
+  font-family: var(--pixel);
+  font-size: 9px;
+  letter-spacing: 1px;
+  color: var(--text-secondary);
+  border: 2px solid #4D4D4D;
+  padding: 4px 8px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.chart-caption {
+  font-family: var(--mono);
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin: -4px 0 12px;
+}
+
+.chart-empty {
+  font-family: var(--pixel);
+  font-size: 10px;
+  letter-spacing: 1px;
+  color: var(--text-muted);
+  text-align: center;
+  padding: 34px 10px;
+}
+
+.chart-svg-tick {
+  font-family: var(--mono);
+  font-size: 11px;
+  fill: var(--text-secondary);
+}
+
+.chart-axis-caption {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--text-secondary);
+  text-align: center;
+  margin-top: 2px;
+}
+
+/* ---- LEGENDS ------------------------------------------------------------ */
+.chart-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  min-width: 0;
+}
+.chart-legend.row {
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  margin-top: 10px;
+  justify-content: center;
+}
+
+.chart-legend-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--mono);
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+.chart-swatch {
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
+  border: 1px solid #000;
+}
+
+.chart-legend-text { color: var(--text-secondary); }
+.chart-legend-val {
+  margin-left: auto;
+  font-family: var(--pixel);
+  font-size: 10px;
+  color: var(--text-primary);
+}
+
+/* ---- HORIZONTAL BARS ---------------------------------------------------- */
+/* The label and value columns are declared here as custom properties because
+   the benchmark line has to land inside the BAR column, not the whole row —
+   media queries override these three and the line follows. */
+.hbar-chart {
+  --hbar-label-w: 96px;
+  --hbar-value-w: 52px;
+  --hbar-gap: 10px;
+}
+
+.hbar-plot { position: relative; }
+
+.hbar-row {
+  display: grid;
+  grid-template-columns: var(--hbar-label-w) 1fr var(--hbar-value-w);
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 9px;
+}
+
+.hbar-label {
+  font-family: var(--mono);
+  font-size: 13px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.hbar-track {
+  height: 16px;
+  background: #1f1f1f;
+  border: 1px solid #000;
+  position: relative;
+}
+
+.hbar-fill {
+  height: 100%;
+  min-width: 2px;
+  transition: width 0.35s ease;
+}
+
+.hbar-value {
+  font-family: var(--pixel);
+  font-size: 10px;
+  color: var(--text-primary);
+  text-align: right;
+}
+
+/* The dashed 70% pass line sits over the bar column only, hence the matching
+   left/right offsets against .hbar-row's grid. */
+.chart-benchmark {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 0;
+  left: calc(var(--hbar-label-w) + var(--hbar-gap) +
+    (100% - var(--hbar-label-w) - var(--hbar-value-w) - var(--hbar-gap) * 2) * var(--bench, 0.7));
+  border-left: 2px dashed var(--chart-bad);
+  pointer-events: none;
+  z-index: 2;
+}
+.chart-benchmark-label {
+  position: absolute;
+  top: -3px;
+  left: 5px;
+  font-family: var(--pixel);
+  font-size: 8px;
+  letter-spacing: 1px;
+  color: var(--chart-bad);
+  white-space: nowrap;
+}
+
+.hbar-axis {
+  display: flex;
+  justify-content: space-between;
+  margin: 6px 0 0 calc(var(--hbar-label-w, 96px) + var(--hbar-gap, 10px));
+  padding-right: calc(var(--hbar-value-w, 52px) + var(--hbar-gap, 10px));
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* ---- DONUT -------------------------------------------------------------- */
+.donut-chart {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+
+.donut-ring { position: relative; flex-shrink: 0; }
+
+.donut-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  pointer-events: none;
+}
+
+.donut-center-val {
+  font-family: var(--pixel);
+  font-size: 17px;
+  color: var(--text-primary);
+}
+
+.donut-center-label {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text-secondary);
+  margin-top: 4px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+/* ---- VERTICAL / GROUPED BARS -------------------------------------------- */
+.vbar-chart {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-around;
+  gap: 12px;
+  min-height: 190px;
+  border-bottom: 2px solid var(--chart-grid);
+  /* Room for the value labels that sit above a full-height bar, so they never
+     collide with the legend row above the chart. */
+  padding-top: 18px;
+}
+
+.vbar-group {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.vbar-stack {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 6px;
+  height: 150px;
+  width: 100%;
+}
+
+.vbar {
+  width: 26px;
+  min-height: 3px;
+  position: relative;
+  border: 1px solid #000;
+  transition: height 0.35s ease;
+}
+
+.vbar-value {
+  position: absolute;
+  top: -17px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: var(--pixel);
+  font-size: 9px;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+.vbar-label {
+  font-family: var(--pixel);
+  font-size: 9px;
+  letter-spacing: 1px;
+  color: var(--text-primary);
+  margin-top: 10px;
+  text-align: center;
+}
+
+.vbar-sub {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: 4px;
+  text-align: center;
+}
+
+/* ---- SVG CHART WRAPPER -------------------------------------------------- */
+.svg-chart svg { display: block; width: 100%; height: auto; }
+
+/* ---- METRIC STRIP (numbers printed under a chart) ----------------------- */
+.chart-metrics {
+  display: flex;
+  gap: 12px;
+  margin-top: 12px;
+  border-top: 2px solid var(--chart-grid);
+  padding-top: 12px;
+}
+
+.chart-metric { flex: 1; text-align: center; min-width: 0; }
+
+.chart-metric-val {
+  font-family: var(--pixel);
+  font-size: 15px;
+  color: var(--text-primary);
+}
+
+.chart-metric-label {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: 5px;
+}
+
+/* ============================================================================
+   RECENT ACTIVITY — SESSION CARDS
+   The panel is capped at the 5 most recent sessions (Firestore query limit),
+   so the archive reminder below is not decoration: it is the only warning a
+   user gets that older sessions are not reachable from this panel.
+   ============================================================================ */
+.activity-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.archive-reminder {
+  display: flex;
+  gap: 9px;
+  align-items: flex-start;
+  background: rgba(232, 179, 44, 0.12);
+  border: 2px solid var(--chart-warn);
+  padding: 9px 11px;
+  margin-bottom: 12px;
+  font-family: var(--mono);
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--text-secondary);
+}
+
+.archive-reminder strong {
+  color: var(--chart-warn);
+  font-family: var(--pixel);
+  font-size: 9px;
+  letter-spacing: 1px;
+}
+
+.activity-scroll {
+  max-height: 340px;
+  overflow-y: auto;
+  padding-right: 6px;
+}
+
+.activity-scroll::-webkit-scrollbar { width: 8px; }
+.activity-scroll::-webkit-scrollbar-track { background: #1c1c1c; }
+.activity-scroll::-webkit-scrollbar-thumb { background: var(--chart-good); }
+
+.session-card {
+  border: 2px solid #4D4D4D;
+  border-left: 5px solid var(--chart-good);
+  background: #262626;
+  padding: 10px 12px;
+  margin-bottom: 10px;
+}
+
+.session-card.is-created { border-left-color: var(--chart-neutral); }
+
+.session-card-date {
+  font-family: var(--pixel);
+  font-size: 10px;
+  letter-spacing: 1px;
+  color: var(--chart-good);
+  margin-bottom: 6px;
+}
+.session-card.is-created .session-card-date { color: var(--chart-neutral); }
+
+.session-card-who {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-bottom: 3px;
+}
+
+.session-card-title {
+  font-family: var(--mono);
+  font-size: 14px;
+  color: var(--text-primary);
+  margin-bottom: 3px;
+}
+
+.session-card-meta {
+  font-family: var(--mono);
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.session-card-meta b { color: var(--text-primary); letter-spacing: 1px; }
+
+.session-card-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 9px;
+  flex-wrap: wrap;
+}
+
+.session-link {
+  flex: 1;
+  min-width: 150px;
+  text-align: left;
+  background: transparent;
+  border: none;
+  border-left: 4px solid var(--chart-neutral);
+  color: var(--chart-neutral);
+  font-family: var(--mono);
+  font-size: 12px;
+  padding: 5px 8px;
+  cursor: pointer;
+}
+
+.session-link:hover { background: rgba(93, 156, 236, 0.14); }
+
+.session-export {
+  background: #1f1f1f;
+  border: 2px solid var(--chart-good);
+  color: var(--chart-good);
+  font-family: var(--pixel);
+  font-size: 8px;
+  letter-spacing: 1px;
+  padding: 6px 9px;
+  cursor: pointer;
+}
+
+.session-export:hover { background: var(--chart-good); color: #111; }
+
+.btn-activity-export {
+  background: #2f6b2f;
+  border: 2px solid #000;
+  box-shadow: 2px 2px 0 #000;
+  color: #fff;
+  font-family: var(--pixel);
+  font-size: 9px;
+  letter-spacing: 1px;
+  padding: 8px 10px;
+  cursor: pointer;
+}
+
+.btn-activity-export:hover { background: #3d8a3d; }
+.btn-activity-export:active { box-shadow: none; transform: translate(2px, 2px); }
+
+/* A session report is a filtered view of the reports page; this banner is the
+   only thing telling the user the numbers are no longer class-wide. */
+.session-scope-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  background: #1f2d1f;
+  border: 2px solid var(--chart-good);
+  padding: 10px 12px;
+  margin-bottom: 14px;
+  font-family: var(--mono);
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+.session-scope-code {
+  font-family: var(--pixel);
+  font-size: 11px;
+  letter-spacing: 1px;
+  color: #111;
+  background: var(--chart-good);
+  padding: 5px 8px;
+}
+
+.btn-clear-scope {
+  margin-left: auto;
+  background: transparent;
+  border: 2px solid var(--text-secondary);
+  color: var(--text-secondary);
+  font-family: var(--pixel);
+  font-size: 8px;
+  letter-spacing: 1px;
+  padding: 6px 9px;
+  cursor: pointer;
+}
+
+.btn-clear-scope:hover { border-color: #fff; color: #fff; }
+
+/* ============================================================================
+   MASTER DATA ARCHIVE & EXPORTS
+   ============================================================================ */
+.archive-panel {
+  background: var(--bg-panel2);
+  border: 3px solid #4D4D4D;
+  border-top: 5px solid var(--chart-neutral);
+  box-shadow: 4px 4px 0px #000;
+  padding: 16px 18px 18px;
+  margin-bottom: 22px;
+}
+
+.archive-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.archive-icon {
+  width: 38px;
+  height: 38px;
+  flex-shrink: 0;
+  background: #3a3a3a;
+  border: 2px solid #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 19px;
+}
+
+.archive-title {
+  font-family: var(--pixel);
+  font-size: 12px;
+  letter-spacing: 1px;
+  line-height: 1.5;
+  color: var(--text-primary);
+}
+
+.archive-sub {
+  font-family: var(--mono);
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-top: 6px;
+}
+
+.archive-badge {
+  margin-left: auto;
+  flex-shrink: 0;
+  font-family: var(--pixel);
+  font-size: 9px;
+  letter-spacing: 1px;
+  color: var(--chart-neutral);
+  border: 2px solid var(--chart-neutral);
+  padding: 6px 9px;
+  white-space: nowrap;
+}
+
+.archive-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.archive-option {
+  border: 2px solid #444;
+  background: #262626;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.archive-kind {
+  align-self: flex-start;
+  font-family: var(--pixel);
+  font-size: 8px;
+  letter-spacing: 1px;
+  padding: 5px 7px;
+  margin-bottom: 10px;
+  color: #111;
+  background: var(--chart-neutral);
+}
+
+.archive-kind.doc { background: var(--accent-orange); }
+
+.archive-option h4 {
+  font-family: var(--mono);
+  font-size: 16px;
+  color: var(--text-primary);
+  margin-bottom: 7px;
+  font-weight: normal;
+}
+
+.archive-option p {
+  font-family: var(--mono);
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text-secondary);
+  margin-bottom: 14px;
+  flex: 1;
+}
+
+.btn-archive {
+  width: 100%;
+  border: 2px solid #000;
+  box-shadow: 3px 3px 0 #000;
+  color: #fff;
+  font-family: var(--pixel);
+  font-size: 10px;
+  letter-spacing: 1px;
+  padding: 12px 10px;
+  cursor: pointer;
+  background: var(--card-blue);
+}
+
+.btn-archive.green { background: #2f8f4f; }
+.btn-archive.dark { background: #4a4a4a; }
+.btn-archive:hover { filter: brightness(1.12); }
+.btn-archive:active { box-shadow: none; transform: translate(3px, 3px); }
+
+.archive-hint {
+  margin-top: 14px;
+  border-top: 2px dashed #444;
+  padding-top: 11px;
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* ============================================================================
+   PRINT / SAVE-AS-PDF
+   The dashboard chrome (sidebar, topbar, filters, buttons, search boxes) is
+   navigation, not report content, so it is dropped. What remains is inverted
+   to ink-on-paper: the screen palette is a dark UI, and printing it either
+   burns a cartridge or drops out entirely on a printer that ignores background
+   graphics.
+   ============================================================================ */
+@media print {
+  @page { size: A4 portrait; margin: 14mm 12mm; }
+
+  html, body {
+    background: #fff !important;
+    color: #000 !important;
+    height: auto !important;
+    overflow: visible !important;
+    display: block !important;
+  }
+
+  .topbar,
+  .sidebar,
+  .filter-bar,
+  .export-bar,
+  .archive-panel,
+  .cta-row,
+  .action-cards,
+  .search-box,
+  .teacher-table-header .search-box,
+  .individual-header .search-box,
+  .session-card-actions,
+  .btn-activity-export,
+  .btn-clear-scope,
+  .modal-overlay,
+  .toast,
+  .gif-loader,
+  .avatar-dropdown,
+  .sidebar-logout { display: none !important; }
+
+  .layout { display: block !important; }
+
+  .main {
+    display: block !important;
+    background: #fff !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    overflow: visible !important;
+    height: auto !important;
+    max-height: none !important;
+    width: 100% !important;
+  }
+
+  /* Only the page the user is looking at prints — printing every hidden tab
+     would produce a report full of sections they never opened. */
+  .page { display: none !important; }
+  .page.active { display: block !important; }
+
+  /* Report letterhead, injected by the dashboards before printing. */
+  .print-header { display: block !important; margin-bottom: 10mm; }
+  .print-header h1 {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 20pt;
+    letter-spacing: 0;
+    margin-bottom: 2mm;
+  }
+  .print-header .print-sub {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 11pt;
+    color: #333;
+  }
+  .print-header .print-meta {
+    margin-top: 3mm;
+    padding-top: 2mm;
+    border-top: 1pt solid #000;
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 9.5pt;
+    color: #444;
+  }
+
+  /* Flatten the dark game UI into plain document styling. */
+  .panel, .chart-panel, .skill-table, .individual-panel, .teacher-table-panel,
+  .school-card, .welcome-card, .leaderboard-section, .recent-activity-section,
+  .stat-card, .home-stat-card, .report-stat-card, .session-card,
+  .reports-charts, .session-scope-banner {
+    background: #fff !important;
+    color: #000 !important;
+    border: 1pt solid #000 !important;
+    box-shadow: none !important;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .panel-title, .chart-title, .page-header h1, .archive-title,
+  .stat-label, .home-stat-label, .report-stat-label, .chart-tag,
+  .vbar-label, .chart-metric-label, .donut-center-label {
+    font-family: Georgia, 'Times New Roman', serif !important;
+    color: #000 !important;
+    letter-spacing: 0 !important;
+  }
+
+  .page-header h1 { font-size: 15pt; }
+  .panel-title, .chart-title { font-size: 11pt; }
+
+  .stat-value, .home-stat-val, .report-stat-val, .chart-metric-val,
+  .donut-center-val, .hbar-value, .vbar-value {
+    font-family: Georgia, 'Times New Roman', serif !important;
+    color: #000 !important;
+    font-size: 12pt;
+  }
+
+  body, .main, td, th, .hbar-label, .chart-legend-row, .chart-legend-text,
+  .chart-legend-val, .chart-axis-caption, .vbar-sub, .session-card-meta,
+  .session-card-who, .session-card-title, .archive-sub, .chart-caption,
+  .stat-sub, .needs-support-item, .needs-support-name, .needs-support-note,
+  .reports-sub, .reports-grade, .school-sub, .school-date, .table-footer {
+    font-family: Georgia, 'Times New Roman', serif !important;
+    color: #000 !important;
+    font-size: 10pt !important;
+  }
+
+  /* Decorative icon tiles are dark blocks that print as heavy ink and say
+     nothing the label next to them doesn't. */
+  .report-stat-icon,
+  .home-stat-icon,
+  .archive-icon,
+  .school-icon,
+  .page-header svg,
+  .chart-dot { display: none !important; }
+
+  .chart-svg-tick { fill: #000 !important; }
+
+  /* Content, not chrome — keep it, just make it ink. */
+  .session-card-date, .session-scope-code, .archive-badge, .status-badge {
+    font-family: Georgia, 'Times New Roman', serif !important;
+    color: #000 !important;
+    background: #fff !important;
+    border-color: #000 !important;
+  }
+
+  table { width: 100%; border-collapse: collapse; }
+  th, td {
+    border: 0.5pt solid #666 !important;
+    padding: 3pt 5pt !important;
+    color: #000 !important;
+    background: #fff !important;
+  }
+  thead { display: table-header-group; }
+  tr { break-inside: avoid; page-break-inside: avoid; }
+
+  /* Bars/donut slices are the data itself, so they must survive a printer with
+     background graphics off — hence real borders and print-color-adjust. */
+  .hbar-fill, .vbar, .chart-swatch, .donut-ring svg circle, .status-badge {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  .hbar-track, .vbar-chart { border-color: #000 !important; }
+
+  .chart-grid {
+    display: block !important;
+  }
+  .chart-panel { margin-bottom: 6mm; }
+
+  .activity-scroll { max-height: none !important; overflow: visible !important; }
+
+  a[href]:after { content: ''; }
+}
+
+/* Screen-only: the print letterhead never shows on the dashboard itself. */
+.print-header { display: none; }
+
+/* ---- RESPONSIVE --------------------------------------------------------- */
+@media (max-width: 1100px) {
+  .chart-grid { grid-template-columns: 1fr; }
+  .archive-options { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 768px) {
+  .chart-panel { padding: 12px; box-shadow: 2px 2px 0px #000; }
+  .chart-head { flex-direction: column; align-items: flex-start; }
+  .hbar-chart { --hbar-label-w: 74px; --hbar-value-w: 44px; }
+  .archive-head { flex-wrap: wrap; }
+  .archive-badge { margin-left: 0; }
+  .session-link { min-width: 100%; }
+}

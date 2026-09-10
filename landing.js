@@ -110,6 +110,9 @@ const navToggle = document.getElementById('nav-toggle');
 
   document.querySelectorAll('.nav-tab').forEach(tab => {
     tab.addEventListener('click', function() {
+      // Tabs without a data-section (e.g. "portal login") are real links —
+      // let the browser navigate instead of hijacking the click.
+      if (!this.dataset.section) return;
       document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
       this.classList.add('active');
       const target = document.getElementById('sec-' + this.dataset.section);

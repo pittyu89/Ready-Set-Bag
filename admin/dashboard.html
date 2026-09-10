@@ -6,6 +6,9 @@
   <title>Ready-Set-Bag! Admin Dashboard</title>
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Share+Tech+Mono&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="dashboard.css">
+  <!-- Shared chart / session-card / export / print styles (loaded second so it
+       can build on the tokens dashboard.css defines) -->
+  <link rel="stylesheet" href="../dashboard-charts.css">
   <link rel="icon" type="image/png" sizes="256x256" href="../images/logo.png">
   <script>
     // Pre-paint restore: set saved admin page before paint to avoid tab-flash
@@ -141,8 +144,16 @@
         </div>
 
         <div class="panel">
-          <div class="panel-title">RECENT ACTIVITY</div>
-            <div id="admin-recent-activity">
+          <div class="activity-panel-head">
+            <div class="panel-title" style="margin:0;">RECENT ACTIVITY (LAST 5 SESSIONS)</div>
+            <button class="btn-activity-export" onclick="exportRecentSessionsCsv()">&#11015; EXPORT 5 SESSIONS (CSV)</button>
+          </div>
+          <div class="archive-reminder">
+            <span>&#9888;</span>
+            <div><strong>Archive Reminder:</strong> Only the 5 most recent sessions are listed below.
+              Export session results regularly to maintain complete school-wide archives.</div>
+          </div>
+            <div id="admin-recent-activity" class="activity-scroll">
               <!-- initial loader placeholder: will be replaced by JS when data arrives -->
               <div class="gif-loader" style="display:flex;align-items:center;gap:12px;justify-content:center;padding:18px 0;">
                 <img src="/images/loading.gif" width="72" height="72" class="gif-loader-image" style="width:72px;height:72px;object-fit:contain;image-rendering:pixelated;" onerror="this.onerror=null;this.src='../images/loading.gif'">
@@ -219,8 +230,8 @@
           <input class="search-box" id="admin-search" type="text" placeholder="Search students..." oninput="filterAdminStudents(this.value)">
         </div>
         <div style="padding:8px 16px;border-bottom:1px solid #333;display:flex;align-items:center;gap:12px;">
-          <span style="font-size:9px;color:#666;font-family:var(--pixel);">SECTION:</span>
-          <select id="admin-section-filter" class="form-select" style="width:200px;padding:4px 8px;font-size:10px;" onchange="filterAdminStudents(document.getElementById('admin-search').value)"><option value="">ALL SECTIONS</option></select>
+          <span style="font-size:12px;color:#666;font-family:var(--pixel);">SECTION:</span>
+          <select id="admin-section-filter" class="form-select" style="width:200px;padding:4px 8px;font-size:13px;" onchange="filterAdminStudents(document.getElementById('admin-search').value)"><option value="">ALL SECTIONS</option></select>
         </div>
         <table id="admin-student-table">
           <thead><tr><th>USERNAME</th><th>NAME</th><th>SECTION</th><th>PASSWORD</th><th style="text-align:right;">ACTIONS</th></tr></thead>
@@ -231,12 +242,29 @@
     </div>
 
     <div class="page" id="page-reports">
+      <!-- Print-only letterhead; filled in by printAdminReport() -->
+      <div class="print-header">
+        <h1>Earthquake Preparedness Drill Report</h1>
+        <div class="print-sub">Caruhatan East Elementary School &middot; Grade 6</div>
+        <div class="print-meta" id="admin-print-meta"></div>
+      </div>
+
       <div class="page-header">
         <svg viewBox="0 0 24 24" fill="#555"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
         <h1>SCHOOL-WIDE REPORTS</h1>
       </div>
       <div class="reports-sub">Caruhatan East Elementary School</div>
       <div class="reports-grade">GRADE 6 – ALL SECTIONS COMBINED</div>
+
+      <!-- Shown only while the page is scoped to one session (opened from a
+           Recent Activity card), so the narrowed numbers can't be mistaken for
+           school-wide ones. -->
+      <div class="session-scope-banner" id="admin-session-scope" style="display:none;">
+        <span>Showing one session only:</span>
+        <span class="session-scope-code" id="admin-session-scope-code">—</span>
+        <span id="admin-session-scope-meta"></span>
+        <button class="btn-clear-scope" onclick="clearAdminSessionScope()">&#10005; BACK TO ALL SESSIONS</button>
+      </div>
 
       <div class="filter-bar">
         <span class="filter-label">FILTER:</span>
@@ -265,6 +293,48 @@
           <div class="stat-label">COMPLETION RATE</div>
           <div class="stat-value" id="reports-completion">—</div>
           <div class="stat-sub" id="reports-completion-sub">—</div>
+        </div>
+      </div>
+
+      <!-- Visual diagnostics. These sit above the tables on purpose: the board
+           feedback was that a wall of text hides the finding, and a bar next to
+           the 70% line answers "which sections are in trouble" at a glance. -->
+      <div class="chart-caption">&#128202; Cross-section drill performance and preparedness compliance for Grade 6</div>
+      <div class="chart-grid">
+        <div class="chart-panel">
+          <div class="chart-head">
+            <div class="chart-title"><span class="chart-dot"></span>SECTION PERFORMANCE VS 70% BENCHMARK</div>
+            <div class="chart-tag" id="chart-sections-tag">— SECTIONS</div>
+          </div>
+          <div id="chart-section-performance"></div>
+          <div class="chart-legend row">
+            <div class="chart-legend-row inline"><span class="chart-swatch" style="background:var(--chart-good)"></span><span class="chart-legend-text">&#8805; 70% Passing</span></div>
+            <div class="chart-legend-row inline"><span class="chart-swatch" style="background:var(--chart-bad)"></span><span class="chart-legend-text">&lt; 70% Needs Support</span></div>
+          </div>
+        </div>
+
+        <div class="chart-panel">
+          <div class="chart-head">
+            <div class="chart-title"><span class="chart-dot warn"></span>SCHOOL-WIDE READINESS TIERS</div>
+            <div class="chart-tag" id="chart-readiness-tag">— EVALUATED</div>
+          </div>
+          <div id="chart-readiness"></div>
+        </div>
+
+        <div class="chart-panel">
+          <div class="chart-head">
+            <div class="chart-title"><span class="chart-dot neutral"></span>SECTION DRILL PARTICIPATION RATE</div>
+            <div class="chart-tag" id="chart-participation-tag">% ROSTER TESTED</div>
+          </div>
+          <div id="chart-participation"></div>
+        </div>
+
+        <div class="chart-panel">
+          <div class="chart-head">
+            <div class="chart-title"><span class="chart-dot"></span>CURRICULUM LEVEL PROGRESSION</div>
+            <div class="chart-tag">ADAPTIVE TIERS</div>
+          </div>
+          <div id="chart-level-progression"></div>
         </div>
       </div>
 
@@ -307,19 +377,43 @@
               <th>Section</th>
               <th>Score</th>
               <th>Best Time</th>
-              <th>Skill Tier</th>
             </tr>
           </thead>
           <tbody id="admin-individual-tbody">
-            <tr><td colspan="5" style="text-align:center;color:var(--text-muted);padding:18px;">Loading…</td></tr>
+            <tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:18px;">Loading…</td></tr>
           </tbody>
         </table>
         <div class="table-footer" id="admin-individual-footer"></div>
       </div>
 
-      <div class="export-bar">
-        <button class="btn-export blue" onclick="exportAdminSessionResultsCsv()">⬇ EXPORT RESULTS (CSV)</button>
-        <button class="btn-export dark" onclick="window.print()">🖨 PRINT REPORT</button>
+      <!-- Master archive. The Recent Activity panel only reaches the last five
+           sessions, so this is where a complete school record comes from. -->
+      <div class="archive-panel">
+        <div class="archive-head">
+          <div class="archive-icon">&#128451;</div>
+          <div>
+            <div class="archive-title">SCHOOL-WIDE MASTER DATA ARCHIVE &amp; EXPORTS</div>
+            <div class="archive-sub">Cumulative school earthquake drill records and preparedness compliance reports across all sections</div>
+          </div>
+          <div class="archive-badge">&#9679; SCHOOL DATABASE</div>
+        </div>
+        <div class="archive-options">
+          <div class="archive-option">
+            <div class="archive-kind">FULL DATASET</div>
+            <h4>Raw School Drill Results</h4>
+            <p>Comprehensive log of student drill runs across all sections with student names, scores,
+               completion times, essentials, and timestamps.</p>
+            <button class="btn-archive" onclick="exportAdminSessionResultsCsv()">&#11015; DOWNLOAD MASTER CSV</button>
+          </div>
+          <div class="archive-option">
+            <div class="archive-kind doc">DOCUMENT</div>
+            <h4>Official Printable Report</h4>
+            <p>Print-optimized school report with section breakdown averages and student support thresholds.</p>
+            <button class="btn-archive dark" onclick="printAdminReport()">&#128424; PRINT / SAVE PDF</button>
+          </div>
+        </div>
+        <div class="archive-hint">&#128161; Looking to export a single recent drill? Use the quick
+          [ &#11015; EXPORT CSV ] button on any session card in Recent Activity on the Home tab.</div>
       </div>
     </div>
 
@@ -361,7 +455,7 @@
         <option>G6-Daisies</option>
         <option>G6-Tulips</option>
         </select>
-        <button type="button" class="btn-add" style="background:#8FBF8F;padding:6px 8px;font-size:12px;height:32px;" onclick="promptAddSection()">+ ADD SECTION</button>
+        <button type="button" class="btn-add" style="background:#8FBF8F;padding:6px 8px;font-size:15px;height:32px;" onclick="promptAddSection()">+ ADD SECTION</button>
       </div>
     </div>
     <div class="form-group">
@@ -410,7 +504,7 @@
         <label class="form-label">ASSIGN TO TEACHER SECTION: *</label>
         <div style="display:flex;gap:8px;align-items:center;">
           <select class="form-select section-select" id="s-input-section"><option value="">Select section...</option></select>
-          <button type="button" class="btn-add" style="background:#8FBF8F;padding:6px 8px;font-size:12px;height:32px;" onclick="promptAddSection()">+ ADD SECTION</button>
+          <button type="button" class="btn-add" style="background:#8FBF8F;padding:6px 8px;font-size:15px;height:32px;" onclick="promptAddSection()">+ ADD SECTION</button>
         </div>
       </div>
       <div class="form-note" id="s-form-note" style="margin-top:0;">&#9888; Default password is Student@123. Username will be auto-generated.</div>
@@ -427,7 +521,7 @@
         <label class="form-label">ASSIGN TO TEACHER SECTION: *</label>
         <div style="display:flex;gap:8px;align-items:center;">
           <select class="form-select section-select" id="s-csv-section"><option value="">Select section...</option></select>
-          <button type="button" class="btn-add" style="background:#8FBF8F;padding:6px 8px;font-size:12px;height:32px;" onclick="promptAddSection()">+ ADD SECTION</button>
+          <button type="button" class="btn-add" style="background:#8FBF8F;padding:6px 8px;font-size:15px;height:32px;" onclick="promptAddSection()">+ ADD SECTION</button>
         </div>
       </div>
       <div class="form-group">
@@ -436,7 +530,7 @@
       </div>
       <div id="s-csv-preview" style="display:none;">
         <div class="modal-section-label">PREVIEW (<span id="s-preview-count">0</span> STUDENTS):</div>
-        <div id="s-preview-list" style="background:#222;border:1px solid #444;padding:10px 14px;font-size:11px;max-height:120px;overflow-y:auto;line-height:1.8;"></div>
+        <div id="s-preview-list" style="background:#222;border:1px solid #444;padding:10px 14px;font-size:14px;max-height:120px;overflow-y:auto;line-height:1.8;"></div>
       </div>
       <div class="modal-actions">
         <button class="btn-cancel" onclick="closeStudentModal()">CANCEL</button>
@@ -476,6 +570,9 @@
 
 <!-- Shared reports analytics helper -->
 <script src="../reports-analytics.js"></script>
+
+<!-- Shared chart renderers -->
+<script src="../dashboard-charts.js"></script>
 
 <!-- Dashboard Script -->
 <script src="dashboard.js"></script>

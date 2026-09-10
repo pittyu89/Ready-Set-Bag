@@ -39,7 +39,7 @@
 /* simple gif-loader styles */
 .gif-loader { display:flex; align-items:center; gap:10px; }
 .gif-loader-image { width:72px; height:72px; object-fit:contain; image-rendering:pixelated; }
-.gif-loader-text { font-size:12px; color:var(--text-secondary); }
+.gif-loader-text { font-size:15px; color:var(--text-secondary); }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -56,7 +56,7 @@ body {
 /* ---- TOP BAR ---- */
 .topbar {
   background: var(--bg-panel);
-  height: 48px;
+  height: 58px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -67,8 +67,8 @@ body {
 
 .topbar-logo {
   background: #c0392b;
-  width: 185px;
-  height: 48px;
+  width: 230px;
+  height: 58px;
   display: flex;
   align-items: center;
   justify-content: flex-start;
@@ -86,13 +86,13 @@ body {
 
 .topbar-logo-text {
   font-family: var(--pixel);
-  font-size: 8px;
+  font-size: 11px;
   color: #fff;
   text-align: left;
   line-height: 1;
   white-space: nowrap;
   letter-spacing: 1px;
-  max-width: 120px;
+  max-width: 172px;
   overflow: hidden;
   text-overflow: ellipsis;
 }
@@ -107,23 +107,23 @@ body {
 /* ---- TABLET: treat like mobile - hide text and make icon fill red container (426px - 768px) ---- */
 @media (min-width: 426px) and (max-width: 768px) {
   .topbar-logo-text { display: none !important; }
-  .topbar-logo { width: 185px; padding-left: 0; justify-content: center; }
-  .topbar-logo-img { width: 100%; height: 100%; max-width: 185px; max-height: 48px; object-fit: contain; }
+  .topbar-logo { width: 230px; padding-left: 0; justify-content: center; }
+  .topbar-logo-img { width: 100%; height: 100%; max-width: 230px; max-height: 58px; object-fit: contain; }
 }
 
 .topbar-title {
   padding-left: 20px;
   font-family: var(--pixel);
-  font-size: 9px;
+  font-size: 12px;
   color: var(--text-secondary);
   letter-spacing: 2px;
 }
 
 /* Standardize logo sizing and alignment from tablet (>=426px) upward */
 @media (min-width: 426px) {
-  .topbar-logo { width: 185px; height: 48px; padding-left: 8px; justify-content: center; }
+  .topbar-logo { width: 230px; height: 58px; padding-left: 8px; justify-content: center; }
   .topbar-logo-img { width: 28px; height: 28px; }
-  .topbar-logo-text { max-width: 120px; display: inline-block; }
+  .topbar-logo-text { max-width: 172px; display: inline-block; }
 }
 
 .topbar-center {
@@ -146,7 +146,7 @@ body {
   align-items: center;
   justify-content: center;
   font-family: var(--pixel);
-  font-size: 9px;
+  font-size: 12px;
   color: #fff;
   font-weight: bold;
   border: 2px solid #4D4D4D;
@@ -187,7 +187,7 @@ body {
   border: none;
   color: var(--text-secondary);
   font-family: var(--pixel);
-  font-size: 7px;
+  font-size: 10px;
   cursor: pointer;
   text-align: left;
   letter-spacing: 1px;
@@ -208,7 +208,7 @@ body {
 
 /* ---- SIDEBAR ---- */
 .sidebar {
-  width: 185px;
+  width: 230px;
   background: var(--sidebar-bg);
   display: flex;
   flex-direction: column;
@@ -222,7 +222,7 @@ body {
 }
 
 .sidebar-user .label {
-  font-size: 8px;
+  font-size: 11px;
   color: var(--text-muted);
   font-family: var(--pixel);
   letter-spacing: 1px;
@@ -230,14 +230,14 @@ body {
 
 .sidebar-user .name {
   font-family: var(--pixel);
-  font-size: 7px;
+  font-size: 10px;
   color: var(--accent-orange);
   margin-top: 4px;
   line-height: 1.6;
 }
 
 .sidebar-user .section-tag {
-  font-size: 9px;
+  font-size: 12px;
   color: var(--text-secondary);
   margin-top: 4px;
 }
@@ -253,7 +253,7 @@ body {
   gap: 12px;
   padding: 12px 18px;
   font-family: var(--pixel);
-  font-size: 8px;
+  font-size: 11px;
   letter-spacing: 1px;
   color: var(--text-secondary);
   cursor: pointer;
@@ -293,7 +293,7 @@ body {
 
 .page-header h1 {
   font-family: var(--pixel);
-  font-size: 14px;
+  font-size: 17px;
   color: #1a1a1a;
   letter-spacing: 2px;
 }
@@ -314,7 +314,7 @@ body {
 
 .welcome-greeting {
   font-family: var(--pixel);
-  font-size: 10px;
+  font-size: 13px;
   color: var(--text-primary);
   margin-bottom: 10px;
   letter-spacing: 1px;
@@ -327,7 +327,7 @@ body {
 }
 
 .welcome-meta-item {
-  font-size: 12px;
+  font-size: 15px;
   color: var(--text-secondary);
   display: flex;
   align-items: center;
@@ -339,7 +339,7 @@ body {
   align-items: center;
   gap: 6px;
   font-family: var(--pixel);
-  font-size: 8px;
+  font-size: 11px;
   color: var(--card-green);
 }
 
@@ -393,7 +393,7 @@ body {
 
 .action-title {
   font-family: var(--pixel);
-  font-size: 9px;
+  font-size: 12px;
   color: var(--text-primary);
   letter-spacing: 1px;
   line-height: 1.35;
@@ -402,14 +402,14 @@ body {
 }
 
 .action-desc {
-  font-size: 11px;
+  font-size: 14px;
   color: var(--text-secondary);
   line-height: 1.5;
   overflow-wrap: anywhere;
 }
 
 .action-note {
-  font-size: 10px;
+  font-size: 13px;
   color: var(--text-muted);
   line-height: 1.5;
   overflow-wrap: anywhere;
@@ -421,7 +421,7 @@ body {
   width: 100%;
   padding: 12px 16px;
   font-family: var(--pixel);
-  font-size: 8px;
+  font-size: 11px;
   letter-spacing: 1px;
   border: none;
   cursor: pointer;
@@ -450,7 +450,7 @@ body {
 
 .panel-title {
   font-family: var(--pixel);
-  font-size: 8px;
+  font-size: 11px;
   color: var(--text-primary);
   letter-spacing: 2px;
   margin-bottom: 18px;
@@ -475,7 +475,7 @@ body {
 
 .session-num {
   font-family: var(--pixel);
-  font-size: 8px;
+  font-size: 11px;
   color: var(--card-blue);
   margin-right: 14px;
   flex-shrink: 0;
@@ -483,13 +483,13 @@ body {
 
 .session-date {
   font-family: var(--pixel);
-  font-size: 8px;
+  font-size: 11px;
   color: var(--text-primary);
   margin-bottom: 4px;
 }
 
 .session-sub {
-  font-size: 11px;
+  font-size: 14px;
   color: var(--text-secondary);
 }
 
@@ -501,13 +501,13 @@ body {
 
 .session-score {
   font-family: var(--pixel);
-  font-size: 10px;
+  font-size: 13px;
   color: var(--card-orange);
 }
 
 .btn-view {
   font-family: var(--pixel);
-  font-size: 7px;
+  font-size: 10px;
   padding: 6px 12px;
   border: 2px solid #555;
   background: #2a2a2a;
@@ -555,14 +555,14 @@ body {
   color: #fff;
   display: flex; align-items: center; justify-content: center;
   font-family: var(--pixel);
-  font-size: 8px;
+  font-size: 11px;
   flex-shrink: 0;
   margin-right: 12px;
 }
 
 .setup-step-title {
   font-family: var(--pixel);
-  font-size: 9px;
+  font-size: 12px;
   color: var(--text-primary);
   letter-spacing: 2px;
 }
@@ -598,7 +598,7 @@ body {
 
 .diff-name {
   font-family: var(--pixel);
-  font-size: 9px;
+  font-size: 12px;
   color: var(--text-primary);
   margin-bottom: 4px;
   display: flex;
@@ -607,7 +607,7 @@ body {
 }
 
 .diff-badge {
-  font-size: 9px;
+  font-size: 12px;
   background: #3a3a3a;
   color: var(--text-secondary);
   padding: 2px 8px;
@@ -615,7 +615,7 @@ body {
 }
 
 .diff-desc {
-  font-size: 11px;
+  font-size: 14px;
   color: var(--text-muted);
 }
 
@@ -626,7 +626,7 @@ body {
 }
 
 .code-share-label {
-  font-size: 12px;
+  font-size: 15px;
   color: var(--text-secondary);
   margin-bottom: 16px;
 }
@@ -642,7 +642,7 @@ body {
 
 .code-value {
   font-family: var(--pixel);
-  font-size: 22px;
+  font-size: 25px;
   color: #fff;
   letter-spacing: 4px;
 }
@@ -660,7 +660,7 @@ body {
 .btn-copy:hover { color: #fff; }
 
 .code-instruction {
-  font-size: 11px;
+  font-size: 14px;
   color: var(--text-secondary);
 }
 
@@ -680,11 +680,11 @@ body {
 
 .joined-count {
   font-family: var(--pixel);
-  font-size: 18px;
+  font-size: 21px;
   color: var(--text-primary);
 }
 
-.joined-count span { color: var(--text-muted); font-size: 14px; }
+.joined-count span { color: var(--text-muted); font-size: 17px; }
 
 .joined-bar-track {
   height: 8px;
@@ -703,7 +703,7 @@ body {
   width: 100%;
   padding: 14px;
   font-family: var(--pixel);
-  font-size: 10px;
+  font-size: 13px;
   letter-spacing: 2px;
   background: var(--card-green);
   color: #fff;
@@ -721,7 +721,7 @@ body {
   border: 2px solid #4D4D4D;
   padding: 7px 12px;
   font-family: var(--mono);
-  font-size: 11px;
+  font-size: 14px;
   color: var(--text-primary);
   width: 200px;
   outline: none;
@@ -737,7 +737,7 @@ table {
 
 thead th {
   font-family: var(--pixel);
-  font-size: 7px;
+  font-size: 10px;
   color: var(--text-secondary);
   letter-spacing: 1px;
   padding: 10px 8px;
@@ -755,14 +755,14 @@ tbody tr:last-child { border-bottom: none; }
 
 tbody td {
   padding: 14px 8px;
-  font-size: 12px;
+  font-size: 15px;
   color: var(--text-primary);
 }
 
 .table-footer {
   margin-top: 14px;
   font-family: var(--pixel);
-  font-size: 7px;
+  font-size: 10px;
   color: var(--text-muted);
   letter-spacing: 1px;
 }
@@ -789,7 +789,7 @@ tbody td {
 
 .filter-label {
   font-family: var(--pixel);
-  font-size: 8px;
+  font-size: 11px;
   color: var(--text-secondary);
   letter-spacing: 1px;
   margin-right: 4px;
@@ -801,7 +801,7 @@ tbody td {
   color: var(--text-primary);
   padding: 6px 28px 6px 10px;
   font-family: var(--pixel);
-  font-size: 7px;
+  font-size: 10px;
   cursor: pointer;
   appearance: none;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23888'/%3E%3C/svg%3E");
@@ -842,13 +842,13 @@ tbody td {
 
 .report-stat-val {
   font-family: var(--pixel);
-  font-size: 16px;
+  font-size: 19px;
   color: var(--text-primary);
   margin-bottom: 3px;
 }
 
 .report-stat-label {
-  font-size: 11px;
+  font-size: 14px;
   color: var(--text-secondary);
 }
 
@@ -863,7 +863,7 @@ tbody td {
 
 .skill-prog-title {
   font-family: var(--pixel);
-  font-size: 8px;
+  font-size: 11px;
   color: var(--text-primary);
   letter-spacing: 2px;
   margin-bottom: 18px;
@@ -883,12 +883,12 @@ tbody td {
 }
 
 .skill-row-name {
-  font-size: 12px;
+  font-size: 15px;
   color: var(--text-secondary);
 }
 
 .skill-row-count {
-  font-size: 11px;
+  font-size: 14px;
   color: var(--text-muted);
 }
 
@@ -939,18 +939,18 @@ tbody td {
   color: #fff;
   display: flex; align-items: center; justify-content: center;
   font-family: var(--pixel);
-  font-size: 8px;
+  font-size: 11px;
   flex-shrink: 0;
 }
 
 .mistake-text {
-  font-size: 12px;
+  font-size: 15px;
   color: var(--text-secondary);
 }
 
 .mistake-count {
   font-family: var(--pixel);
-  font-size: 8px;
+  font-size: 11px;
   color: var(--text-secondary);
   background: #3a3a3a;
   padding: 4px 10px;
@@ -975,20 +975,20 @@ tbody td {
 .activity-item:last-child { margin-bottom: 0; }
 
 .activity-date {
-  font-size: 9px;
+  font-size: 12px;
   color: var(--accent-orange);
   font-weight: bold;
   margin-bottom: 4px;
 }
 
 .activity-teacher {
-  font-size: 10px;
+  font-size: 13px;
   color: var(--text-primary);
   margin-bottom: 4px;
 }
 
 .activity-desc {
-  font-size: 9px;
+  font-size: 12px;
   color: var(--text-muted);
   line-height: 1.4;
 }
@@ -1024,7 +1024,7 @@ tbody td {
   gap: 8px;
   padding: 12px 18px;
   font-family: var(--pixel);
-  font-size: 8px;
+  font-size: 11px;
   letter-spacing: 1px;
   cursor: pointer;
   box-shadow: 4px 4px 0px #000;
@@ -1059,14 +1059,14 @@ tbody td {
 
 .modal-title {
   font-family: var(--pixel);
-  font-size: 10px;
+  font-size: 13px;
   color: var(--text-primary);
   letter-spacing: 1px;
   margin-bottom: 6px;
 }
 
 .modal-sub {
-  font-size: 11px;
+  font-size: 14px;
   color: var(--text-secondary);
   margin-bottom: 22px;
 }
@@ -1076,7 +1076,7 @@ tbody td {
   top: 14px; right: 16px;
   background: none;
   border: none;
-  font-size: 20px;
+  font-size: 23px;
   color: var(--text-muted);
   cursor: pointer;
   line-height: 1;
@@ -1091,7 +1091,7 @@ tbody td {
 .form-label {
   display: block;
   font-family: var(--pixel);
-  font-size: 7px;
+  font-size: 10px;
   color: var(--text-muted);
   letter-spacing: 1px;
   margin-bottom: 7px;
@@ -1103,7 +1103,7 @@ tbody td {
   border: 1px solid #444;
   padding: 10px 12px;
   font-family: var(--mono);
-  font-size: 13px;
+  font-size: 16px;
   color: var(--text-primary);
   outline: none;
 }
@@ -1111,7 +1111,7 @@ tbody td {
 .form-input:focus { border-color: var(--card-blue); }
 
 .next-username-note {
-  font-size: 11px;
+  font-size: 14px;
   color: var(--text-secondary);
   margin-bottom: 16px;
 }
@@ -1127,7 +1127,7 @@ tbody td {
 .btn-cancel {
   padding: 10px 18px;
   font-family: var(--pixel);
-  font-size: 8px;
+  font-size: 11px;
   background: none;
   border: 2px solid #555;
   cursor: pointer;
@@ -1140,7 +1140,7 @@ tbody td {
 .btn-create {
   padding: 10px 18px;
   font-family: var(--pixel);
-  font-size: 8px;
+  font-size: 11px;
   background: var(--card-green);
   color: #fff;
   border: none;
@@ -1160,7 +1160,7 @@ tbody td {
   border-left: 4px solid var(--card-green);
   padding: 14px 20px;
   font-family: var(--pixel);
-  font-size: 8px;
+  font-size: 11px;
   color: var(--accent-green);
   letter-spacing: 1px;
   z-index: 2000;
@@ -1180,9 +1180,9 @@ tbody td {
 /* ============= RESPONSIVE ============= */
 /* Laptop (769px - 1024px) */
 @media (min-width: 769px) and (max-width: 1024px) {
-  .sidebar { width: 160px; }
-  .topbar-logo { width: 160px; font-size: 6px; height: 44px; }
-  .topbar-title { font-size: 8px; padding-left: 16px; }
+  .sidebar { width: 200px; }
+  .topbar-logo { width: 200px; font-size: 8px; height: 54px; }
+  .topbar-title { font-size: 11px; padding-left: 16px; }
   .action-cards { grid-template-columns: 1fr 1fr; }
   .reports-stats { grid-template-columns: 1fr 1fr; }
   .main { padding: 12px 14px 16px; }
@@ -1195,17 +1195,17 @@ tbody td {
   .action-card-top { gap: 10px; }
   .action-icon { width: 30px; height: 30px; }
   .action-icon svg { width: 20px; height: 20px; }
-  .action-title { font-size: 8px; }
-  .action-desc { font-size: 8px; line-height: 1.35; }
-  .action-note { font-size: 8px; }
-  .action-btn { padding: 8px 10px; font-size: 7px; }
+  .action-title { font-size: 11px; }
+  .action-desc { font-size: 11px; line-height: 1.35; }
+  .action-note { font-size: 11px; }
+  .action-btn { padding: 8px 10px; font-size: 10px; }
 }
 
 /* Desktop (1024px - 1279px) */
 @media (min-width: 1024px) and (max-width: 1279px) {
-  .sidebar { width: 185px; }
-  .topbar-logo { width: 185px; }
-  .topbar-title { font-size: 9px; padding-left: 18px; }
+  .sidebar { width: 230px; }
+  .topbar-logo { width: 230px; }
+  .topbar-title { font-size: 12px; padding-left: 18px; }
   .main { padding: 14px 16px 18px; }
   .page-header { margin-bottom: 16px; }
   .welcome-card { padding: 16px 18px; margin-bottom: 16px; }
@@ -1215,26 +1215,26 @@ tbody td {
   .action-card { padding: 13px 12px; gap: 5px; }
   .action-icon { width: 30px; height: 30px; }
   .action-icon svg { width: 20px; height: 20px; }
-  .action-btn { padding: 8px 10px; font-size: 7px; }
-  .action-title { font-size: 8px; }
-  .action-desc { font-size: 8px; line-height: 1.35; }
-  .action-note { font-size: 8px; }
+  .action-btn { padding: 8px 10px; font-size: 10px; }
+  .action-title { font-size: 11px; }
+  .action-desc { font-size: 11px; line-height: 1.35; }
+  .action-note { font-size: 11px; }
   .panel { padding: 16px; margin-bottom: 16px; }
-  .panel-title { font-size: 7px; margin-bottom: 12px; }
+  .panel-title { font-size: 10px; margin-bottom: 12px; }
   .reports-stats { grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 18px; }
-  .report-stat-val { font-size: 22px; }
-  .report-stat-label { font-size: 9px; }
-  .search-box { width: 150px; font-size: 10px; padding: 6px 10px; }
-  table { font-size: 10px; }
+  .report-stat-val { font-size: 25px; }
+  .report-stat-label { font-size: 12px; }
+  .search-box { width: 150px; font-size: 13px; padding: 6px 10px; }
+  table { font-size: 13px; }
   tbody td { padding: 10px 6px; }
-  thead th { padding: 8px 6px; font-size: 6px; }
-  .btn-sm { display: inline-block; font-size: 6px; padding: 3px 5px; margin-left: 1px; }
-  .skill-row-name { font-size: 10px; }
-  .skill-row-count { font-size: 9px; }
+  thead th { padding: 8px 6px; font-size: 8px; }
+  .btn-sm { display: inline-block; font-size: 8px; padding: 3px 5px; margin-left: 1px; }
+  .skill-row-name { font-size: 13px; }
+  .skill-row-count { font-size: 12px; }
   .activity-item { padding: 8px 10px; margin-bottom: 6px; }
-  .activity-date { font-size: 7px; margin-bottom: 1px; }
-  .activity-desc { font-size: 9px; }
-  .btn-export { padding: 8px 12px; font-size: 6px; }
+  .activity-date { font-size: 10px; margin-bottom: 1px; }
+  .activity-desc { font-size: 12px; }
+  .btn-export { padding: 8px 12px; font-size: 8px; }
   .modal { width: 84vw; padding: 19px; }
   .form-row { grid-template-columns: 1fr; gap: 10px; }
 }
@@ -1243,7 +1243,7 @@ tbody td {
 @media (min-width: 1280px) and (max-width: 1439px) {
   .sidebar { width: 190px; }
   .topbar-logo { width: 190px; }
-  .topbar-title { font-size: 10px; padding-left: 20px; }
+  .topbar-title { font-size: 13px; padding-left: 20px; }
   .main { padding: 16px 18px 20px; }
   .page-header { margin-bottom: 16px; }
   .welcome-card { padding: 16px 18px; margin-bottom: 16px; }
@@ -1253,27 +1253,27 @@ tbody td {
   .action-card { padding: 13px 12px; gap: 5px; }
   .action-icon { width: 30px; height: 30px; }
   .action-icon svg { width: 20px; height: 20px; }
-  .action-btn { padding: 8px 10px; font-size: 7px; }
-  .action-title { font-size: 8px; }
-  .action-desc { font-size: 9px; line-height: 1.35; }
-  .action-note { font-size: 8px; }
+  .action-btn { padding: 8px 10px; font-size: 10px; }
+  .action-title { font-size: 11px; }
+  .action-desc { font-size: 12px; line-height: 1.35; }
+  .action-note { font-size: 11px; }
   .panel { padding: 18px; margin-bottom: 18px; }
-  .panel-title { font-size: 8px; margin-bottom: 14px; }
+  .panel-title { font-size: 11px; margin-bottom: 14px; }
   .reports-stats { grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 22px; }
-  .report-stat-val { font-size: 24px; }
-  .report-stat-label { font-size: 10px; }
-  .search-box { width: 170px; font-size: 10px; padding: 7px 10px; }
-  table { font-size: 11px; }
-  tbody td { padding: 12px 8px; font-size: 11px; }
-  thead th { padding: 10px 8px; font-size: 7px; }
-  .btn-sm { display: inline-block; font-size: 6px; padding: 4px 6px; margin-left: 2px; }
+  .report-stat-val { font-size: 27px; }
+  .report-stat-label { font-size: 13px; }
+  .search-box { width: 170px; font-size: 13px; padding: 7px 10px; }
+  table { font-size: 14px; }
+  tbody td { padding: 12px 8px; font-size: 14px; }
+  thead th { padding: 10px 8px; font-size: 10px; }
+  .btn-sm { display: inline-block; font-size: 8px; padding: 4px 6px; margin-left: 2px; }
   .skill-bar-row { margin-bottom: 13px; }
-  .skill-row-name { font-size: 11px; }
-  .skill-row-count { font-size: 10px; }
+  .skill-row-name { font-size: 14px; }
+  .skill-row-count { font-size: 13px; }
   .activity-item { padding: 10px 12px; margin-bottom: 8px; }
-  .activity-date { font-size: 8px; margin-bottom: 2px; }
-  .activity-desc { font-size: 10px; }
-  .btn-export { padding: 10px 14px; font-size: 7px; }
+  .activity-date { font-size: 11px; margin-bottom: 2px; }
+  .activity-desc { font-size: 13px; }
+  .btn-export { padding: 10px 14px; font-size: 10px; }
   .modal { width: 86vw; padding: 20px; }
   .form-row { grid-template-columns: 1fr 1fr; gap: 12px; }
 }
@@ -1282,7 +1282,7 @@ tbody td {
 @media (min-width: 1440px) {
   .sidebar { width: 200px; }
   .topbar-logo { width: 200px; }
-  .topbar-title { font-size: 11px; padding-left: 22px; }
+  .topbar-title { font-size: 14px; padding-left: 22px; }
   .main { max-width: 1680px; margin: 0 auto; padding: 18px 20px 22px; }
   .page-header { margin-bottom: 16px; }
   .welcome-card { padding: 16px 18px; margin-bottom: 16px; }
@@ -1292,27 +1292,27 @@ tbody td {
   .action-card { padding: 13px 12px; gap: 5px; }
   .action-icon { width: 30px; height: 30px; }
   .action-icon svg { width: 20px; height: 20px; }
-  .action-btn { padding: 8px 10px; font-size: 8px; }
-  .action-title { font-size: 9px; }
-  .action-desc { font-size: 9px; line-height: 1.35; }
-  .action-note { font-size: 9px; }
+  .action-btn { padding: 8px 10px; font-size: 11px; }
+  .action-title { font-size: 12px; }
+  .action-desc { font-size: 12px; line-height: 1.35; }
+  .action-note { font-size: 12px; }
   .panel { padding: 24px; margin-bottom: 24px; }
-  .panel-title { font-size: 9px; margin-bottom: 18px; }
+  .panel-title { font-size: 12px; margin-bottom: 18px; }
   .reports-stats { grid-template-columns: repeat(4, 1fr); gap: 18px; margin-bottom: 26px; }
-  .report-stat-val { font-size: 28px; }
-  .report-stat-label { font-size: 11px; }
-  .search-box { width: 200px; font-size: 11px; padding: 8px 12px; }
-  table { font-size: 12px; }
+  .report-stat-val { font-size: 31px; }
+  .report-stat-label { font-size: 14px; }
+  .search-box { width: 200px; font-size: 14px; padding: 8px 12px; }
+  table { font-size: 15px; }
   tbody td { padding: 14px 10px; }
-  thead th { padding: 12px 10px; font-size: 8px; }
-  .btn-sm { display: inline-block; font-size: 7px; padding: 5px 7px; margin-left: 3px; }
+  thead th { padding: 12px 10px; font-size: 11px; }
+  .btn-sm { display: inline-block; font-size: 10px; padding: 5px 7px; margin-left: 3px; }
   .skill-bar-row { margin-bottom: 16px; }
-  .skill-row-name { font-size: 12px; }
-  .skill-row-count { font-size: 11px; }
+  .skill-row-name { font-size: 15px; }
+  .skill-row-count { font-size: 14px; }
   .activity-item { padding: 14px 16px; margin-bottom: 12px; }
-  .activity-date { font-size: 9px; margin-bottom: 3px; }
-  .activity-desc { font-size: 11px; }
-  .btn-export { padding: 12px 16px; font-size: 8px; }
+  .activity-date { font-size: 12px; margin-bottom: 3px; }
+  .activity-desc { font-size: 14px; }
+  .btn-export { padding: 12px 16px; font-size: 11px; }
   .modal { width: 90vw; max-width: 1300px; padding: 28px; }
   .form-row { grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
 }
@@ -1321,11 +1321,11 @@ tbody td {
 @media (max-width: 768px) {
   body { height: 100dvh; }
   .topbar { height: 44px;}
-  .topbar-logo { width: 50px; height: 44px; font-size: 5px; line-height: 1.2; }
-  .topbar-title { font-size: 7px; padding-left: 12px; letter-spacing: 1px; }
-  .topbar-avatar { width: 28px; height: 28px; font-size: 8px; }
+  .topbar-logo { width: 50px; height: 44px; font-size: 7px; line-height: 1.2; }
+  .topbar-title { font-size: 10px; padding-left: 12px; letter-spacing: 1px; }
+  .topbar-avatar { width: 28px; height: 28px; font-size: 11px; }
   .avatar-menu { min-width: 100px; margin-top: 4px; }
-  .avatar-menu-item { padding: 6px 10px; font-size: 6px; }
+  .avatar-menu-item { padding: 6px 10px; font-size: 8px; }
   
   .layout {
     flex-direction: column;
@@ -1344,7 +1344,7 @@ tbody td {
   .nav-item {
     display: flex; align-items: center; justify-content: center;
     gap: 4px; padding: 8px 6px; font-family: var(--pixel);
-    font-size: 7px; letter-spacing: 0.5px; color: var(--text-secondary);
+    font-size: 10px; letter-spacing: 0.5px; color: var(--text-secondary);
     cursor: pointer; transition: background 0.1s; border: none; background: none;
     flex: 1; min-width: 45px; text-align: center; flex-shrink: 0;
   }
@@ -1365,17 +1365,17 @@ tbody td {
   .action-card-top { gap: 10px; }
   .action-icon { width: 30px; height: 30px; }
   .action-icon svg { width: 20px; height: 20px; }
-  .action-title { font-size: 8px; }
-  .action-desc { font-size: 9px; }
-  .action-note { font-size: 8px; }
-  .action-btn { padding: 9px 11px; font-size: 7px; }
+  .action-title { font-size: 11px; }
+  .action-desc { font-size: 12px; }
+  .action-note { font-size: 11px; }
+  .action-btn { padding: 9px 11px; font-size: 10px; }
   .reports-stats { grid-template-columns: 1fr; }
   .welcome-meta { flex-direction: column; gap: 8px; align-items: flex-start; }
   
   /* Filter Bar Responsiveness */
   .filter-bar { padding: 10px 12px; gap: 8px; flex-wrap: wrap; box-shadow: 2px 2px 0px #000; }
-  .filter-label { font-size: 7px; margin-right: 2px; }
-  .filter-select { font-size: 6px; padding: 5px 24px 5px 8px; flex: 1; min-width: 110px; }
+  .filter-label { font-size: 10px; margin-right: 2px; }
+  .filter-select { font-size: 8px; padding: 5px 24px 5px 8px; flex: 1; min-width: 110px; }
   
   .individual-panel { padding: 14px; box-shadow: 2px 2px 0px #000; overflow-x: auto; }
   .individual-header { flex-direction: column; gap: 8px; margin-bottom: 12px; }
@@ -1387,83 +1387,83 @@ tbody td {
   
   .recent-activity-section { padding: 14px; box-shadow: 2px 2px 0px #000; }
   .activity-item { padding: 10px 12px; margin-bottom: 6px; }
-  .activity-date { font-size: 8px; margin-bottom: 2px; }
-  .activity-desc { font-size: 8px; }
+  .activity-date { font-size: 11px; margin-bottom: 2px; }
+  .activity-desc { font-size: 11px; }
   
   .export-bar { flex-direction: column; gap: 10px; }
-  .btn-export { width: 100%; justify-content: center; padding: 10px 14px; font-size: 7px; }
+  .btn-export { width: 100%; justify-content: center; padding: 10px 14px; font-size: 10px; }
   
-  .table-footer { font-size: 6px; margin-top: 10px; }
+  .table-footer { font-size: 8px; margin-top: 10px; }
 }
 
 /* Mobile Large - Medium (376px - 480px) */
 @media (min-width: 376px) and (max-width: 480px) {
   .topbar { height: 40px;}
-  .topbar-logo { width: 44px; height: 40px; font-size: 4px; }
-  .topbar-title { font-size: 5px; padding-left: 8px; }
-  .topbar-avatar { width: 24px; height: 24px; font-size: 6px; }
+  .topbar-logo { width: 44px; height: 40px; font-size: 5px; }
+  .topbar-title { font-size: 7px; padding-left: 8px; }
+  .topbar-avatar { width: 24px; height: 24px; font-size: 8px; }
   
   .sidebar { min-height: 48px; height: 48px; padding: 4px 2px; gap: 2px; }
   .sidebar-nav { gap: 2px; }
-  .nav-item { font-size: 5px; padding: 6px 3px; min-width: 40px; gap: 2px; }
+  .nav-item { font-size: 7px; padding: 6px 3px; min-width: 40px; gap: 2px; }
   .nav-item svg { width: 10px; height: 10px; }
   
   .main { padding: 12px 10px 64px; }
   
-  .page-header h1 { font-size: 10px; }
-  .welcome-greeting { font-size: 8px; }
-  .welcome-meta-item { font-size: 10px; }
-  .action-title { font-size: 8px; }
-  .action-desc { font-size: 9px; }
-  .action-note { font-size: 8px; }
-  .action-btn { font-size: 7px; padding: 9px 11px; }
-  .panel-title { font-size: 6px; }
-  .report-stat-val { font-size: 14px; }
-  .report-stat-label { font-size: 9px; }
+  .page-header h1 { font-size: 13px; }
+  .welcome-greeting { font-size: 11px; }
+  .welcome-meta-item { font-size: 13px; }
+  .action-title { font-size: 11px; }
+  .action-desc { font-size: 12px; }
+  .action-note { font-size: 11px; }
+  .action-btn { font-size: 10px; padding: 9px 11px; }
+  .panel-title { font-size: 8px; }
+  .report-stat-val { font-size: 17px; }
+  .report-stat-label { font-size: 12px; }
   
   table { width: 100%; table-layout: fixed; }
-  thead th { font-size: 6px; padding: 6px 3px; }
-  tbody td { font-size: 9px; padding: 6px 3px; word-break: break-word; white-space: normal; }
+  thead th { font-size: 8px; padding: 6px 3px; }
+  tbody td { font-size: 12px; padding: 6px 3px; word-break: break-word; white-space: normal; }
   
-  .skill-row-name { font-size: 10px; }
-  .skill-row-count { font-size: 9px; }
-  .mistake-text { font-size: 10px; }
-  .activity-teacher { font-size: 9px; }
-  .activity-desc { font-size: 8px; }
-  .btn-export { padding: 8px 10px; font-size: 6px; }
+  .skill-row-name { font-size: 13px; }
+  .skill-row-count { font-size: 12px; }
+  .mistake-text { font-size: 13px; }
+  .activity-teacher { font-size: 12px; }
+  .activity-desc { font-size: 11px; }
+  .btn-export { padding: 8px 10px; font-size: 8px; }
 }
 
 /* Mobile Medium (326px - 375px) */
 @media (min-width: 326px) and (max-width: 375px) {
   .topbar { height: 38px;}
-  .topbar-logo { width: 42px; height: 38px; font-size: 3px; }
-  .topbar-title { font-size: 4px; padding-left: 6px; }
-  .topbar-avatar { width: 22px; height: 22px; font-size: 5px; }
+  .topbar-logo { width: 42px; height: 38px; font-size: 4px; }
+  .topbar-title { font-size: 5px; padding-left: 6px; }
+  .topbar-avatar { width: 22px; height: 22px; font-size: 7px; }
   
   .sidebar { min-height: 46px; height: 46px; padding: 3px 2px; gap: 2px; }
-  .nav-item { font-size: 4px; padding: 5px 2px; min-width: 38px; gap: 1px; }
+  .nav-item { font-size: 5px; padding: 5px 2px; min-width: 38px; gap: 1px; }
   .nav-item svg { width: 9px; height: 9px; }
   .action-card { padding: 12px 10px; gap: 6px; }
-  .action-title { font-size: 7px; }
-  .action-desc { font-size: 8px; }
-  .action-note { font-size: 7px; }
+  .action-title { font-size: 10px; }
+  .action-desc { font-size: 11px; }
+  .action-note { font-size: 10px; }
 }
 
 /* Mobile Small (320px - 325px) */
 @media (max-width: 325px) {
   .sidebar { min-height: 44px; height: 44px; padding: 2px 1px; gap: 1px; }
   .sidebar-nav { gap: 0.5px; }
-  .nav-item { font-size: 4px; padding: 4px 1px; min-width: 35px; gap: 0.5px; }
+  .nav-item { font-size: 5px; padding: 4px 1px; min-width: 35px; gap: 0.5px; }
   .nav-item svg { width: 8px; height: 8px; }
   .topbar { height: 36px; }
-  .topbar-logo { width: 40px; height: 36px; font-size: 3px; }
+  .topbar-logo { width: 40px; height: 36px; font-size: 4px; }
   .action-card { padding: 10px 8px; gap: 5px; }
   .action-icon { width: 24px; height: 24px; }
   .action-icon svg { width: 16px; height: 16px; }
-  .action-title { font-size: 7px; }
-  .action-desc { font-size: 8px; }
-  .action-note { font-size: 7px; }
-  .action-btn { font-size: 6px; padding: 8px 10px; }
+  .action-title { font-size: 10px; }
+  .action-desc { font-size: 11px; }
+  .action-note { font-size: 10px; }
+  .action-btn { font-size: 8px; padding: 8px 10px; }
 }
 
 /* Hide long logo text for smaller mobile widths (<=760px) */
@@ -1488,7 +1488,7 @@ tbody td {
 .code-placeholder-text {
   text-align: center;
   font-family: 'Share Tech Mono', monospace;
-  font-size: 13px;
+  font-size: 16px;
   color: rgba(255,255,255,0.45);
   line-height: 1.8;
   letter-spacing: 0.5px;
@@ -1519,7 +1519,7 @@ tbody td {
   color: #fff;
   border: none;
   font-family: 'Press Start 2P', monospace;
-  font-size: 11px;
+  font-size: 14px;
   cursor: pointer;
   letter-spacing: 0.5px;
   transition: background 0.2s, opacity 0.2s;
@@ -1561,21 +1561,21 @@ tbody td {
 .home-stat-icon {
   width: 42px; height: 42px;
   display: flex; align-items: center; justify-content: center;
-  font-size: 20px;
+  font-size: 23px;
   background: var(--bg-panel2);
   flex-shrink: 0;
 }
 
 .home-stat-val {
   font-family: var(--pixel);
-  font-size: 18px;
+  font-size: 21px;
   color: var(--text-primary);
   margin-bottom: 4px;
 }
 
 .home-stat-label {
   font-family: var(--pixel);
-  font-size: 7px;
+  font-size: 10px;
   letter-spacing: 1px;
   color: var(--text-secondary);
 }
@@ -1599,7 +1599,7 @@ tbody td {
 }
 
 .leaderboard-sub {
-  font-size: 11px;
+  font-size: 14px;
   color: var(--text-muted);
 }
 
@@ -1626,9 +1626,9 @@ tbody td {
 .lb-podium-card.second { border-color: #B8BCC4; }
 .lb-podium-card.third  { border-color: #C97D3C; }
 
-.lb-podium-medal { font-size: 24px; line-height: 1; margin-bottom: 8px; }
+.lb-podium-medal { font-size: 27px; line-height: 1; margin-bottom: 8px; }
 .lb-podium-name {
-  font-size: 11px;
+  font-size: 14px;
   color: var(--text-primary);
   margin-bottom: 6px;
   white-space: nowrap;
@@ -1637,12 +1637,12 @@ tbody td {
 }
 .lb-podium-score {
   font-family: var(--pixel);
-  font-size: 12px;
+  font-size: 15px;
   color: var(--accent-green);
 }
 /* Secondary metric under the podium headline (whichever one isn't ranking) */
 .lb-podium-sub {
-  font-size: 10px;
+  font-size: 13px;
   color: var(--text-secondary);
   margin-top: 5px;
   font-variant-numeric: tabular-nums;
@@ -1665,7 +1665,7 @@ tbody td {
   color: #fff;
   display: flex; align-items: center; justify-content: center;
   font-family: var(--pixel);
-  font-size: 8px;
+  font-size: 11px;
   flex-shrink: 0;
 }
 .lb-rank.gold   { background: #E8B923; color: #1a1a1a; }
@@ -1674,7 +1674,7 @@ tbody td {
 
 .lb-main { flex: 1; min-width: 0; }
 .lb-name {
-  font-size: 12px;
+  font-size: 15px;
   color: var(--text-primary);
   white-space: nowrap;
   overflow: hidden;
@@ -1695,11 +1695,11 @@ tbody td {
   font-variant-numeric: tabular-nums;
 }
 
-.lb-score-val { font-size: 10px; color: var(--text-primary); }
-.lb-time-val  { font-size: 8px;  color: var(--text-secondary); }
+.lb-score-val { font-size: 13px; color: var(--text-primary); }
+.lb-time-val  { font-size: 11px;  color: var(--text-secondary); }
 
-.lb-score.lead-time .lb-score-val { font-size: 8px;  color: var(--text-secondary); }
-.lb-score.lead-time .lb-time-val  { font-size: 10px; color: var(--text-primary); }
+.lb-score.lead-time .lb-score-val { font-size: 11px;  color: var(--text-secondary); }
+.lb-score.lead-time .lb-time-val  { font-size: 13px; color: var(--text-primary); }
 
 @media (max-width: 768px) {
   .home-stats { grid-template-columns: repeat(2, 1fr); }
@@ -1710,8 +1710,8 @@ tbody td {
   /* Keep the two-value score box from squeezing the name column */
   .lb-row { gap: 8px; padding: 9px 10px; }
   .lb-score { min-width: 52px; padding: 4px 7px; }
-  .lb-score-val { font-size: 9px; }
-  .lb-time-val { font-size: 7px; }
-  .lb-score.lead-time .lb-score-val { font-size: 7px; }
-  .lb-score.lead-time .lb-time-val { font-size: 9px; }
+  .lb-score-val { font-size: 12px; }
+  .lb-time-val { font-size: 10px; }
+  .lb-score.lead-time .lb-score-val { font-size: 10px; }
+  .lb-score.lead-time .lb-time-val { font-size: 12px; }
 }

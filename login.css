@@ -675,3 +675,26 @@ body.admin-mode .icon-wrench {
   }
   .left-panel { width: min(500px, 92vw); height: auto; min-height: 0; }
 }
+
+/* ---- BACK TO GAME INFO LINK ----
+   Sits under the role toggle so the portal is never a dead end: anyone who
+   lands on the login screen can get back to the public game info page. Sized
+   with clamp() so it tracks the card across every breakpoint without needing
+   its own rule inside each media block. */
+.back-to-info {
+  margin-top: 18px;
+  font-family: var(--jersey);
+  font-size: clamp(16px, 1.6vw, 24px);
+  letter-spacing: 1px;
+  color: rgba(255, 255, 255, 0.9);
+  text-decoration: none;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.45);
+  padding-bottom: 2px;
+  transition: color 0.2s, border-color 0.2s, transform 0.2s;
+}
+
+.back-to-info:hover {
+  color: #fff;
+  border-color: #fff;
+  transform: translateY(-1px);
+}

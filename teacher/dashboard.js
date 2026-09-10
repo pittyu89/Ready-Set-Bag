@@ -262,24 +262,82 @@ function loadTeacherRecentActivity() {
           return;
         }
 
-        rows.forEach((entry) => {
+        const esc = (window.RSBAnalytics && window.RSBAnalytics.esc) || ((v) => v);
+
+        // Cached so "export these 5" doesn't have to re-query.
+        teacherRecentSessions = rows.map((entry) => ({
+          id: entry.id,
+          code: entry.data.sessionCode || '',
+          difficulty: entry.data.difficulty || ''
+        }));
+
+        container.innerHTML = rows.map((entry) => {
           const session = entry.data;
-          const date = session.createdAt ? new Date(session.createdAt.toDate()).toLocaleDateString('en-US', {month: 'short', day: 'numeric'}) : 'Unknown';
+          const dateSource = session.startedAt || session.updatedAt || session.createdAt;
+          const date = dateSource ? new Date(dateSource.toDate()).toLocaleDateString('en-US', {month: 'short', day: 'numeric'}) : 'Unknown';
           const difficulty = session.difficulty || 'Unknown';
           const playerCount = session.playersList ? session.playersList.length : 0;
-          const statusLabel = session.status === 'active' || session.startedAt ? 'Started' : 'Created';
+          const started = session.status === 'active' || !!session.startedAt;
+          const statusLabel = started ? 'Started' : 'Created';
+          const meta = teacherSection || 'Unknown section';
 
-          const activityDiv = document.createElement('div');
-          activityDiv.className = 'activity-item';
-          activityDiv.innerHTML = `
-            <div class="activity-date">${date}</div>
-            <div class="activity-teacher">${statusLabel} ${difficulty.charAt(0).toUpperCase() + difficulty.slice(1)} Session</div>
-            <div class="activity-desc">Section: ${teacherSection || 'Unknown'}<br>Session Code: ${session.sessionCode}<br>${playerCount} students</div>
-          `;
-          container.appendChild(activityDiv);
-        });
+          return `<div class="session-card${started ? '' : ' is-created'}">
+            <div class="session-card-date">\u25cf ${esc(date)}</div>
+            <div class="session-card-who">${esc(meta)}</div>
+            <div class="session-card-title">${statusLabel} ${esc(difficulty.charAt(0).toUpperCase() + difficulty.slice(1))} Session</div>
+            <div class="session-card-meta">Code: <b>${esc(session.sessionCode || '')}</b> (${playerCount} student${playerCount === 1 ? '' : 's'})</div>
+            <div class="session-card-actions">
+              <button class="session-link" onclick="viewTeacherSessionReport('${jsArg(entry.id)}','${jsArg(session.sessionCode || '')}','${jsArg(difficulty)}','${jsArg(meta)}')">\u25a4 Click to view report for this session</button>
+              <button class="session-export" onclick="exportSingleTeacherSessionCsv('${jsArg(entry.id)}','${jsArg(session.sessionCode || '')}')">\u2b07 EXPORT CSV</button>
+            </div>
+          </div>`;
+        }).join('');
       });
   })();
+}
+
+/* ---- SESSION-SCOPED REPORTS ----
+   Clicking a session card narrows the whole reports page to that one drill
+   run. Scope is kept separate from the level dropdown so both still apply. */
+let teacherSessionScope = null;
+let teacherRecentSessions = [];
+
+// Values interpolated into an inline onclick are parsed as HTML *then* as JS,
+// so HTML-escaping alone is not enough: "&#39;" decodes back to a real quote
+// and closes the string literal early. Escape for JS first, then for HTML.
+function jsArg(value) {
+  const esc = (window.RSBAnalytics && window.RSBAnalytics.esc) || ((v) => String(v));
+  return esc(String(value == null ? '' : value).replace(/\\/g, '\\\\').replace(/'/g, "\\'"));
+}
+
+
+function viewTeacherSessionReport(sessionId, code, difficulty, meta) {
+  teacherSessionScope = { sessionId: sessionId, code: code || '', meta: meta || '' };
+  const level = document.getElementById('tr-level-filter');
+  // A session runs at one difficulty; matching the filter to it avoids an
+  // empty report when the session isn't the level currently selected.
+  if (level && difficulty && window.RSBAnalytics &&
+      window.RSBAnalytics.KNOWN_LEVELS.indexOf(String(difficulty).toLowerCase()) !== -1) {
+    level.value = String(difficulty).toLowerCase();
+  }
+  syncTeacherSessionScopeBanner();
+  renderTeacherReports();
+  document.querySelector('.main')?.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function clearTeacherSessionScope() {
+  teacherSessionScope = null;
+  syncTeacherSessionScopeBanner();
+  renderTeacherReports();
+}
+
+function syncTeacherSessionScopeBanner() {
+  const bar = document.getElementById('teacher-session-scope');
+  if (!bar) return;
+  if (!teacherSessionScope) { bar.style.display = 'none'; return; }
+  bar.style.display = '';
+  setTeacherText('teacher-session-scope-code', teacherSessionScope.code || teacherSessionScope.sessionId);
+  setTeacherText('teacher-session-scope-meta', teacherSessionScope.meta || '');
 }
 
 /* ============================================================================
@@ -315,7 +373,10 @@ function loadTeacherReports() {
 }
 
 function getTeacherFilters() {
-  return { difficulty: (document.getElementById('tr-level-filter')?.value) || '' };
+  return {
+    difficulty: (document.getElementById('tr-level-filter')?.value) || '',
+    sessionId: teacherSessionScope ? teacherSessionScope.sessionId : ''
+  };
 }
 
 function renderTeacherReports() {
@@ -340,6 +401,90 @@ function renderTeacherReports() {
 
   renderTeacherLeaderboard();
   renderTeacherIndividualResults();
+  renderTeacherCharts(filters);
+}
+
+/* ---- REPORT CHARTS ----
+   Drawn by dashboard-charts.js (hand-rolled HTML/SVG — no charting library in
+   this project on purpose) and fed entirely from RSBAnalytics, so no chart can
+   disagree with the stat card above it. */
+function renderTeacherCharts(filters) {
+  const A = window.RSBAnalytics;
+  const C = window.RSBCharts;
+  if (!A || !C) return;
+
+  // 1. Proficiency tiers for the class.
+  const tiers = A.readinessTiers(teacherResultsCache, filters);
+  setTeacherText('tr-chart-proficiency-tag', tiers.evaluated + ' EVALUATED');
+  C.donut('tr-chart-proficiency', {
+    segments: [
+      { label: 'Mastered (90-100%)', value: tiers.mastered, color: 'var(--chart-good)' },
+      { label: 'Proficient (70-89%)', value: tiers.proficient, color: 'var(--chart-warn)' },
+      { label: 'Needs Support (<70%)', value: tiers.needsSupport, color: 'var(--chart-bad)' }
+    ],
+    centerValue: tiers.onTrackPct + '%',
+    centerLabel: 'On Track',
+    emptyText: 'NO STUDENTS EVALUATED YET'
+  });
+
+  // 2. Speed vs score. Fast-and-wrong looks very different from slow-and-right,
+  // and a table of two numbers per student hides that completely.
+  const points = A.scoreTimePoints(teacherResultsCache, filters);
+  const maxTime = Math.max(60, ...points.map(p => p.time));
+  const tierColor = {
+    mastered: 'var(--chart-good)',
+    proficient: 'var(--chart-warn)',
+    needsSupport: 'var(--chart-bad)'
+  };
+  C.scatter('tr-chart-matrix', {
+    points: points.map(p => ({
+      x: p.time,
+      y: p.score,
+      color: tierColor[p.tier],
+      label: `${p.studentName} — ${p.score} pts in ${A.formatTime(p.time)}`
+    })),
+    xMax: Math.ceil(maxTime / 30) * 30,
+    yMax: 100,
+    xTicks: [0, Math.round(maxTime / 2), Math.ceil(maxTime / 30) * 30],
+    yTicks: [0, 25, 50, 75, 100],
+    xAxisLabel: 'Drill time (seconds)  \u2192   score on the vertical axis',
+    legend: [
+      { label: 'Ready', color: 'var(--chart-good)' },
+      { label: 'Getting there', color: 'var(--chart-warn)' },
+      { label: 'Needs support', color: 'var(--chart-bad)' }
+    ],
+    emptyText: 'NO TIMED RUNS YET'
+  });
+
+  // 3. Packing accuracy — the go-bag step on its own, separate from the quiz
+  // score, so a class that packs badly but guesses well is still visible.
+  const packing = A.packingAccuracy(teacherResultsCache, filters);
+  setTeacherText('tr-chart-packing-tag', packing.avgAccuracyPct + '% AVG ACCURACY');
+  const maxBucket = Math.max(1, packing.high, packing.moderate, packing.low);
+  C.hBars('tr-chart-packing', {
+    rows: [
+      { label: 'High (90-100%)', pct: (packing.high / maxBucket) * 100, display: packing.high, color: 'var(--chart-good)' },
+      { label: 'Moderate (70-89%)', pct: (packing.moderate / maxBucket) * 100, display: packing.moderate, color: 'var(--chart-warn)' },
+      { label: 'Low (<70%)', pct: (packing.low / maxBucket) * 100, display: packing.low, color: 'var(--chart-bad)' }
+    ],
+    labelWidth: 136,
+    emptyText: 'NO PACKING DATA YET'
+  });
+  setTeacherText('tr-avg-essentials', packing.runs ? `${packing.avgEssentials}/${packing.avgEssentialsMax}` : '—');
+  setTeacherText('tr-avg-errors', packing.runs ? packing.avgErrors : '—');
+
+  // 4. Trend across drill days. Each series is scaled by its own max, so score
+  // and time share a plot: what is comparable is the SHAPE, not the height.
+  const trend = A.progressionOverTime(teacherResultsCache, filters, 12);
+  C.lines('tr-chart-progression', {
+    labels: trend.map(t => t.label),
+    series: [
+      { name: 'Avg score (%)', color: 'var(--chart-good)', values: trend.map(t => t.avgScore), max: 100 },
+      { name: 'Avg time (s)', color: 'var(--chart-neutral)', values: trend.map(t => t.avgTime), dashed: true,
+        format: (v) => A.formatTime(v) }
+    ],
+    emptyText: 'NEEDS AT LEAST ONE DRILL DAY'
+  });
 }
 
 function renderTeacherLeaderboard() {
@@ -349,46 +494,35 @@ function renderTeacherLeaderboard() {
   const timeLed = mode === 'time';
   const board = A.leaderboard(teacherResultsCache, getTeacherFilters(), mode);
   const podium = document.getElementById('lb-podium');
-  const list = document.getElementById('leaderboard-list');
-  if (!list) return;
+  const emptyMsg = document.getElementById('lb-empty');
+  if (!podium) return;
 
   if (!board.length) {
-    if (podium) podium.innerHTML = '';
-    list.innerHTML = '<div class="lb-empty" style="color:var(--text-muted);text-align:center;padding:18px;">No results yet — run a session to populate the leaderboard.</div>';
+    podium.innerHTML = '';
+    if (emptyMsg) {
+      emptyMsg.style.display = '';
+      emptyMsg.textContent = 'No results yet — run a session to populate the leaderboard.';
+    }
     return;
   }
+  if (emptyMsg) emptyMsg.style.display = 'none';
 
-  // Podium (top 3), displayed 2nd–1st–3rd for the classic podium feel
+  // Top 3 only, displayed 2nd–1st–3rd for the classic podium feel. The full
+  // ranked list was removed per the revision board — publicly ranking a whole
+  // class from best to worst is not what this panel is for, and every student's
+  // own numbers are still in Individual Results below.
   const medals = ['🥇', '🥈', '🥉'];
   const cls = ['first', 'second', 'third'];
-  if (podium) {
-    const top = board.slice(0, 3);
-    const disp = [top[1], top[0], top[2]].filter(Boolean);
-    podium.innerHTML = disp.map((s) => {
-      const i = s.rank - 1;
-      // Headline value follows whatever the board is ranked by.
-      return `<div class="lb-podium-card ${cls[i] || ''}">
-        <div class="lb-podium-medal">${medals[i] || '🏅'}</div>
-        <div class="lb-podium-name">${A.esc(s.studentName)}</div>
-        <div class="lb-podium-score">${timeLed ? A.formatTime(s.bestTime) : s.bestScore}</div>
-        <div class="lb-podium-sub">${timeLed ? s.bestScore + ' PTS' : A.formatTime(s.bestTime)}</div>
-      </div>`;
-    }).join('');
-  }
-
-  // Full ranked list. Both numbers always show, so the ranking is legible in
-  // either mode without needing a bar to fill in the gap.
-  list.innerHTML = board.map((s) => {
-    const rc = s.rank === 1 ? 'gold' : s.rank === 2 ? 'silver' : s.rank === 3 ? 'bronze' : '';
-    return `<div class="lb-row">
-      <div class="lb-rank ${rc}">${s.rank}</div>
-      <div class="lb-main">
-        <div class="lb-name">${A.esc(s.studentName)}</div>
-      </div>
-      <div class="lb-score${timeLed ? ' lead-time' : ''}">
-        <span class="lb-score-val">${s.bestScore}</span>
-        <span class="lb-time-val">${A.formatTime(s.bestTime)}</span>
-      </div>
+  const top = board.slice(0, 3);
+  const disp = [top[1], top[0], top[2]].filter(Boolean);
+  podium.innerHTML = disp.map((s) => {
+    const i = s.rank - 1;
+    // Headline value follows whatever the board is ranked by.
+    return `<div class="lb-podium-card ${cls[i] || ''}">
+      <div class="lb-podium-medal">${medals[i] || '🏅'}</div>
+      <div class="lb-podium-name">${A.esc(s.studentName)}</div>
+      <div class="lb-podium-score">${timeLed ? A.formatTime(s.bestTime) : s.bestScore}</div>
+      <div class="lb-podium-sub">${timeLed ? s.bestScore + ' PTS' : A.formatTime(s.bestTime)}</div>
     </div>`;
   }).join('');
 }
@@ -402,16 +536,18 @@ function renderTeacherIndividualResults() {
   if (!tbody) return;
 
   if (!rows.length) {
-    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:18px;">No results yet</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;color:var(--text-muted);padding:18px;">No results yet</td></tr>';
     if (footer) footer.textContent = '';
     return;
   }
+  // Skill tier / attempts / mistakes were dropped from this table per the
+  // revision board: they are diagnostic detail that belongs in the charts and
+  // the CSV export, not in the at-a-glance class roster.
   tbody.innerHTML = rows.map((r) => {
     return `<tr>
       <td>${A.esc(r.studentName)}</td>
       <td>${r.bestScore}</td>
       <td class="td-time">${A.formatTime(r.bestTime)}</td>
-      <td class="td-stage">${A.stageLabel(r.stage)}</td>
     </tr>`;
   }).join('');
   if (footer) footer.innerHTML = teacherFooterText(rows.length);
@@ -518,14 +654,107 @@ async function exportTeacherSessionResultsCsv() {
     console.error('Export teacher CSV failed', err);
     showToast('Error exporting CSV: ' + err.message, 'error');
   }
+}
 
-  // After Firebase initializes, if the restored page is REPORTS, load recent activity
-  if (window.firebaseInitPromise) {
-    window.firebaseInitPromise.then(() => {
-      try {
-        const isReports = document.getElementById('page-reports')?.classList.contains('active');
-        if (isReports) loadTeacherRecentActivity();
-      } catch (e) { console.warn('post-init teacher restore', e); }
-    });
+// After Firebase initializes, if the restored page is REPORTS, load recent
+// activity. This used to sit at the bottom of exportTeacherSessionResultsCsv(),
+// where it only ran if the teacher happened to click Export.
+if (window.firebaseInitPromise) {
+  window.firebaseInitPromise.then(() => {
+    try {
+      const isReports = document.getElementById('page-reports')?.classList.contains('active');
+      if (isReports) loadTeacherRecentActivity();
+    } catch (e) { console.warn('post-init teacher restore', e); }
+  });
+}
+
+/* ============================================================================
+   SESSION EXPORTS + PRINTABLE REPORT
+   ============================================================================ */
+const TEACHER_RESULT_CSV_HEADER = ['id','sessionId','sessionCode','teacherId','studentId','studentName','section','score','completionTime','attempts','stage','essentials','essentialsMax','errors','difficulty','createdAt','updatedAt'].join(',');
+
+function teacherResultCsvRow(doc) {
+  const r = doc.data();
+  return [
+    formatCsvValue(doc.id),
+    formatCsvValue(r.sessionId || ''),
+    formatCsvValue(r.sessionCode || ''),
+    formatCsvValue(r.teacherId || teacherId || ''),
+    formatCsvValue(r.studentId || ''),
+    formatCsvValue(r.studentName || ''),
+    formatCsvValue(r.section || teacherSection || ''),
+    formatCsvValue(r.score || 0),
+    formatCsvValue(r.completionTime || 0),
+    formatCsvValue(r.attempts || 0),
+    formatCsvValue(r.stage || ''),
+    formatCsvValue(r.essentials || 0),
+    formatCsvValue(r.essentialsMax || 0),
+    formatCsvValue(r.errors || 0),
+    formatCsvValue(r.difficulty || ''),
+    formatCsvValue(formatDateValue(r.createdAt)),
+    formatCsvValue(formatDateValue(r.updatedAt))
+  ].join(',');
+}
+
+// One session's results. Keyed on sessionId rather than sessionCode because
+// codes are short and get reused across terms.
+async function exportSingleTeacherSessionCsv(sessionId, sessionCode) {
+  if (!window.db) { showToast('Firebase not initialized.', 'error'); return; }
+  try {
+    const snap = await window.db.collection('sessionResults').where('sessionId', '==', sessionId).get();
+    if (snap.empty) { showToast('No results recorded for this session yet.', 'error'); return; }
+    const rows = [TEACHER_RESULT_CSV_HEADER];
+    snap.forEach(doc => rows.push(teacherResultCsvRow(doc)));
+    downloadCsv(`session-${(sessionCode || sessionId)}-results.csv`, rows.join('\n'));
+    showToast('Session CSV exported.');
+  } catch (err) {
+    console.error('Export session CSV failed', err);
+    showToast('Error exporting session: ' + err.message, 'error');
   }
+}
+
+// The five sessions currently listed in Recent Activity, in one file — the
+// panel's answer to its own archive warning.
+async function exportRecentTeacherSessionsCsv() {
+  if (!window.db) { showToast('Firebase not initialized.', 'error'); return; }
+  const ids = teacherRecentSessions.map(s => s.id).filter(Boolean);
+  if (!ids.length) { showToast('No recent sessions to export yet.', 'error'); return; }
+  try {
+    // Firestore caps an 'in' query at 10 values; this list is capped at 5.
+    const snap = await window.db.collection('sessionResults').where('sessionId', 'in', ids).get();
+    if (snap.empty) { showToast('No results recorded for these sessions yet.', 'error'); return; }
+    const rows = [TEACHER_RESULT_CSV_HEADER];
+    snap.forEach(doc => rows.push(teacherResultCsvRow(doc)));
+    downloadCsv('recent-5-sessions-results.csv', rows.join('\n'));
+    showToast('Recent sessions CSV exported.');
+  } catch (err) {
+    console.error('Export recent sessions CSV failed', err);
+    showToast('Error exporting sessions: ' + err.message, 'error');
+  }
+}
+
+// Stamps the print letterhead with what is actually on screen, so a saved PDF
+// says whose class it covers and at which level.
+function printTeacherReport() {
+  const teacher = sessionStorage.getItem('username') || 'Teacher';
+  const filters = getTeacherFilters();
+  const scope = [
+    teacherSection || 'Class',
+    filters.difficulty ? filters.difficulty.charAt(0).toUpperCase() + filters.difficulty.slice(1) + ' level' : '',
+    teacherSessionScope ? 'Session ' + (teacherSessionScope.code || teacherSessionScope.sessionId) : ''
+  ].filter(Boolean).join('  \u00b7  ');
+  const generated = new Date().toLocaleString('en-US', {
+    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+    hour: 'numeric', minute: '2-digit'
+  });
+  setTeacherText('teacher-print-class', `Caruhatan East Elementary School  \u00b7  ${teacherSection || ''}`);
+  setTeacherText('teacher-print-meta', `Teacher: ${teacher}     Scope: ${scope}     Generated: ${generated}`);
+  // The archive panel lives on HOME but printing prints the ACTIVE page, so
+  // make sure the reports page is the one on screen before the dialog opens.
+  const reportsPage = document.getElementById('page-reports');
+  if (reportsPage && !reportsPage.classList.contains('active')) {
+    navigate('reports', document.querySelectorAll('.nav-item')[2]);
+  }
+  // Let the DOM paint the stamped header before the print dialog freezes it.
+  setTimeout(() => window.print(), 120);
 }

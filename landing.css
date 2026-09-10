@@ -116,6 +116,7 @@
                 visibility 0s linear 0s;
   }
   .nav-links.open .nav-tab:nth-child(2) { transition-delay: 0.08s; }
+  .nav-links.open .nav-tab:nth-child(3) { transition-delay: 0.16s; }
 
   /* gameplay + items: animate when nav-bottom-row gets .open */
   .nav-bottom-row.open .nav-tab {
@@ -132,6 +133,20 @@
   .nav-tab[data-section="about"]    { color: #59AB3C; }
   .nav-tab[data-section="gameplay"] { color: #CB4848; }
   .nav-tab[data-section="items"]    { color: #E6C84D; }
+
+  /* Four tabs now share the top row, so let it wrap instead of running off
+     the side of a narrow screen. */
+  .nav { max-width: calc(100vw - 24px); }
+  .nav-top-row,
+  .nav-links,
+  .nav-bottom-row { flex-wrap: wrap; }
+
+  /* "portal login" is an anchor, not a button: strip link styling so it reads
+     exactly like the other tabs. */
+  .nav-tab-portal {
+    color: #CB4848;
+    text-decoration: none;
+  }
 
   /* MOBILE: nav anchored bottom-left (320px - 425px)
      Visual layout (open):
