@@ -54,7 +54,8 @@
 
 .chart-title {
   font-family: var(--pixel);
-  font-size: 11px;
+  font-weight: 600;
+  font-size: 13px;
   line-height: 1.5;
   letter-spacing: 1px;
   color: var(--text-primary);
@@ -75,7 +76,8 @@
 
 .chart-tag {
   font-family: var(--pixel);
-  font-size: 9px;
+  font-weight: 600;
+  font-size: 11px;
   letter-spacing: 1px;
   color: var(--text-secondary);
   border: 2px solid #4D4D4D;
@@ -93,7 +95,8 @@
 
 .chart-empty {
   font-family: var(--pixel);
-  font-size: 10px;
+  font-weight: 600;
+  font-size: 12px;
   letter-spacing: 1px;
   color: var(--text-muted);
   text-align: center;
@@ -149,7 +152,8 @@
 .chart-legend-val {
   margin-left: auto;
   font-family: var(--pixel);
-  font-size: 10px;
+  font-weight: 600;
+  font-size: 12px;
   color: var(--text-primary);
 }
 
@@ -197,7 +201,8 @@
 
 .hbar-value {
   font-family: var(--pixel);
-  font-size: 10px;
+  font-weight: 600;
+  font-size: 12px;
   color: var(--text-primary);
   text-align: right;
 }
@@ -220,7 +225,8 @@
   top: -3px;
   left: 5px;
   font-family: var(--pixel);
-  font-size: 8px;
+  font-weight: 600;
+  font-size: 10px;
   letter-spacing: 1px;
   color: var(--chart-bad);
   white-space: nowrap;
@@ -259,6 +265,7 @@
 
 .donut-center-val {
   font-family: var(--pixel);
+  font-weight: 600;
   font-size: 17px;
   color: var(--text-primary);
 }
@@ -316,14 +323,16 @@
   left: 50%;
   transform: translateX(-50%);
   font-family: var(--pixel);
-  font-size: 9px;
+  font-weight: 600;
+  font-size: 11px;
   color: var(--text-primary);
   white-space: nowrap;
 }
 
 .vbar-label {
   font-family: var(--pixel);
-  font-size: 9px;
+  font-weight: 600;
+  font-size: 11px;
   letter-spacing: 1px;
   color: var(--text-primary);
   margin-top: 10px;
@@ -354,6 +363,7 @@
 
 .chart-metric-val {
   font-family: var(--pixel);
+  font-weight: 600;
   font-size: 15px;
   color: var(--text-primary);
 }
@@ -397,7 +407,8 @@
 .archive-reminder strong {
   color: var(--chart-warn);
   font-family: var(--pixel);
-  font-size: 9px;
+  font-weight: 600;
+  font-size: 11px;
   letter-spacing: 1px;
 }
 
@@ -423,7 +434,8 @@
 
 .session-card-date {
   font-family: var(--pixel);
-  font-size: 10px;
+  font-weight: 600;
+  font-size: 12px;
   letter-spacing: 1px;
   color: var(--chart-good);
   margin-bottom: 6px;
@@ -480,7 +492,8 @@
   border: 2px solid var(--chart-good);
   color: var(--chart-good);
   font-family: var(--pixel);
-  font-size: 8px;
+  font-weight: 600;
+  font-size: 10px;
   letter-spacing: 1px;
   padding: 6px 9px;
   cursor: pointer;
@@ -494,7 +507,8 @@
   box-shadow: 2px 2px 0 #000;
   color: #fff;
   font-family: var(--pixel);
-  font-size: 9px;
+  font-weight: 600;
+  font-size: 11px;
   letter-spacing: 1px;
   padding: 8px 10px;
   cursor: pointer;
@@ -521,7 +535,8 @@
 
 .session-scope-code {
   font-family: var(--pixel);
-  font-size: 11px;
+  font-weight: 600;
+  font-size: 13px;
   letter-spacing: 1px;
   color: #111;
   background: var(--chart-good);
@@ -534,7 +549,8 @@
   border: 2px solid var(--text-secondary);
   color: var(--text-secondary);
   font-family: var(--pixel);
-  font-size: 8px;
+  font-weight: 600;
+  font-size: 10px;
   letter-spacing: 1px;
   padding: 6px 9px;
   cursor: pointer;
@@ -575,7 +591,8 @@
 
 .archive-title {
   font-family: var(--pixel);
-  font-size: 12px;
+  font-weight: 600;
+  font-size: 14px;
   letter-spacing: 1px;
   line-height: 1.5;
   color: var(--text-primary);
@@ -592,7 +609,8 @@
   margin-left: auto;
   flex-shrink: 0;
   font-family: var(--pixel);
-  font-size: 9px;
+  font-weight: 600;
+  font-size: 11px;
   letter-spacing: 1px;
   color: var(--chart-neutral);
   border: 2px solid var(--chart-neutral);
@@ -618,7 +636,8 @@
 .archive-kind {
   align-self: flex-start;
   font-family: var(--pixel);
-  font-size: 8px;
+  font-weight: 600;
+  font-size: 10px;
   letter-spacing: 1px;
   padding: 5px 7px;
   margin-bottom: 10px;
@@ -651,7 +670,8 @@
   box-shadow: 3px 3px 0 #000;
   color: #fff;
   font-family: var(--pixel);
-  font-size: 10px;
+  font-weight: 600;
+  font-size: 12px;
   letter-spacing: 1px;
   padding: 12px 10px;
   cursor: pointer;

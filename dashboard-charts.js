@@ -127,9 +127,12 @@
     function draw() {
       if (!total) return empty(host, opts.emptyText);
       var size = Math.max(120, Math.min(180, width(host, 180) - 8));
-      var r = size / 2 - 10;
       var cx = size / 2, cy = size / 2;
       var stroke = Math.max(16, Math.round(size * 0.16));
+      // The stroke straddles the radius, so half of it sits OUTSIDE r. Derive
+      // r from the stroke rather than a fixed inset, or the ring's outer edge
+      // runs past the viewBox and the sides of the donut are clipped off.
+      var r = size / 2 - stroke / 2 - 1;
       var circumference = 2 * Math.PI * r;
       var offset = 0;
 
