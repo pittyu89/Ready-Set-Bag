@@ -41,7 +41,7 @@
   <div class="topbar-center">
     <div class="topbar-title" id="topbar-title">TEACHER DASHBOARD</div>
     <div class="avatar-dropdown">
-      <button class="topbar-avatar" id="teacher-avatar" onclick="toggleAvatarMenu()">MS</button>
+      <button class="topbar-avatar" id="teacher-avatar" onclick="toggleAvatarMenu()"></button>
       <div class="avatar-menu" id="avatar-menu">
         <button onclick="logout()" class="avatar-menu-item">LOGOUT</button>
       </div>
@@ -53,8 +53,8 @@
   <div class="sidebar">
     <div class="sidebar-user">
       <div class="label">TEACHER:</div>
-      <div class="name">MARIA SANTOS</div>
-      <div class="section-tag">Grade 6 – Sampaguita</div>
+      <div class="name"></div>
+      <div class="section-tag"></div>
     </div>
     <nav class="sidebar-nav">
       <button class="nav-item" onclick="navigate('home', this)">
@@ -111,15 +111,15 @@
 
       <div class="welcome-card">
         <div class="welcome-left">
-          <div class="welcome-greeting">👋 WELCOME BACK, TEACHER MARIA SANTOS!</div>
+          <div class="welcome-greeting">👋 WELCOME BACK!</div>
           <div class="welcome-meta">
-            <div class="welcome-meta-item">🏫 Grade 6 – Sampaguita</div>
-            <div class="welcome-meta-item">👥 <span id="welcome-student-count">0 students</span></div>
+            <div class="welcome-meta-item" id="welcome-section">🏫 —</div>
+            <div class="welcome-meta-item">👥 <span id="welcome-student-count">— students</span></div>
           </div>
         </div>
         <div class="welcome-status">
           <div class="status-dot"></div>
-          ACTIVE
+          <span id="welcome-status-text">ACTIVE</span>
         </div>
       </div>
 
@@ -246,7 +246,7 @@
             <div class="diff-body">
               <div class="diff-name">
                 ⚡ Intermediate
-                <span class="diff-badge">4.5kg limit • 8 minutes</span>
+                <span class="diff-badge">5kg limit • 8 minutes</span>
               </div>
               <div class="diff-desc">For students who completed Beginner</div>
             </div>
@@ -257,7 +257,7 @@
             <div class="diff-body">
               <div class="diff-name">
                 🎯 Advanced
-                <span class="diff-badge">4kg limit • 6 minutes</span>
+                <span class="diff-badge">5kg limit • 6 minutes</span>
               </div>
               <div class="diff-desc">For experienced students only</div>
             </div>
@@ -321,7 +321,7 @@
             <div class="setup-step-title">STUDENTS JOINED</div>
           </div>
           <div class="joined-header">
-            <div class="joined-count"><span id="joined-count">0</span><span>/40</span></div>
+            <div class="joined-count"><span id="joined-count">0</span><span id="joined-max">/—</span></div>
           </div>
           <div class="joined-bar-track">
             <div class="joined-bar-fill" id="joined-bar" style="width:0%"></div>
@@ -362,7 +362,7 @@
 
       <div class="filter-bar">
         <span class="filter-label">FILTER:</span>
-        <select class="filter-select" id="tr-level-filter" onchange="renderTeacherReports()">
+        <select class="filter-select" id="tr-level-filter" onchange="levelFilterChosen = true; renderTeacherReports()">
           <option value="beginner" selected>Beginner</option>
           <option value="intermediate">Intermediate</option>
           <option value="advanced">Advanced</option>

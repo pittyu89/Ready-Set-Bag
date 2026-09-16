@@ -50,26 +50,15 @@ window.addEventListener('load', () => {
     try { document.documentElement.classList.remove('js-restoring'); document.documentElement.removeAttribute('data-teacher-initial'); } catch (_) {}
   }
 
-  const username = sessionStorage.getItem('username');
-  const section = sessionStorage.getItem('teacherSection');
-  
-  if (username && section) {
-    // Update sidebar-user
-    document.querySelector('.sidebar-user .name').textContent = username.toUpperCase();
-    document.querySelector('.sidebar-user .section-tag').textContent = section;
-
-    // Update welcome-card
-    document.querySelector('.welcome-greeting').textContent = `👋 WELCOME BACK, TEACHER ${username.toUpperCase()}!`;
-    document.querySelectorAll('.welcome-meta-item')[0].textContent = `🏫 ${section}`;
-
-    // Topbar avatar initials (was hardcoded "MS")
-    const initials = username.trim().split(/\s+/).map(w => w[0] || '').slice(0, 2).join('').toUpperCase();
-    const avatar = document.getElementById('teacher-avatar');
-    if (avatar && initials) avatar.textContent = initials;
-  }
-
   teacherId = sessionStorage.getItem('teacherId');
-  teacherSection = section;
+  teacherSection = sessionStorage.getItem('teacherSection');
+
+  // Show what login saved straight away; the live profile listener replaces it once loaded
+  renderTeacherProfile({
+    name: sessionStorage.getItem('username') || '',
+    section: teacherSection || '',
+    status: 'active'
+  });
 
   // Every read is checked against the signed-in teacher: with no Firebase session there is
   // nothing to show, so go back to the login page
@@ -82,7 +71,10 @@ window.addEventListener('load', () => {
     });
   }
 
-  // Load student count for this teacher
+  // Live teacher profile (name, section, status)
+  loadTeacherProfile();
+
+  // Live class roster: student count, class size for joins, and the reports' roster
   loadTeacherStudentCount();
 
   // Load analytics for Home quick-stats + Reports (metrics, leaderboard, results)
@@ -123,9 +115,59 @@ function showTeacherOfflineFallback() {
   } catch (e) { console.warn('showTeacherOfflineFallback failed', e); }
 }
 
-// ---- LOAD STUDENT COUNT (REAL-TIME) ----
+// ---- TEACHER PROFILE (REAL-TIME) ----
+// Name, section and status come from the teacher's own Firestore profile, so an admin's
+// edits show up without the teacher having to log in again.
+function renderTeacherProfile(profile) {
+  const name = (profile.name || '').trim();
+  const section = profile.section || '';
+  const active = profile.status !== 'inactive';
+
+  const nameEl = document.querySelector('.sidebar-user .name');
+  if (nameEl) nameEl.textContent = name.toUpperCase();
+  const sectionEl = document.querySelector('.sidebar-user .section-tag');
+  if (sectionEl) sectionEl.textContent = section;
+
+  const greeting = document.querySelector('.welcome-greeting');
+  if (greeting) greeting.textContent = name ? `👋 WELCOME BACK, TEACHER ${name.toUpperCase()}!` : '👋 WELCOME BACK!';
+  setTeacherText('welcome-section', section ? `🏫 ${section}` : '🏫 —');
+  setTeacherText('welcome-status-text', active ? 'ACTIVE' : 'INACTIVE');
+
+  const avatar = document.getElementById('teacher-avatar');
+  if (avatar) avatar.textContent = name.split(/\s+/).map(w => w[0] || '').slice(0, 2).join('').toUpperCase();
+}
+
+function loadTeacherProfile() {
+  (async () => {
+    if (window.authReadyPromise) await window.authReadyPromise;
+    if (!teacherId || !window.db) return;
+
+    window.db.collection('teachers').doc(teacherId).onSnapshot((doc) => {
+      if (!doc.exists) return;
+      const t = doc.data();
+      const name = `${t.firstName || ''} ${t.lastName || ''}`.trim();
+
+      teacherSection = t.section || '';
+      try {
+        sessionStorage.setItem('username', name);
+        sessionStorage.setItem('teacherSection', teacherSection);
+      } catch (e) { /* ignore */ }
+
+      renderTeacherProfile({ name: name, section: teacherSection, status: t.status });
+
+      // Deactivated by an admin while signed in: same outcome as trying to log in
+      if (t.status === 'inactive') {
+        alert('This teacher account is inactive. Please contact your administrator.');
+        logout();
+      }
+    }, (err) => console.warn('teacher profile listener error', err));
+  })();
+}
+
+// ---- CLASS ROSTER (REAL-TIME) ----
+// One live listener feeds the welcome count, the class size shown when students join a
+// session, and the roster the reports use for completion rate.
 function loadTeacherStudentCount() {
-  // Ensure Firebase is initialized before attaching listener
   (async () => {
     // Reads are checked against the signed-in teacher, so wait for Auth, not just the SDK
     if (window.authReadyPromise) {
@@ -138,14 +180,16 @@ function loadTeacherStudentCount() {
       return;
     }
 
-    // Listen to students collection for this teacher
     window.db.collection('students').where('teacherId', '==', teacherId).onSnapshot((snapshot) => {
       const count = snapshot.size;
-      const element = document.getElementById('welcome-student-count');
-      if (element) {
-        element.textContent = `${count} student${count !== 1 ? 's' : ''}`;
-      }
-    });
+      setTeacherText('welcome-student-count', `${count} student${count !== 1 ? 's' : ''}`);
+
+      window.teacherClassSize = count;
+      if (typeof updateJoinedDisplay === 'function') updateJoinedDisplay();
+
+      teacherStudentsCache = snapshot.docs.map(d => d.data());
+      renderTeacherReports();
+    }, (err) => console.warn('teacher roster listener error', err));
   })();
 }
 
@@ -369,15 +413,19 @@ function loadTeacherReports() {
     }
     if (!teacherId || !window.db || !window.RSBAnalytics) return;
 
-    // Roster for this teacher (for total students + completion rate)
-    window.db.collection('students').where('teacherId', '==', teacherId).get()
-      .then((snap) => { teacherStudentsCache = snap.docs.map(d => d.data()); renderTeacherReports(); })
-      .catch(e => console.warn('teacher reports: students fetch failed', e));
+    // The roster (for total students + completion rate) comes from the live listener in
+    // loadTeacherStudentCount.
 
-    // Sessions run (Home quick-stat)
-    window.db.collection('sessions').where('teacherId', '==', teacherId).get()
-      .then((snap) => { teacherSessionsCount = snap.size; renderTeacherReports(); })
-      .catch(() => { /* non-critical */ });
+    // Sessions run (Home quick-stat), live. Only sessions that were actually launched count,
+    // the same ones Recent Activity lists. The latest one also picks the level the Reports
+    // filter opens on, until the teacher chooses one themselves.
+    window.db.collection('sessions').where('teacherId', '==', teacherId)
+      .onSnapshot((snap) => {
+        const run = snap.docs.map(d => d.data()).filter(s => s.startedAt || s.status === 'active');
+        teacherSessionsCount = run.length;
+        applyDefaultLevelFilter(run);
+        renderTeacherReports();
+      }, (err) => console.warn('teacher reports: sessions listener error', err));
 
     // Live results listener
     if (teacherResultsListener) { teacherResultsListener(); teacherResultsListener = null; }
@@ -386,6 +434,22 @@ function loadTeacherReports() {
       .onSnapshot((snap) => { teacherResultsCache = snap.docs.map(d => d.data()); renderTeacherReports(); },
         (err) => console.warn('teacher reports: results listener error', err));
   })();
+}
+
+// Set once the teacher picks a level themselves; after that the filter is theirs.
+let levelFilterChosen = false;
+
+function applyDefaultLevelFilter(launchedSessions) {
+  const select = document.getElementById('tr-level-filter');
+  if (!select || levelFilterChosen || !launchedSessions.length || !window.RSBAnalytics) return;
+
+  const millis = (s) => {
+    const v = s.startedAt || s.createdAt;
+    return v && v.toMillis ? v.toMillis() : (v ? new Date(v).getTime() : 0);
+  };
+  const latest = launchedSessions.slice().sort((a, b) => millis(b) - millis(a))[0];
+  const level = String(latest.difficulty || '').toLowerCase();
+  if (window.RSBAnalytics.KNOWN_LEVELS.indexOf(level) !== -1) select.value = level;
 }
 
 function getTeacherFilters() {

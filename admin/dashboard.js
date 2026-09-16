@@ -329,6 +329,70 @@ async function repairStudentLogins() {
   }
 }
 
+/* ---- SAMPLE DATA CLEANUP ----
+   Before the game could report results, scripts filled the live database with made-up
+   records so the dashboards had something to show (scripts/fix_orphans_and_seed_results.js,
+   scripts/updateFirestore.js, functions/index.js applySamples). Mixed in with real runs they
+   skew every report, so they are removed on load. Matching is by fingerprint:
+   - results without studentUid: the game always sends it, and the rules require it
+   - sessions that ended exactly 20 minutes after creation without ever starting (the seed
+     script's shape), or the fixed sample code, unless a real result points at them
+   - the fixed sample teacher and student profiles */
+const SAMPLE_SESSION_LENGTH_MS = 20 * 60 * 1000;
+const SAMPLE_TEACHER_ID = 'teacher_001_uid';
+const SAMPLE_STUDENT_AUTH_UID = 'student_001_auth';
+
+function millisOf(value) {
+  if (!value) return null;
+  if (typeof value.toMillis === 'function') return value.toMillis();
+  const t = new Date(value).getTime();
+  return Number.isNaN(t) ? null : t;
+}
+
+async function removeSampleData() {
+  const [resultsSnap, sessionsSnap, sampleStudentsSnap, sampleTeacher] = await Promise.all([
+    window.db.collection('sessionResults').get(),
+    window.db.collection('sessions').get(),
+    window.db.collection('students').where('authUid', '==', SAMPLE_STUDENT_AUTH_UID).get(),
+    window.db.collection('teachers').doc(SAMPLE_TEACHER_ID).get()
+  ]);
+
+  const sampleResults = resultsSnap.docs.filter(d => !d.data().studentUid);
+  const realSessionIds = new Set(resultsSnap.docs
+    .filter(d => d.data().studentUid)
+    .map(d => d.data().sessionId));
+
+  const sampleSessions = sessionsSnap.docs.filter(d => {
+    if (realSessionIds.has(d.id)) return false;
+    const s = d.data();
+    const created = millisOf(s.createdAt);
+    const ended = millisOf(s.endedAt);
+    const seededShape = s.status === 'ended' && !s.startedAt
+      && created !== null && ended !== null && ended - created === SAMPLE_SESSION_LENGTH_MS;
+    const fixedSample = s.sessionCode === 'ABC12' || s.teacherId === SAMPLE_TEACHER_ID;
+    return seededShape || fixedSample;
+  });
+
+  const refs = sampleResults.concat(sampleSessions, sampleStudentsSnap.docs).map(d => d.ref);
+  if (sampleTeacher.exists) {
+    refs.push(sampleTeacher.ref);
+    refs.push(window.db.collection('accountSecrets').doc(SAMPLE_TEACHER_ID));
+  }
+  if (!refs.length) return;
+
+  for (let i = 0; i < refs.length; i += 400) {
+    const batch = window.db.batch();
+    refs.slice(i, i + 400).forEach(ref => batch.delete(ref));
+    await batch.commit();
+  }
+
+  const removed = sampleResults.length + sampleSessions.length +
+    sampleStudentsSnap.size + (sampleTeacher.exists ? 1 : 0);
+  console.info(`Removed sample data: ${sampleResults.length} result(s), ${sampleSessions.length} session(s), ` +
+    `${sampleStudentsSnap.size} student(s), ${sampleTeacher.exists ? 1 : 0} teacher(s).`);
+  showToast(`Removed ${removed} sample record(s) so reports show real data only.`);
+}
+
 /** Changes teacherId from oldId to newId on every document in a collection, in batches. */
 async function repointTeacherId(collection, oldId, newId) {
   const snap = await window.db.collection(collection).where('teacherId', '==', oldId).get();
@@ -382,6 +446,49 @@ function logout() {
   setTimeout(() => {
     window.location.href = '../index.html';
   }, 500);
+}
+
+// ---- ADMIN NAME ----
+// Shown in the sidebar and avatar. Stored on the admin's own /admins/{uid} document; until
+// one is set, the account email stands in.
+function renderAdminName(name) {
+  const display = (name || '').trim();
+  setText('admin-name', display.toUpperCase());
+  const words = display.split(/\s+/).filter(Boolean);
+  const initials = display.includes('@') || words.length < 2
+    ? display.slice(0, 1)
+    : words[0][0] + words[words.length - 1][0];
+  setText('admin-avatar', initials.toUpperCase());
+}
+
+async function loadAdminName(user) {
+  if (!user || !window.db) return;
+  try {
+    const doc = await window.db.collection('admins').doc(user.uid).get();
+    renderAdminName((doc.exists && doc.data().name) || user.email || 'Admin');
+  } catch (e) {
+    renderAdminName(user.email || 'Admin');
+  }
+}
+
+async function editAdminName() {
+  document.getElementById('avatar-menu').classList.remove('show');
+  const user = window.auth && window.auth.currentUser;
+  if (!user) return;
+
+  const current = document.getElementById('admin-name').textContent || '';
+  const name = prompt('Name shown on the dashboard (e.g. Principal Juan Dela Cruz):', current.includes('@') ? '' : current);
+  if (name === null) return;
+  const trimmed = name.trim();
+  if (!trimmed) { showToast('Name can\'t be empty.', 'error'); return; }
+
+  try {
+    await window.db.collection('admins').doc(user.uid).set({ name: trimmed, updatedAt: new Date() }, { merge: true });
+    renderAdminName(trimmed);
+    showToast('Name updated.');
+  } catch (error) {
+    showToast('Error updating name: ' + error.message, 'error');
+  }
 }
 
 // ---- CHANGE OWN PASSWORD ----
@@ -456,15 +563,15 @@ document.addEventListener('click', (e) => {
 });
 
 // ---- MODAL MANAGEMENT ----
-function openModal() {
+async function openModal() {
   document.getElementById('modal-overlay').classList.add('open');
   document.getElementById('input-first').value = '';
   document.getElementById('input-last').value = '';
   document.getElementById('input-email').value = '';
-  document.getElementById('input-section').value = '';
   document.getElementById('input-pass').value = 'TempPass123!';
-  document.getElementById('chk-welcome').checked = false;
   resetModalToCreate();
+  await populateSectionDropdowns();
+  document.getElementById('input-section').value = '';
 }
 
 function closeModal() {
@@ -577,6 +684,11 @@ async function loadTeachersFromFirebase() {
         // Update count and home stats (use snapshot data to avoid extra reads)
         updateTeacherCount();
         updateHomeStats(snapshot.size, sectionsSet.size);
+
+        // The home card is labelled "active", so count only active teachers there
+        const activeCount = snapshot.docs.filter(d => d.data().status !== 'inactive').length;
+        setText('home-teacher-count', activeCount);
+        setText('home-teacher-sub', activeCount === snapshot.size ? 'active' : `active of ${snapshot.size}`);
       },
       (error) => {
         console.error('Error loading teachers:', error);
@@ -722,22 +834,32 @@ async function createTeacher() {
 }
 
 // Open edit modal with teacher data
-function openEditModal(btn) {
+async function openEditModal(btn) {
   const row = btn.closest('tr');
   const teacherId = row.getAttribute('data-teacher-id');
-  const name = row.querySelector('.td-name').textContent.split(' ');
-  const email = row.querySelector('.td-email').textContent;
-  const section = row.querySelector('.td-section').textContent;
 
-  document.getElementById('modal-overlay').classList.add('open');
-  document.getElementById('modal-title').textContent = 'EDIT TEACHER';
-  document.getElementById('create-btn').textContent = 'UPDATE TEACHER';
-  document.getElementById('input-first').value = name[0];
-  document.getElementById('input-last').value = name[1] || '';
-  document.getElementById('input-email').value = email;
-  document.getElementById('input-section').value = section;
-  document.getElementById('input-pass').value = '';
-  document.getElementById('create-btn').onclick = () => updateTeacher(teacherId, btn);
+  try {
+    // Read the profile itself: splitting the table's name cell lost multi-word last names
+    const teacher = await getDocumentData('teachers', teacherId);
+    await populateSectionDropdowns();
+
+    const sectionSelect = document.getElementById('input-section');
+    if (teacher.section && !Array.from(sectionSelect.options).some(o => o.value === teacher.section)) {
+      sectionSelect.appendChild(new Option(teacher.section, teacher.section));
+    }
+
+    document.getElementById('modal-overlay').classList.add('open');
+    document.getElementById('modal-title').textContent = 'EDIT TEACHER';
+    document.getElementById('create-btn').textContent = 'UPDATE TEACHER';
+    document.getElementById('input-first').value = teacher.firstName || '';
+    document.getElementById('input-last').value = teacher.lastName || '';
+    document.getElementById('input-email').value = teacher.email || '';
+    sectionSelect.value = teacher.section || '';
+    document.getElementById('input-pass').value = '';
+    document.getElementById('create-btn').onclick = () => updateTeacher(teacherId, btn);
+  } catch (err) {
+    showToast('Error loading teacher: ' + err.message, 'error');
+  }
 }
 
 // Update teacher in Firebase
@@ -960,10 +1082,15 @@ window.addEventListener('load', () => {
       return;
     }
 
+    loadAdminName(user);
+
     if (window.db) {
       // The re-key reads passwords from the vault, so it runs after they've been moved there
       moveProfilePasswordsToVault()
         .catch(e => console.warn('Moving stored passwords to the vault failed', e))
+        // Before the repairs, so they don't spend sign-ins on sample accounts
+        .then(() => removeSampleData())
+        .catch(e => console.warn('Removing sample data failed', e))
         .then(() => rekeyTeachersByLoginId())
         .catch(e => console.warn('Moving teachers to their login id failed', e))
         .then(() => repairStudentLogins())
@@ -1182,18 +1309,29 @@ async function populateSectionDropdowns() {
     });
     sections.sort();
 
-    ['s-input-section', 's-csv-section', 'admin-section-filter'].forEach(id => {
+    // The teacher form may also assign a section whose teacher left: every section any
+    // student is still in counts too
+    const allSections = new Set(sections);
+    const students = await window.db.collection('students').get();
+    students.forEach(doc => { if (doc.data().section) allSections.add(doc.data().section); });
+
+    const fill = (id, list, firstOption) => {
       const el = document.getElementById(id);
       if (!el) return;
-      const isFilter = id === 'admin-section-filter';
-      el.innerHTML = isFilter ? '<option value="">ALL SECTIONS</option>' : '<option value="">Select section...</option>';
-      sections.forEach(sec => {
+      el.innerHTML = firstOption;
+      list.forEach(sec => {
         const opt = document.createElement('option');
         opt.value = sec;
         opt.textContent = sec;
         el.appendChild(opt);
       });
-    });
+    };
+
+    // Students can only be placed in a section that has a teacher
+    fill('s-input-section', sections, '<option value="">Select section...</option>');
+    fill('s-csv-section', sections, '<option value="">Select section...</option>');
+    fill('admin-section-filter', sections, '<option value="">ALL SECTIONS</option>');
+    fill('input-section', Array.from(allSections).sort(), '<option value="">Select section...</option>');
   } catch (e) {
     console.error('Error loading sections:', e);
   }

@@ -86,10 +86,71 @@ function countJoinedPlayers(playersList) {
   return seen.size;
 }
 
-// Start in idle state on page load
+// Joined count shown against the teacher's class size (kept live by the dashboard's roster
+// listener as window.teacherClassSize).
+let lastJoinedCount = 0;
+
+function updateJoinedDisplay(joinedCount) {
+  if (typeof joinedCount === 'number') lastJoinedCount = joinedCount;
+  const classSize = typeof window.teacherClassSize === 'number' ? window.teacherClassSize : null;
+
+  document.getElementById('joined-count').textContent = lastJoinedCount;
+  document.getElementById('joined-max').textContent = classSize === null ? '/—' : '/' + classSize;
+  const pct = classSize ? Math.min(100, (lastJoinedCount / classSize) * 100) : 0;
+  document.getElementById('joined-bar').style.width = pct + '%';
+}
+
+// Start in idle state on page load, then pick up a session this teacher left running
 document.addEventListener('DOMContentLoaded', () => {
   applySessionState('idle');
+  restoreOpenSession();
 });
+
+/**
+ * A refresh or a closed tab used to forget the running session: the page went back to
+ * "generate code" with no way to stop it while students were still playing. Reattach to
+ * the teacher's most recent session that hasn't ended.
+ */
+async function restoreOpenSession() {
+  try {
+    const user = await window.authReadyPromise;
+    const teacherId = sessionStorage.getItem('teacherId');
+    if (!user || !teacherId || !window.db) return;
+
+    const snap = await window.db.collection('sessions')
+      .where('teacherId', '==', teacherId)
+      .where('status', 'in', ['waiting', 'active'])
+      .get();
+    if (snap.empty || currentSessionId) return;
+
+    const millis = (v) => (v && v.toMillis ? v.toMillis() : (v ? new Date(v).getTime() : 0));
+    const latest = snap.docs.slice().sort((a, b) => millis(b.data().createdAt) - millis(a.data().createdAt))[0];
+    const s = latest.data();
+
+    currentSessionId = latest.id;
+    currentSessionCode = s.sessionCode || '';
+    currentDifficulty = s.difficulty || 'beginner';
+    currentBagType = s.bagType || 'standard';
+
+    document.getElementById('session-code').textContent = currentSessionCode;
+    document.getElementById('code-inline').textContent = currentSessionCode;
+    checkOption('difficulty', currentDifficulty, '.diff-option:not(.bag-option)');
+    checkOption('bagType', currentBagType, '.bag-option');
+
+    listenToPlayerJoins();
+    applySessionState(s.status === 'active' ? 'active' : 'ready');
+  } catch (error) {
+    console.warn('Could not restore the open session', error);
+  }
+}
+
+function checkOption(name, value, optionSelector) {
+  const radio = document.querySelector(`input[name="${name}"][value="${value}"]`);
+  if (!radio) return;
+  radio.checked = true;
+  document.querySelectorAll(optionSelector).forEach(o => o.classList.remove('selected'));
+  radio.closest(optionSelector.split(':')[0]).classList.add('selected');
+}
 
 // ---- GENERATE CODE ----
 async function generateCode() {
@@ -168,8 +229,7 @@ function listenToPlayerJoins() {
     if (doc.exists) {
       const data = doc.data();
       const joinedCount = countJoinedPlayers(data.playersList);
-      document.getElementById('joined-count').textContent = joinedCount;
-      document.getElementById('joined-bar').style.width = (joinedCount / 40 * 100) + '%';
+      updateJoinedDisplay(joinedCount);
 
       // Only enable Launch once at least 1 student has joined
       const btnLaunch = document.getElementById('btn-launch');
@@ -271,8 +331,7 @@ async function stopSession() {
     currentSessionCode = null;
     currentSessionId = null;
 
-    document.getElementById('joined-count').textContent = '0';
-    document.getElementById('joined-bar').style.width = '0%';
+    updateJoinedDisplay(0);
 
     applySessionState('idle');
     showToast('Session stopped.');
