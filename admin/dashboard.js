@@ -449,8 +449,8 @@ function logout() {
 }
 
 // ---- ADMIN NAME ----
-// Shown in the sidebar and avatar. Stored on the admin's own /admins/{uid} document; until
-// one is set, the account email stands in.
+// Shown in the sidebar and avatar: the `name` field on the admin's own /admins/{uid}
+// document (set in the Firebase console), or the account email when there is none.
 function renderAdminName(name) {
   const display = (name || '').trim();
   setText('admin-name', display.toUpperCase());
@@ -468,26 +468,6 @@ async function loadAdminName(user) {
     renderAdminName((doc.exists && doc.data().name) || user.email || 'Admin');
   } catch (e) {
     renderAdminName(user.email || 'Admin');
-  }
-}
-
-async function editAdminName() {
-  document.getElementById('avatar-menu').classList.remove('show');
-  const user = window.auth && window.auth.currentUser;
-  if (!user) return;
-
-  const current = document.getElementById('admin-name').textContent || '';
-  const name = prompt('Name shown on the dashboard (e.g. Principal Juan Dela Cruz):', current.includes('@') ? '' : current);
-  if (name === null) return;
-  const trimmed = name.trim();
-  if (!trimmed) { showToast('Name can\'t be empty.', 'error'); return; }
-
-  try {
-    await window.db.collection('admins').doc(user.uid).set({ name: trimmed, updatedAt: new Date() }, { merge: true });
-    renderAdminName(trimmed);
-    showToast('Name updated.');
-  } catch (error) {
-    showToast('Error updating name: ' + error.message, 'error');
   }
 }
 
