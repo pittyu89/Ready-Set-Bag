@@ -88,7 +88,9 @@ service cloud.firestore {
           && resource.data.status in ['waiting', 'active']
           && changedKeys().hasOnly(['playersList'])
           && after.size() == before.size() + 1
-          && after[0:before.size()] == before
+          // Nobody already in the list was changed. Skipped for an empty list: a [0:0] slice
+          // is an index-out-of-bounds error in the rules language, which denied the first join.
+          && (before.size() == 0 || after[0:before.size()] == before)
           && after[before.size()] is map
           && after[before.size()].keys().hasOnly(['studentId', 'username', 'uid', 'joinedAt'])
           && after[before.size()].uid == request.auth.uid;

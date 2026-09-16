@@ -135,6 +135,10 @@ test('only the owning teacher controls a session', async () => {
 test('a student can add only themselves to a session', async () => {
   const me = { studentId: 's1', username: 'G6ROSES001', uid: STUDENT_UID, joinedAt: new Date() };
   await assertSucceeds(updateDoc(doc(as(STUDENT_UID), 'sessions/waiting1'), { playersList: arrayUnion(me) }));
+  // First player into a brand-new session (empty playersList)
+  await env.withSecurityRulesDisabled(async (ctx) => setDoc(doc(ctx.firestore(), 'sessions/empty1'),
+    { sessionCode: 'EMPTY', teacherId: TEACHER, difficulty: 'beginner', bagType: 'standard', status: 'waiting', playersList: [], playersJoined: 0, createdAt: new Date(), updatedAt: new Date() }));
+  await assertSucceeds(updateDoc(doc(as(STUDENT_UID), 'sessions/empty1'), { playersList: arrayUnion(me) }));
   await assertFails(updateDoc(doc(as(STUDENT_UID), 'sessions/active1'), { playersList: arrayUnion({ ...me, uid: OTHER_STUDENT_UID }) }));
   await assertFails(updateDoc(doc(as(STUDENT_UID), 'sessions/active1'), { playersList: arrayUnion(me), status: 'ended' }));
   await assertFails(updateDoc(doc(as(STUDENT_UID), 'sessions/active1'), { playersList: arrayUnion({ ...me, extra: true }) }));
