@@ -189,6 +189,146 @@ async function rekeyTeachersByLoginId() {
   }
 }
 
+const DEFAULT_STUDENT_PASSWORD = 'Student@123';
+
+/**
+ * The next student number for a new username ({sectionCode}{number}) that no student holds
+ * yet. Starts after the teacher's highest number (or at `from`), then skips any username
+ * already taken: a student who moved section keeps their old username, so the number after
+ * the "highest" can still be in use.
+ */
+async function nextFreeStudentNumber(teacherId, sectionCode, from = 0) {
+  let next = from;
+  if (!next) {
+    const roster = await window.db.collection('students').where('teacherId', '==', teacherId).get();
+    let highest = 0;
+    roster.forEach(d => {
+      const s = d.data() || {};
+      const n = s.studentNumber || parseInt(String(s.username || '').replace(/\D/g, ''), 10) || 0;
+      if (n > highest) highest = n;
+    });
+    next = highest + 1;
+  }
+
+  for (;;) {
+    const username = sectionCode + String(next).padStart(3, '0');
+    const taken = await window.db.collection('students').where('username', '==', username).limit(1).get();
+    if (taken.empty) return next;
+    next++;
+  }
+}
+
+/**
+ * Creates a student's login under the first free username from `startNumber` on, and
+ * returns { number, username, email, authUid }. A username with no student profile can
+ * still have a login left behind (a student deleted without their saved password), so
+ * "already in use" moves on to the next number instead of failing.
+ */
+async function createStudentLogin(teacherId, sectionCode, startNumber, password) {
+  let number = startNumber;
+  for (let attempt = 0; attempt < 25; attempt++) {
+    number = await nextFreeStudentNumber(teacherId, sectionCode, number);
+    const username = sectionCode + String(number).padStart(3, '0');
+    const email = `${username}@readysetbag.local`;
+    try {
+      const authUid = await createAuthAccount(email, password);
+      return { number, username, email, authUid };
+    } catch (err) {
+      if (err.code !== 'auth/email-already-in-use') throw err;
+      number++;
+    }
+  }
+  throw new Error('Couldn\'t find a free username for this section.');
+}
+
+/**
+ * One-time repair for student logins. Students added before logins were linked have no
+ * authUid, so neither the game (which finds a student by authUid) nor the Firestore rules can
+ * tell who they are, and the early versions didn't create a login for them at all. For each:
+ * sign in as {username}@readysetbag.local with their stored password to find the login, or
+ * create it if there is none; then record authUid, move the password into the vault and
+ * remove it from the profile.
+ *
+ * It also restores usernames that an earlier edit form renamed on a section change without
+ * changing the login, so what the student types matches their login again.
+ */
+async function repairStudentLogins() {
+  const removeField = firebase.firestore.FieldValue.delete();
+  const students = await window.db.collection('students').get();
+  const worker = window.getAccountWorkerAuth();
+  let linked = 0, created = 0, renamed = 0;
+  const failed = [];
+
+  for (const doc of students.docs) {
+    const s = doc.data();
+    const updates = {};
+
+    // The login email is the source of truth for the username
+    if (s.authEmail && s.username) {
+      const loginName = s.authEmail.split('@')[0];
+      if (loginName.toLowerCase() !== String(s.username).toLowerCase()) {
+        updates.username = loginName.toUpperCase();
+        renamed++;
+      }
+    }
+
+    if (!s.authUid) {
+      const email = getStudentAuthEmail(s);
+      const name = s.displayName || s.username || doc.id;
+      if (!email) { failed.push(`${name} (no username)`); continue; }
+
+      const password = s.password || DEFAULT_STUDENT_PASSWORD;
+      let uid = null;
+      try {
+        uid = (await worker.signInWithEmailAndPassword(email, password)).user.uid;
+        linked++;
+      } catch (err) {
+        if (err.code === 'auth/too-many-requests') {
+          failed.push('stopped early: Firebase is rate-limiting sign-ins, reload later to continue');
+          break;
+        }
+        // No login yet (with email enumeration protection on, a missing account and a wrong
+        // password both come back as invalid-credential; creating tells them apart)
+        try {
+          uid = await createAuthAccount(email, password);
+          created++;
+        } catch (createErr) {
+          if (createErr.code === 'auth/too-many-requests') {
+            failed.push('stopped early: Firebase is rate-limiting new accounts, reload later to continue');
+            await worker.signOut().catch(() => {});
+            break;
+          }
+          failed.push(createErr.code === 'auth/email-already-in-use'
+            ? `${name} (has a login, but not with the stored password)`
+            : `${name} (${createErr.code || createErr.message})`);
+        }
+      } finally {
+        await worker.signOut().catch(() => {});
+      }
+      if (!uid) continue;
+
+      await saveAccountSecret(uid, email, password, 'student');
+      updates.authUid = uid;
+      updates.authEmail = email;
+      if ('password' in s) updates.password = removeField;
+    }
+
+    if (Object.keys(updates).length) {
+      updates.updatedAt = new Date();
+      await doc.ref.update(updates);
+    }
+  }
+
+  if (linked || created || renamed) {
+    console.info(`Student logins: ${linked} linked, ${created} created, ${renamed} username(s) restored.`);
+    showToast(`Fixed logins for ${linked + created} student(s)` + (renamed ? `, restored ${renamed} username(s)` : '') + '.');
+  }
+  if (failed.length) {
+    console.warn('Student logins that still need attention:', failed.join('; '));
+    showToast(`${failed.length} student login(s) couldn't be fixed. See the console for details.`, 'error');
+  }
+}
+
 /** Changes teacherId from oldId to newId on every document in a collection, in batches. */
 async function repointTeacherId(collection, oldId, newId) {
   const snap = await window.db.collection(collection).where('teacherId', '==', oldId).get();
@@ -825,7 +965,9 @@ window.addEventListener('load', () => {
       moveProfilePasswordsToVault()
         .catch(e => console.warn('Moving stored passwords to the vault failed', e))
         .then(() => rekeyTeachersByLoginId())
-        .catch(e => console.warn('Moving teachers to their login id failed', e));
+        .catch(e => console.warn('Moving teachers to their login id failed', e))
+        .then(() => repairStudentLogins())
+        .catch(e => console.warn('Repairing student logins failed', e));
     }
 
     // Always update top-level stats and session count (or show offline fallback)
@@ -1085,23 +1227,14 @@ async function addSingleStudent() {
       teachersListener = null;
     }
 
-    // Query only the highest studentNumber for this teacher to determine next number
-    const snap = await window.db.collection('students')
-      .where('teacherId', '==', teacherId)
-      .orderBy('studentNumber', 'desc')
-      .limit(1)
-      .get();
-    const highest = snap.docs.length ? (snap.docs[0].data().studentNumber || 0) : 0;
-    const nextNum = highest + 1;
-
     // Build section code from section name (e.g. G6-Tulips → G6TULIPS)
     const sectionCode = section.replace(/[^A-Z0-9]/gi, '').toUpperCase();
-    const username = sectionCode + String(nextNum).padStart(3, '0');
-    const password = 'Student@123';
+    const password = DEFAULT_STUDENT_PASSWORD;
 
-    // Create Firebase Auth account for the student
-    const studentEmail = `${username}@readysetbag.local`;
-    const authUid = await createAuthAccount(studentEmail, password);
+    // Create Firebase Auth account for the student, under the first free username
+    const startNum = await nextFreeStudentNumber(teacherId, sectionCode);
+    const { number: nextNum, username, email: studentEmail, authUid } =
+      await createStudentLogin(teacherId, sectionCode, startNum, password);
 
     // Create Firestore document with auth UID
     await window.db.collection('students').add({
@@ -1191,28 +1324,21 @@ async function importAdminStudentsFromCSV() {
       teachersListener = null;
     }
 
-    // Query only the highest studentNumber for this teacher to determine next number
-    const snap = await window.db.collection('students')
-      .where('teacherId', '==', teacherId)
-      .orderBy('studentNumber', 'desc')
-      .limit(1)
-      .get();
-    const highest = snap.docs.length ? (snap.docs[0].data().studentNumber || 0) : 0;
-    let nextNum = highest + 1;
     const sectionCode = section.replace(/[^A-Z0-9]/gi, '').toUpperCase();
-    const password = 'Student@123';
+    let nextNum = await nextFreeStudentNumber(teacherId, sectionCode);
+    const password = DEFAULT_STUDENT_PASSWORD;
     let successCount = 0;
 
     const tbody = document.getElementById('admin-student-tbody');
-    
+
     for (let i = 0; i < adminCsvData.length; i++) {
       const student = adminCsvData[i];
-      const username = sectionCode + String(nextNum).padStart(3, '0');
-      
+
       try {
-        // Create Firebase Auth account for the student
-        const studentEmail = `${username}@readysetbag.local`;
-        const authUid = await createAuthAccount(studentEmail, password);
+        // Create Firebase Auth account for the student, under the first free username
+        const login = await createStudentLogin(teacherId, sectionCode, nextNum, password);
+        nextNum = login.number;
+        const { username, email: studentEmail, authUid } = login;
 
         // Create Firestore document with auth UID
         const docRef = await window.db.collection('students').add({
@@ -1636,47 +1762,16 @@ async function updateAdminStudent() {
       throw new Error('No active teacher found for the selected section.');
     }
 
-    let studentNumber = studentData.studentNumber || parseInt(String(studentData.username || '').replace(/\D/g, ''), 10) || 1;
-    if (studentData.teacherId !== newTeacherId || studentData.section !== section) {
-      try {
-        const nextSnap = await window.db.collection('students')
-          .where('teacherId', '==', newTeacherId)
-          .orderBy('studentNumber', 'desc')
-          .limit(1)
-          .get();
-        const highest = nextSnap.docs.length ? (nextSnap.docs[0].data().studentNumber || 0) : 0;
-        studentNumber = highest + 1;
-      } catch (err) {
-        // Likely a Firestore 'requires an index' error — fallback to an unordered fetch
-        console.warn('Falling back to unordered fetch for studentNumber (possible index required):', err);
-        try { showToast('Using fallback numbering for username due to Firestore index requirement.', 'info'); } catch (e) { /* ignore */ }
-        const fallbackSnap = await window.db.collection('students')
-          .where('teacherId', '==', newTeacherId)
-          .get();
-        let highest = 0;
-        fallbackSnap.forEach(d => {
-          const data = d.data() || {};
-          const sn = data.studentNumber || parseInt(String(data.username || '').replace(/\D/g, ''), 10) || 0;
-          if (sn > highest) highest = sn;
-        });
-        studentNumber = highest + 1;
-      }
-    }
-
-    const sectionCode = section.replace(/[^A-Z0-9]/gi, '').toUpperCase();
-    const newUsername = sectionCode + String(studentNumber).padStart(3, '0');
-    const authEmail = getStudentAuthEmail(studentData) || `${studentData.username || newUsername}@readysetbag.local`;
-
-    // Spark-safe path: keep the Auth email stable and update the Firestore username separately.
+    // The username is the student's login (the game signs in as {username}@readysetbag.local)
+    // and the login email can't be changed from the browser, so a section change keeps both.
+    // Renaming it here used to lock students out after moving section.
     await window.db.collection('students').doc(adminStudentEditId).update({
       firstName: first,
       lastName: last,
       displayName: `${first} ${last}`,
       section,
       teacherId: newTeacherId,
-      username: newUsername,
-      studentNumber,
-      authEmail,
+      authEmail: getStudentAuthEmail(studentData),
       updatedAt: new Date()
     });
 
