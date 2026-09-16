@@ -124,6 +124,82 @@ async function moveProfilePasswordsToVault() {
   if (skipped) console.warn(`${skipped} student profile(s) still hold a password but have no authUid to file it under.`);
 }
 
+/**
+ * One-time repair: teachers created by an early version of this dashboard got a random
+ * document id instead of their Firebase Auth uid. Login, the Firestore rules and every
+ * teacher-owned record (students, sessions, results) now go by the uid, so those teachers
+ * could sign in but never find their profile or their class.
+ *
+ * For each such teacher: learn the uid by signing in with the vaulted password (on the
+ * worker app), copy the profile to teachers/{uid}, repoint their students, sessions and
+ * results, move the vault entry, then delete the old profile. Profiles already keyed by
+ * uid are left alone, so this does nothing once every teacher has been moved.
+ */
+async function rekeyTeachersByLoginId() {
+  const teachers = await window.db.collection('teachers').get();
+  const fixed = [];
+  const failed = [];
+
+  for (const doc of teachers.docs) {
+    const data = doc.data();
+    if (data.uid === doc.id) continue;
+
+    const name = `${data.firstName || ''} ${data.lastName || ''}`.trim() || data.email || doc.id;
+    try {
+      const secret = await getAccountSecret(doc.id);
+      if (!secret || !secret.password || !(secret.email || data.email)) {
+        failed.push(`${name} (no saved password)`);
+        continue;
+      }
+
+      const worker = window.getAccountWorkerAuth();
+      const credential = await worker.signInWithEmailAndPassword(secret.email || data.email, secret.password);
+      const uid = credential.user.uid;
+      await worker.signOut().catch(() => {});
+
+      if (uid === doc.id) {
+        await doc.ref.update({ uid: uid, updatedAt: new Date() });
+        continue;
+      }
+
+      const { password, ...profile } = data;   // never copy a plaintext password forward
+      await window.db.collection('teachers').doc(uid).set({ ...profile, uid: uid, updatedAt: new Date() });
+
+      for (const collection of ['students', 'sessions', 'sessionResults']) {
+        await repointTeacherId(collection, doc.id, uid);
+      }
+
+      await saveAccountSecret(uid, secret.email || data.email, secret.password, 'teacher');
+      await deleteAccountSecret(doc.id);
+      await doc.ref.delete();
+      fixed.push(name);
+    } catch (err) {
+      console.warn(`Couldn't move ${name} to their login id`, err);
+      failed.push(`${name} (${err.code || err.message})`);
+    }
+  }
+
+  if (fixed.length) {
+    console.info('Moved teachers to their login id:', fixed.join(', '));
+    showToast(`Updated ${fixed.length} teacher account(s) so they can log in.`);
+  }
+  if (failed.length) {
+    console.warn('Teachers still not keyed by login id:', failed.join('; '));
+    showToast(`${failed.length} teacher account(s) couldn't be updated. See the console for details.`, 'error');
+  }
+}
+
+/** Changes teacherId from oldId to newId on every document in a collection, in batches. */
+async function repointTeacherId(collection, oldId, newId) {
+  const snap = await window.db.collection(collection).where('teacherId', '==', oldId).get();
+  const docs = snap.docs;
+  for (let i = 0; i < docs.length; i += 400) {
+    const batch = window.db.batch();
+    docs.slice(i, i + 400).forEach(d => batch.update(d.ref, { teacherId: newId }));
+    await batch.commit();
+  }
+}
+
 
 // ---- NAVIGATION ----
 function navigate(page, btn) {
@@ -745,7 +821,11 @@ window.addEventListener('load', () => {
     }
 
     if (window.db) {
-      moveProfilePasswordsToVault().catch(e => console.warn('Moving stored passwords to the vault failed', e));
+      // The re-key reads passwords from the vault, so it runs after they've been moved there
+      moveProfilePasswordsToVault()
+        .catch(e => console.warn('Moving stored passwords to the vault failed', e))
+        .then(() => rekeyTeachersByLoginId())
+        .catch(e => console.warn('Moving teachers to their login id failed', e));
     }
 
     // Always update top-level stats and session count (or show offline fallback)
