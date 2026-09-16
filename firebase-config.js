@@ -65,6 +65,7 @@ window.firebaseInitPromise = new Promise((resolve) => {
         if (isLocal && !wantsProd) {
           window.db.useEmulator('localhost', 8081);
           window.auth.useEmulator('http://localhost:9099');
+          window.firebaseUsingEmulator = true;
           console.log('Connected to Firebase EMULATORS (Firestore :8081, Auth :9099)');
         } else if (isLocal && wantsProd) {
           console.log('Connected to PRODUCTION Firebase (full read/write).');
@@ -100,3 +101,37 @@ window.firebaseInitPromise = new Promise((resolve) => {
 
   waitForSdk();
 });
+
+/**
+ * Resolves with the signed-in user (or null) once Firebase Auth has restored the saved
+ * session. Every rule now depends on who is signed in, so pages must wait for this
+ * before reading anything.
+ */
+window.authReadyPromise = window.firebaseInitPromise.then(() => new Promise((resolve) => {
+  if (!window.auth) { resolve(null); return; }
+  const unsubscribe = window.auth.onAuthStateChanged((user) => {
+    unsubscribe();
+    resolve(user);
+  });
+}));
+
+/**
+ * Auth for a second, private Firebase app. Creating a user, or signing in as one to change
+ * their password, happens here so the person using the dashboard stays signed in on the
+ * main app throughout. Nothing here is persisted: each operation signs in and back out.
+ */
+window.getAccountWorkerAuth = function () {
+  if (window._accountWorkerAuth) return window._accountWorkerAuth;
+
+  const existing = firebase.apps.find((app) => app.name === 'account-worker');
+  const app = existing || firebase.initializeApp(firebaseConfig, 'account-worker');
+  const workerAuth = app.auth();
+
+  if (window.firebaseUsingEmulator) {
+    workerAuth.useEmulator('http://localhost:9099');
+  }
+  workerAuth.setPersistence(firebase.auth.Auth.Persistence.NONE).catch(() => {});
+
+  window._accountWorkerAuth = workerAuth;
+  return workerAuth;
+};

@@ -638,6 +638,58 @@ body {
   color: var(--text-muted);
 }
 
+/* Go-bag picker: three compact choices under the difficulty levels */
+.bag-picker-title {
+  font-family: var(--pixel);
+  font-weight: 600;
+  font-size: 13px;
+  letter-spacing: 1px;
+  color: var(--text-secondary);
+  margin: 18px 0 10px;
+}
+
+.bag-options {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.diff-option.bag-option {
+  position: relative;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 0;
+  padding: 12px 8px 10px;
+  text-align: center;
+}
+
+.bag-option input[type=radio] {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  margin: 0;
+}
+
+.bag-option-img {
+  height: 56px;
+  width: 64px;
+  object-fit: contain;
+  image-rendering: pixelated;
+}
+
+.bag-option-name {
+  font-family: var(--pixel);
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--text-primary);
+}
+
+.bag-option-desc {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
 /* Session Code */
 .code-box {
   text-align: center;

@@ -9,41 +9,6 @@ let lastStudentCountFetch = 0; // timestamp to throttle student count reads
 let adminStudentEditId = null;
 let adminStudentModalMode = 'create';
 
-// Store admin credentials for re-authentication after creating users
-let adminCredentials = {
-  email: sessionStorage.getItem('adminEmail') || 'admin@readysetbag.local',
-  password: sessionStorage.getItem('adminPassword') || 'Admin@123'
-};
-
-// Helper function to restore admin authentication after creating a user
-async function restoreAdminAuth() {
-  if (!adminCredentials.email || !adminCredentials.password) {
-    console.warn('Admin credentials not available:', adminCredentials);
-    return false;
-  }
-
-  try {
-    // Check current user
-    const currentUser = firebase.auth().currentUser;
-
-    
-    // Check if already authenticated as admin
-    if (currentUser && currentUser.email === adminCredentials.email) {
-
-      return true;
-    }
-
-
-    await firebase.auth().signInWithEmailAndPassword(adminCredentials.email, adminCredentials.password);
-    return true;
-
-  } catch (err) {
-    console.error('Failed to restore admin auth:', err.code, err.message);
-    // Try to continue anyway - the session might still be valid
-    return false;
-  }
-}
-
 async function getDocumentData(collectionName, documentId) {
   const snapshot = await window.db.collection(collectionName).doc(documentId).get();
 
@@ -54,21 +19,109 @@ async function getDocumentData(collectionName, documentId) {
   return snapshot.data();
 }
 
-async function withSignedInAccount(email, password, action) {
-  await firebase.auth().signInWithEmailAndPassword(email, password);
+/* ---- ACCOUNT VAULT ----
+   Without Cloud Functions the browser can only change or delete someone else's login by
+   signing in as them, so their password has to be kept somewhere. It lives in
+   /accountSecrets/{authUid}, which the Firestore rules let only admins read — never on the
+   teacher/student profile, which the teacher and the student themselves can read.
 
-  let actionError = null;
-  try {
-    return await action(firebase.auth().currentUser);
-  } catch (error) {
-    actionError = error;
-    throw error;
-  } finally {
-    const restored = await restoreAdminAuth();
-    if (!restored && !actionError) {
-      throw new Error('Unable to restore admin authentication after the operation. Check the admin account and Firestore admin document.');
-    }
+   Every sign-in as another account happens on a separate "worker" Firebase app, so the
+   admin's own session is never touched. */
+async function saveAccountSecret(uid, email, password, role) {
+  await window.db.collection('accountSecrets').doc(uid).set({
+    email: email,
+    password: password,
+    role: role,
+    updatedAt: new Date()
+  }, { merge: true });
+}
+
+async function getAccountSecret(uid) {
+  if (!uid) return null;
+  const snap = await window.db.collection('accountSecrets').doc(uid).get();
+  return snap.exists ? snap.data() : null;
+}
+
+async function deleteAccountSecret(uid) {
+  if (!uid) return;
+  await window.db.collection('accountSecrets').doc(uid).delete().catch(() => {});
+}
+
+/** Creates a Firebase Auth login without signing the admin out. Returns the new uid. */
+async function createAuthAccount(email, password) {
+  const worker = window.getAccountWorkerAuth();
+  const credential = await worker.createUserWithEmailAndPassword(email, password);
+  const uid = credential.user.uid;
+  await worker.signOut().catch(() => {});
+  return uid;
+}
+
+/**
+ * Signs in as the account on the worker app and runs action(user, secret). Throws a clear
+ * error when no password is saved for it (accounts created before the vault existed and
+ * never migrated), since then the login can't be changed from the browser at all.
+ */
+async function withAccount(uid, fallbackEmail, action) {
+  const secret = await getAccountSecret(uid);
+  if (!secret || !secret.password) {
+    throw new Error('No saved password for this account, so its login can\'t be changed from the dashboard.');
   }
+
+  const worker = window.getAccountWorkerAuth();
+  const credential = await worker.signInWithEmailAndPassword(secret.email || fallbackEmail, secret.password);
+  try {
+    return await action(credential.user, secret);
+  } finally {
+    await worker.signOut().catch(() => {});
+  }
+}
+
+/**
+ * Deletes an account's login. When no password is saved to do that with, asks whether to
+ * remove just the profile instead: without its profile the leftover login can't read any
+ * data. Returns false if the admin backs out.
+ */
+async function deleteLoginOrConfirm(uid, fallbackEmail, name) {
+  const secret = await getAccountSecret(uid);
+  if (!secret || !secret.password) {
+    return confirm(`There's no saved password for ${name}, so their login can't be deleted from here.\n\n` +
+      'Remove their profile anyway? The leftover login won\'t be able to see any data.');
+  }
+
+  await withAccount(uid, fallbackEmail, (user) => user.delete());
+  return true;
+}
+
+/**
+ * One-time cleanup: profiles created before the vault stored their password in plain text,
+ * readable by far more people than it should be. Move each into the vault and strip it from
+ * the profile. Safe to run on every load; once done, the queries simply come back empty.
+ */
+async function moveProfilePasswordsToVault() {
+  const removeField = firebase.firestore.FieldValue.delete();
+  let moved = 0;
+  let skipped = 0;
+
+  // orderBy on a field only returns documents that have it
+  const teachers = await window.db.collection('teachers').orderBy('password').get();
+  for (const doc of teachers.docs) {
+    const t = doc.data();
+    if (t.password) await saveAccountSecret(doc.id, t.email || '', t.password, 'teacher');
+    await doc.ref.update({ password: removeField });
+    moved++;
+  }
+
+  const students = await window.db.collection('students').orderBy('password').get();
+  for (const doc of students.docs) {
+    const s = doc.data();
+    if (!s.authUid) { skipped++; continue; }
+    if (s.password) await saveAccountSecret(s.authUid, getStudentAuthEmail(s), s.password, 'student');
+    await doc.ref.update({ password: removeField });
+    moved++;
+  }
+
+  if (moved) console.info(`Moved ${moved} stored password(s) into the admin-only vault.`);
+  if (skipped) console.warn(`${skipped} student profile(s) still hold a password but have no authUid to file it under.`);
 }
 
 
@@ -105,10 +158,70 @@ function navigate(page, btn) {
 
 // ---- LOGOUT ----
 function logout() {
+  if (window.auth) {
+    window.auth.signOut().catch(err => console.error('Sign out error:', err));
+  }
+  sessionStorage.clear();
   showToast('Logged out.');
   setTimeout(() => {
     window.location.href = '../index.html';
   }, 500);
+}
+
+// ---- CHANGE OWN PASSWORD ----
+function openPasswordModal() {
+  document.getElementById('avatar-menu').classList.remove('show');
+  ['pw-current', 'pw-new', 'pw-confirm'].forEach(id => {
+    const el = document.getElementById(id);
+    el.value = '';
+    el.style.border = '';
+  });
+  document.getElementById('password-modal-overlay').classList.add('open');
+}
+
+function closePasswordModal() {
+  document.getElementById('password-modal-overlay').classList.remove('open');
+}
+
+function closePasswordModalOutside(e) {
+  if (e.target === document.getElementById('password-modal-overlay')) closePasswordModal();
+}
+
+async function changeAdminPassword() {
+  const current = document.getElementById('pw-current').value;
+  const next = document.getElementById('pw-new').value;
+  const confirmNext = document.getElementById('pw-confirm').value;
+  const user = window.auth && window.auth.currentUser;
+
+  if (!user) { showToast('You are not signed in. Please log in again.', 'error'); return; }
+  if (!current || !next || !confirmNext) {
+    highlightFields(['pw-current', 'pw-new', 'pw-confirm'].filter(id => !document.getElementById(id).value));
+    showToast('Please fill in all fields.', 'error');
+    return;
+  }
+  if (next.length < 8) { showToast('The new password must be at least 8 characters.', 'error'); return; }
+  if (next !== confirmNext) { showToast('The new passwords don\'t match.', 'error'); return; }
+
+  const button = document.getElementById('pw-submit-btn');
+  button.disabled = true;
+  try {
+    // Firebase requires a recent sign-in before a password change
+    const credential = firebase.auth.EmailAuthProvider.credential(user.email, current);
+    await user.reauthenticateWithCredential(credential);
+    await user.updatePassword(next);
+    closePasswordModal();
+    showToast('Password updated.');
+  } catch (error) {
+    if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
+      showToast('Your current password is incorrect.', 'error');
+    } else if (error.code === 'auth/weak-password') {
+      showToast('That password is too weak. Try a longer one.', 'error');
+    } else {
+      showToast('Error: ' + error.message, 'error');
+    }
+  } finally {
+    button.disabled = false;
+  }
 }
 
 // ---- AVATAR MENU ----
@@ -189,8 +302,9 @@ function promptAddSection() {
 
 // ---- LOAD TEACHERS FROM FIREBASE (REAL-TIME) ----
 async function loadTeachersFromFirebase() {
-  if (!window.firebaseReady && window.firebaseInitPromise) {
-    await window.firebaseInitPromise;
+  // Reads are checked against the signed-in admin, so wait for Auth, not just the SDK
+  if (window.authReadyPromise) {
+    await window.authReadyPromise;
   }
   if (!window.db) {
     // Still not available; nothing to do
@@ -356,27 +470,23 @@ async function createTeacher() {
   }
 
   try {
-    // 1. Create Firebase Auth account
-    const userCredential = await firebase.auth().createUserWithEmailAndPassword(email, password);
-    const uid = userCredential.user.uid;
+    // 1. Create Firebase Auth account (on the worker app, so the admin stays signed in)
+    const uid = await createAuthAccount(email, password);
 
-    // 2. Restore admin authentication
-    if (!(await restoreAdminAuth())) {
-      throw new Error('Unable to restore admin authentication. Check the admin account and Firestore admin document.');
-    }
-
-    // 3. Create Firestore document (use Auth UID as doc ID for easy lookup)
+    // 2. Create Firestore document (use Auth UID as doc ID for easy lookup)
     await window.db.collection('teachers').doc(uid).set({
       uid: uid,
       firstName: first,
       lastName: last,
       email: email,
       section: section,
-      password: password, // optional to keep for reference
       status: 'active',
       createdAt: new Date(),
       updatedAt: new Date()
     });
+
+    // 3. Keep the password where only admins can read it
+    await saveAccountSecret(uid, email, password, 'teacher');
 
     closeModal();
     clearFieldHighlights();
@@ -389,9 +499,6 @@ async function createTeacher() {
       showToast('Error: ' + error.message, 'error');
     }
   } finally {
-    if (!(await restoreAdminAuth())) {
-      showToast('Admin session could not be restored after creating the teacher.', 'error');
-    }
     if (wasListening) {
       loadTeachersFromFirebase();
     }
@@ -448,19 +555,20 @@ async function updateTeacher(teacherId, btn) {
   try {
     const teacherData = await getDocumentData('teachers', teacherId);
 
-    if (!teacherData.email || !teacherData.password) {
-      throw new Error('Teacher credentials are missing.');
+    // Only touch the login itself when the email or password actually changes
+    if (email !== teacherData.email || newPassword) {
+      await withAccount(teacherId, teacherData.email, async (currentUser, secret) => {
+        if (email !== teacherData.email) {
+          await currentUser.updateEmail(email);
+        }
+
+        if (newPassword) {
+          await currentUser.updatePassword(newPassword);
+        }
+
+        await saveAccountSecret(teacherId, email, newPassword || secret.password, 'teacher');
+      });
     }
-
-    await withSignedInAccount(teacherData.email, teacherData.password, async (currentUser) => {
-      if (email !== teacherData.email) {
-        await currentUser.updateEmail(email);
-      }
-
-      if (newPassword) {
-        await currentUser.updatePassword(newPassword);
-      }
-    });
 
     // Keep Firestore aligned with Auth so login continues to work after edits
     await window.db.collection('teachers').doc(teacherId).update({
@@ -468,7 +576,7 @@ async function updateTeacher(teacherId, btn) {
       lastName: last,
       email: email,
       section: section,
-      ...(newPassword ? { password: newPassword, passwordResetPending: false } : {}),
+      ...(newPassword ? { passwordResetPending: false } : {}),
       updatedAt: new Date()
     });
 
@@ -494,16 +602,12 @@ async function resetPassword(btn) {
     try {
       const teacherData = await getDocumentData('teachers', teacherId);
 
-      if (!teacherData.email || !teacherData.password) {
-        throw new Error('Teacher credentials are missing.');
-      }
-
-      await withSignedInAccount(teacherData.email, teacherData.password, async (currentUser) => {
+      await withAccount(teacherId, teacherData.email, async (currentUser, secret) => {
         await currentUser.updatePassword(newPassword);
+        await saveAccountSecret(teacherId, secret.email || teacherData.email, newPassword, 'teacher');
       });
 
       await window.db.collection('teachers').doc(teacherId).update({
-        password: newPassword,
         passwordResetPending: true,
         updatedAt: new Date()
       });
@@ -536,16 +640,12 @@ async function confirmDelete(btn) {
     try {
       const teacherData = await getDocumentData('teachers', teacherId);
 
-      if (!teacherData.email || !teacherData.password) {
-        throw new Error('Teacher credentials are missing.');
-      }
+      if (!(await deleteLoginOrConfirm(teacherId, teacherData.email, name))) return;
 
-      await withSignedInAccount(teacherData.email, teacherData.password, async (currentUser) => {
-        await currentUser.delete();
-      });
-
-      // Remove the synced Firestore profile after deleting the Auth account
+      // Remove the synced Firestore profile after deleting the Auth account. Without it the
+      // login (if it survived) can no longer reach the teacher dashboard or any data.
       await window.db.collection('teachers').doc(teacherId).delete();
+      await deleteAccountSecret(teacherId);
       
       // The real-time listener will automatically remove the row from the table
       showToast(`${name} deleted.`);
@@ -635,12 +735,18 @@ window.addEventListener('load', () => {
       document.documentElement.removeAttribute('data-admin-initial');
     } catch (er) { /* ignore */ }
   }
-  window.firebaseInitPromise.then(async () => {
-    // Restore admin authentication before loading data
-    await restoreAdminAuth();
-    
-    // Add small delay to ensure auth is fully restored
-    await new Promise(resolve => setTimeout(resolve, 500));
+  window.authReadyPromise.then(async (user) => {
+    // Every read below is checked against the signed-in admin, so without a Firebase session
+    // there is nothing to show: send them back to log in
+    if (window.auth && !user) {
+      sessionStorage.clear();
+      window.location.href = '../index.html';
+      return;
+    }
+
+    if (window.db) {
+      moveProfilePasswordsToVault().catch(e => console.warn('Moving stored passwords to the vault failed', e));
+    }
 
     // Always update top-level stats and session count (or show offline fallback)
     if (!window.db) {
@@ -912,16 +1018,10 @@ async function addSingleStudent() {
     const sectionCode = section.replace(/[^A-Z0-9]/gi, '').toUpperCase();
     const username = sectionCode + String(nextNum).padStart(3, '0');
     const password = 'Student@123';
-    
+
     // Create Firebase Auth account for the student
     const studentEmail = `${username}@readysetbag.local`;
-    const userCredential = await firebase.auth().createUserWithEmailAndPassword(studentEmail, password);
-    const authUid = userCredential.user.uid;
-    
-    // Restore admin authentication
-    if (!(await restoreAdminAuth())) {
-      throw new Error('Unable to restore admin authentication. Check the admin account and Firestore admin document.');
-    }
+    const authUid = await createAuthAccount(studentEmail, password);
 
     // Create Firestore document with auth UID
     await window.db.collection('students').add({
@@ -934,24 +1034,19 @@ async function addSingleStudent() {
       username,
       authEmail: studentEmail,
       studentNumber: nextNum,
-      password: password,
       createdAt: new Date(),
       updatedAt: new Date()
     });
+    await saveAccountSecret(authUid, studentEmail, password, 'student');
 
     closeStudentModal();
     showToast(`${first} ${last} added successfully!`);
-    
-    // Ensure admin is authenticated before reloading
-    await restoreAdminAuth();
-    
+
     // Reload table with fresh listener to show new student immediately
     loadAdminStudentsFromFirebase();
   } catch (err) {
     console.error(err);
-    // Ensure admin auth is restored
-    await restoreAdminAuth();
-    
+
     // Reload table in case of error to maintain UI state
     loadAdminStudentsFromFirebase();
     
@@ -1037,13 +1132,7 @@ async function importAdminStudentsFromCSV() {
       try {
         // Create Firebase Auth account for the student
         const studentEmail = `${username}@readysetbag.local`;
-        const userCredential = await firebase.auth().createUserWithEmailAndPassword(studentEmail, password);
-        const authUid = userCredential.user.uid;
-        
-        // Restore admin authentication
-        if (!(await restoreAdminAuth())) {
-          throw new Error('Unable to restore admin authentication. Check the admin account and Firestore admin document.');
-        }
+        const authUid = await createAuthAccount(studentEmail, password);
 
         // Create Firestore document with auth UID
         const docRef = await window.db.collection('students').add({
@@ -1056,10 +1145,10 @@ async function importAdminStudentsFromCSV() {
           username,
           authEmail: studentEmail,
           studentNumber: nextNum,
-          password: password,
           createdAt: new Date(),
           updatedAt: new Date()
         });
+        await saveAccountSecret(authUid, studentEmail, password, 'student');
         
         // Add row to table immediately (real-time feedback)
         const row = document.createElement('tr');
@@ -1085,9 +1174,6 @@ async function importAdminStudentsFromCSV() {
       nextNum++;
     }
 
-    // Ensure admin is authenticated after import completes
-    await restoreAdminAuth();
-    
     closeStudentModal();
     showToast(`${successCount} of ${adminCsvData.length} student(s) imported successfully!`);
     
@@ -1096,8 +1182,6 @@ async function importAdminStudentsFromCSV() {
   } catch (err) {
     console.error(err);
     showToast('Error: ' + err.message, 'error');
-    // Ensure admin auth is restored
-    await restoreAdminAuth();
   }
 }
 
@@ -1195,8 +1279,9 @@ async function exportAdminSessionResultsCsv() {
 
 // ---- LOAD ALL STUDENTS (REAL-TIME) ----
 async function loadAdminStudentsFromFirebase() {
-  if (!window.firebaseReady && window.firebaseInitPromise) {
-    await window.firebaseInitPromise;
+  // Reads are checked against the signed-in admin, so wait for Auth, not just the SDK
+  if (window.authReadyPromise) {
+    await window.authReadyPromise;
   }
   if (!window.db) {
     console.warn('loadAdminStudentsFromFirebase: Firebase not ready');
@@ -1244,21 +1329,14 @@ async function resetAdminStudentPassword(btn) {
   if (confirm(`Reset password for ${name} to "Student@123"?`)) {
     try {
       const studentData = await getDocumentData('students', id);
-
-      if (!studentData.password) {
-        throw new Error('Student credentials are missing.');
-      }
-
       const studentEmail = getStudentAuthEmail(studentData);
-      if (!studentEmail) {
-        throw new Error('Student email is missing.');
-      }
 
-      await withSignedInAccount(studentEmail, studentData.password, async (currentUser) => {
+      await withAccount(studentData.authUid, studentEmail, async (currentUser, secret) => {
         await currentUser.updatePassword('Student@123');
+        await saveAccountSecret(studentData.authUid, secret.email || studentEmail, 'Student@123', 'student');
       });
 
-      await window.db.collection('students').doc(id).update({ password: 'Student@123', updatedAt: new Date() });
+      await window.db.collection('students').doc(id).update({ updatedAt: new Date() });
       showToast(`Password reset for ${name}.`);
     } catch (err) { showToast('Error: ' + err.message, 'error'); }
   }
@@ -1541,20 +1619,10 @@ async function deleteAdminStudent(btn) {
     try {
       const studentData = await getDocumentData('students', id);
 
-      if (!studentData.password) {
-        throw new Error('Student credentials are missing.');
-      }
-
-      const studentEmail = getStudentAuthEmail(studentData);
-      if (!studentEmail) {
-        throw new Error('Student email is missing.');
-      }
-
-      await withSignedInAccount(studentEmail, studentData.password, async (currentUser) => {
-        await currentUser.delete();
-      });
+      if (!(await deleteLoginOrConfirm(studentData.authUid, getStudentAuthEmail(studentData), name))) return;
 
       await window.db.collection('students').doc(id).delete();
+      await deleteAccountSecret(studentData.authUid);
       showToast(`${name} deleted.`);
     } catch (err) { showToast('Error: ' + err.message, 'error'); }
   }
@@ -1580,8 +1648,8 @@ function updateAdminStudentCount() {
 
 // ---- LOAD TOTAL SESSIONS COUNT ----
 function loadTotalSessionsCount() {
-  if (!window.firebaseReady) {
-    window.firebaseInitPromise.then(() => loadTotalSessionsCount());
+  if (!window.auth || !window.auth.currentUser) {
+    window.authReadyPromise.then((user) => { if (user) loadTotalSessionsCount(); });
     return;
   }
 
@@ -1607,8 +1675,8 @@ let adminResultsListener = null;
 let adminReportsFiltersPopulated = false;
 
 function loadAdminReports() {
-  if (!window.firebaseReady) {
-    window.firebaseInitPromise.then(() => loadAdminReports());
+  if (!window.auth || !window.auth.currentUser) {
+    window.authReadyPromise.then((user) => { if (user) loadAdminReports(); });
     return;
   }
   if (!window.db || !window.RSBAnalytics) return;
@@ -1874,8 +1942,8 @@ function flagBelowThresholdSections() { loadAdminReports(); }
 
 // ---- LOAD ADMIN RECENT ACTIVITY ----
 function loadAdminRecentActivity() {
-  if (!window.firebaseReady) {
-    window.firebaseInitPromise.then(() => loadAdminRecentActivity());
+  if (!window.auth || !window.auth.currentUser) {
+    window.authReadyPromise.then((user) => { if (user) loadAdminRecentActivity(); });
     return;
   }
   
@@ -1953,7 +2021,10 @@ function loadAdminRecentActivity() {
         const dateSource = session.startedAt || session.updatedAt || session.createdAt;
         const date = dateSource ? new Date(dateSource.toDate()).toLocaleDateString('en-US', {month: 'short', day: 'numeric'}) : 'Unknown';
         const difficulty = session.difficulty || 'Unknown';
-        const playerCount = session.playersList ? session.playersList.length : 0;
+        // Distinct students: rejoining the join screen appends a second entry for the same one
+        const playerCount = new Set((session.playersList || [])
+          .map(p => (p && typeof p === 'object') ? (p.studentId || p.uid || p.username) : p)
+          .filter(Boolean)).size;
         const started = session.status === 'active' || !!session.startedAt;
         const statusLabel = started ? 'Started' : 'Created';
         const teacher = teacherMap[session.teacherId] || null;

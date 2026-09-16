@@ -19,8 +19,28 @@ let roster;
 try {
   roster = require('./_roster_export.json');
 } catch (e) {
-  console.error('Missing scripts/_roster_export.json. Run scripts/_export_roster_from_prod.js first.');
-  process.exit(1);
+  // No production snapshot on this machine: fall back to a small made-up class so the
+  // emulator can still be exercised end to end
+  console.warn('No scripts/_roster_export.json found; seeding a small sample roster instead.');
+  const sections = [['t_sample_roses', 'Maria', 'Santos', 'G6-Roses'], ['t_sample_tulips', 'Ana', 'Reyes', 'G6-Tulips']];
+  roster = {
+    teachers: sections.map(([id, firstName, lastName, section]) => ({
+      id, firstName, lastName, section, email: `${firstName.toLowerCase()}@school.test`, status: 'active'
+    })),
+    students: []
+  };
+  const names = ['Juan Dela Cruz', 'Liza Soberano', 'Paolo Reyes', 'Bea Santos', 'Marco Lim', 'Ella Cruz'];
+  sections.forEach(([teacherId, , , section], t) => {
+    const code = section.replace(/[^A-Z0-9]/gi, '').toUpperCase();
+    names.forEach((name, i) => {
+      const [firstName, ...rest] = name.split(' ');
+      roster.students.push({
+        id: `s_${code}_${i + 1}`, authUid: `u_${code}_${i + 1}`, teacherId, section,
+        firstName, lastName: rest.join(' '), displayName: name,
+        username: code + String(i + 1).padStart(3, '0'), studentNumber: i + 1
+      });
+    });
+  });
 }
 
 // ---- deterministic pseudo-random so re-runs are stable ----
@@ -45,7 +65,7 @@ async function upsertAuthUser({ uid, email, password }) {
 }
 
 async function main() {
-  const batchDeletes = ['sessionResults', 'sessions'];
+  const batchDeletes = ['sessionResults', 'sessions', 'accountSecrets'];
   for (const c of batchDeletes) {
     const snap = await db.collection(c).get();
     const b = db.batch();
@@ -58,8 +78,11 @@ async function main() {
   await db.collection('admins').doc('admin_local_uid').set({ role: 'admin', createdAt: admin.firestore.FieldValue.serverTimestamp() });
 
   // ---- Teachers (auth + docs) ----
+  // Passwords go only into the admin-only accountSecrets vault, as the dashboard does
+  const FieldValue = admin.firestore.FieldValue;
   for (const t of roster.teachers) {
-    await upsertAuthUser({ uid: t.id, email: t.email, password: t.password || 'TempPass123!' });
+    const password = t.password || 'TempPass123!';
+    await upsertAuthUser({ uid: t.id, email: t.email, password });
     await db.collection('teachers').doc(t.id).set({
       uid: t.id,
       firstName: t.firstName || '',
@@ -67,14 +90,22 @@ async function main() {
       email: t.email || '',
       section: t.section || '',
       status: t.status || 'active',
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
-      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      password: FieldValue.delete(),
+      createdAt: FieldValue.serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp()
     }, { merge: true });
+    if (t.email) await db.collection('accountSecrets').doc(t.id).set({ email: t.email, password, role: 'teacher' });
   }
 
   // ---- Students (auth + docs) ----
+  // Same login email the game builds from the username: {username}@readysetbag.local
   for (const s of roster.students) {
-    if (s.authUid) await upsertAuthUser({ uid: s.authUid, email: (s.username || s.id) + '@student.local', password: s.password || 'Student@123' });
+    const password = s.password || 'Student@123';
+    const authEmail = (s.username || s.id) + '@readysetbag.local';
+    if (s.authUid) {
+      await upsertAuthUser({ uid: s.authUid, email: authEmail, password });
+      await db.collection('accountSecrets').doc(s.authUid).set({ email: authEmail, password, role: 'student' });
+    }
     await db.collection('students').doc(s.id).set({
       authUid: s.authUid || '',
       teacherId: s.teacherId || '',
@@ -83,10 +114,11 @@ async function main() {
       lastName: s.lastName || '',
       displayName: s.displayName || `${s.firstName || ''} ${s.lastName || ''}`.trim(),
       username: s.username || '',
+      authEmail,
       studentNumber: s.studentNumber || 0,
-      password: s.password || 'Student@123',
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
-      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      password: FieldValue.delete(),
+      createdAt: FieldValue.serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp()
     }, { merge: true });
   }
 
@@ -160,6 +192,7 @@ async function main() {
         sessionCode: sess.code,
         teacherId: s.teacherId,
         studentId: s.id,
+        studentUid: s.authUid || '',
         studentName: s.displayName || `${s.firstName} ${s.lastName}`,
         section: s.section,
         score,

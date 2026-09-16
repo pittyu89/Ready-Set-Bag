@@ -59,23 +59,11 @@ async function handleLogin(event) {
     return;
   }
 
-  // Demo credentials for admin
-  const adminCredentials = {
-    username: 'admin',
-    password: 'Admin@123'
-  };
-
   try {
     if (role === 'teacher') {
       await authenticateTeacher(email, password);
     } else {
-      if (email === adminCredentials.username && password === adminCredentials.password) {
-        // REQ-3: Verify credentials, then authenticate with Firebase silently
-        await authenticateAdmin();
-      } else {
-        // REQ-1.2.2: Show error and clear the password field
-        showLoginError('Invalid credentials. Please check your username and password.');
-      }
+      await authenticateAdmin(email, password);
     }
   } catch (error) {
     console.error('Login error:', error);
@@ -103,19 +91,16 @@ async function authenticateTeacher(email, password) {
     const userCredential = await window.auth.signInWithEmailAndPassword(email, password);
     const user = userCredential.user;
 
-    // Fetch teacher profile from Firestore (auth rules allow this now that user is signed in)
-    const snapshot = await window.db.collection('teachers')
-      .where('email', '==', email)
-      .get();
+    // The teacher profile is keyed by Auth uid; the rules only let a teacher read their own
+    const teacher = await window.db.collection('teachers').doc(user.uid).get();
 
-    if (snapshot.empty) {
+    if (!teacher.exists) {
       // REQ-1.2.2: Clear password, show error
       showLoginError('Teacher profile not found. Please contact your administrator.');
       await window.auth.signOut();
       return;
     }
 
-    const teacher = snapshot.docs[0];
     const teacherData = teacher.data();
 
     if (teacherData.status && teacherData.status !== 'active') {
@@ -168,7 +153,10 @@ async function authenticateTeacher(email, password) {
 }
 
 // ---- ADMIN AUTHENTICATION ----
-async function authenticateAdmin() {
+// "admin" is shorthand for the school's admin account; any other value is used as the email.
+const DEFAULT_ADMIN_EMAIL = 'admin@readysetbag.local';
+
+async function authenticateAdmin(username, password) {
   // Wait for Firebase before proceeding
   await window.firebaseInitPromise;
 
@@ -184,30 +172,25 @@ async function authenticateAdmin() {
   }
 
   try {
-    // Fixed admin account email for Firebase (internal use only)
-    const adminEmail = 'admin@readysetbag.local';
-    const adminPassword = 'Admin@123';
+    const adminEmail = username.toLowerCase() === 'admin' ? DEFAULT_ADMIN_EMAIL : username;
 
-    // Sign in with Firebase using the fixed admin account
-    const userCredential = await window.auth.signInWithEmailAndPassword(adminEmail, adminPassword);
+    const userCredential = await window.auth.signInWithEmailAndPassword(adminEmail, password);
     const user = userCredential.user;
+
+    // Being able to sign in is not enough: the account must be listed in /admins
+    const adminDoc = await window.db.collection('admins').doc(user.uid).get();
+    if (!adminDoc.exists) {
+      await window.auth.signOut();
+      showLoginError('This account is not an administrator.');
+      return;
+    }
 
     // REQ-3: Store login timestamp and admin info for session timeout enforcement
     sessionStorage.setItem('userRole', 'admin');
     sessionStorage.setItem('username', 'admin');
     sessionStorage.setItem('adminId', user.uid);
     sessionStorage.setItem('adminEmail', user.email);
-    // Store admin credentials for creating users in dashboard (needed for re-authentication)
-    sessionStorage.setItem('adminPassword', adminPassword);
     sessionStorage.setItem('loginTime', Date.now().toString());
-
-    // Debug: log stored session values before redirect
-    try { console.log('Login -> sessionStorage:', {
-      userRole: sessionStorage.getItem('userRole'),
-      adminEmail: sessionStorage.getItem('adminEmail'),
-      adminPassword: sessionStorage.getItem('adminPassword'),
-      loginTime: sessionStorage.getItem('loginTime')
-    }); } catch (e) {}
 
     // Give a tiny tick to ensure storage is flushed then navigate
     setTimeout(() => { window.location.href = './admin/dashboard.html'; }, 50);
@@ -227,8 +210,7 @@ async function authenticateAdmin() {
       error.code === 'auth/wrong-password' ||
       error.code === 'auth/invalid-credential'
     ) {
-      // This should not happen with hardcoded credentials, but handle it anyway
-      alert('Admin account error. Please contact the system administrator.');
+      alert('Invalid credentials. Please check your username and password.');
     } else {
       alert('Authentication error: ' + error.message);
     }

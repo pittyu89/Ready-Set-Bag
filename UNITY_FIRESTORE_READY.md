@@ -1,201 +1,49 @@
-# Unity Firestore Ready Guide
+# Unity ↔ Firestore
 
-This guide shows a ready-to-use Unity setup for the existing `sessionResults` collection.
+How the Ready-Set-Bag! Unity game talks to this project's Firestore, and what the security
+rules (`firestore.rules`) expect from it. The rules are tested in `tests/rules`
+(`cd tests/rules && npm install && npm test`, emulator only).
 
-## What this is for
+## Student login
 
-Use this when your Unity game needs to:
-- submit a student play result to Firestore
-- load a teacher's recent session results
-- keep the schema aligned with the app's admin and teacher dashboards
+1. Sign in with Firebase Auth as `{username}@readysetbag.local`.
+2. Load the profile with `students where authUid == <auth uid>` (limit 1). A student may only
+   read their own profile, so a query by `username` is refused.
+3. Keep `StudentId` (profile doc id), `StudentName`, `TeacherId` and `StudentSection`.
 
-## Required Firestore fields
+## Joining a session
 
-A `sessionResults` document should include:
+- Look the session up with `sessions where sessionCode == <code>` (any signed-in user may).
+- Append yourself with `playersList: ArrayUnion({ studentId, username, uid, joinedAt })`.
+  `uid` must be the signed-in user's uid, the map may have no other keys, and nothing else
+  in the document may change. Only sessions with status `waiting` or `active` accept joins.
+- When the session turns `active`, keep its id (`SessionId`), code, difficulty and
+  `teacherId` (`SessionTeacherId`) for the result.
 
-- `sessionId`
-- `sessionCode`
-- `teacherId`
-- `studentId`
-- `studentName`
-- `section`
-- `score`
-- `completionTime`
-- `attempts`
-- `stage`
-- `essentials`
-- `essentialsMax`
-- `errors`
-- `difficulty`
-- `createdAt`
-- `updatedAt`
+## Sending a result (`SessionResultUploader.cs`)
 
-## Recommended Unity package
+Only teacher-session runs are sent, one per student per session. Write with `SetAsync` to
+`sessionResults/{sessionId}_{studentId}`; a second write to the same id is refused.
 
-Use the Firebase Unity SDK and include:
+| Field | Type | Rule |
+| --- | --- | --- |
+| `sessionId`, `sessionCode`, `teacherId`, `difficulty` | string | must match the session document |
+| `studentId` | string | profile doc id; its `authUid` must be the caller |
+| `studentUid` | string | the caller's uid |
+| `studentName` | string | up to 120 characters |
+| `section` | string | must match the student profile |
+| `score` | int | 0–100 (the drill's final score) |
+| `completionTime` | int | seconds used, 0–7200 |
+| `attempts` | int | always 1 |
+| `stage` | string | `Cognitive` (<70), `Associative` (70–87), `Autonomous` (88+) |
+| `essentials`, `essentialsMax` | int | 0 ≤ essentials ≤ essentialsMax ≤ 100 |
+| `errors` | int | unnecessary items + wrong answers + 1 if over weight |
+| `createdAt`, `updatedAt` | server timestamp | must be `FieldValue.ServerTimestamp` |
 
-- Firebase Auth
-- Firebase Firestore
+No other fields are accepted. The session must be `active`, or have ended less than 10 minutes
+ago (a run that finished as the teacher stopped it).
 
-## Drop-in Unity script
+## Indexes
 
-Create a script like `FirebaseSessionResults.cs`:
-
-```csharp
-using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
-using Firebase;
-using Firebase.Auth;
-using Firebase.Firestore;
-using UnityEngine;
-
-public class FirebaseSessionResults : MonoBehaviour
-{
-    private FirebaseFirestore db;
-    private FirebaseAuth auth;
-
-    async void Start()
-    {
-        var dependencyStatus = await FirebaseApp.CheckAndFixDependenciesAsync();
-        if (dependencyStatus != DependencyStatus.Available)
-        {
-            Debug.LogError("Firebase dependencies are not available.");
-            return;
-        }
-
-        db = FirebaseFirestore.DefaultInstance;
-        auth = FirebaseAuth.DefaultInstance;
-        Debug.Log("Firebase ready.");
-    }
-
-    [Serializable]
-    public class SessionResultData
-    {
-        public string sessionId;
-        public string sessionCode;
-        public string teacherId;
-        public string studentId;
-        public string studentName;
-        public string section;
-        public int score;
-        public float completionTime;
-        public int attempts;
-        public string stage;
-        public int essentials;
-        public int essentialsMax;
-        public int errors;
-        public string difficulty;
-    }
-
-    public async Task<string> SubmitSessionResultAsync(SessionResultData result)
-    {
-        if (db == null)
-        {
-            throw new InvalidOperationException("Firestore is not initialized.");
-        }
-
-        var payload = new Dictionary<string, object>
-        {
-            { "sessionId", result.sessionId },
-            { "sessionCode", result.sessionCode },
-            { "teacherId", result.teacherId },
-            { "studentId", result.studentId },
-            { "studentName", result.studentName },
-            { "section", result.section },
-            { "score", result.score },
-            { "completionTime", result.completionTime },
-            { "attempts", result.attempts },
-            { "stage", result.stage },
-            { "essentials", result.essentials },
-            { "essentialsMax", result.essentialsMax },
-            { "errors", result.errors },
-            { "difficulty", result.difficulty },
-            { "createdAt", Timestamp.Now },
-            { "updatedAt", Timestamp.Now }
-        };
-
-        DocumentReference doc = await db.Collection("sessionResults").AddAsync(payload);
-        Debug.Log($"Session result saved: {doc.Id}");
-        return doc.Id;
-    }
-
-    public async Task<List<Dictionary<string, object>>> LoadTeacherResultsAsync(string teacherId, int limitCount = 50)
-    {
-        if (db == null)
-        {
-            throw new InvalidOperationException("Firestore is not initialized.");
-        }
-
-        Query query = db.Collection("sessionResults")
-            .WhereEqualTo("teacherId", teacherId)
-            .OrderByDescending("createdAt")
-            .Limit(limitCount);
-
-        QuerySnapshot snapshot = await query.GetSnapshotAsync();
-        var results = new List<Dictionary<string, object>>();
-
-        foreach (DocumentSnapshot doc in snapshot.Documents)
-        {
-            results.Add(doc.ToDictionary());
-        }
-
-        return results;
-    }
-}
-```
-
-## Example usage
-
-```csharp
-public async void SaveResult()
-{
-    var service = FindObjectOfType<FirebaseSessionResults>();
-
-    var data = new FirebaseSessionResults.SessionResultData
-    {
-        sessionId = "session_001",
-        sessionCode = "ABC12",
-        teacherId = "teacher_uid",
-        studentId = "student_uid",
-        studentName = "Juan Dela Cruz",
-        section = "Grade 6 - Sampaguita",
-        score = 85,
-        completionTime = 150,
-        attempts = 1,
-        stage = "Associative",
-        essentials = 12,
-        essentialsMax = 15,
-        errors = 2,
-        difficulty = "beginner"
-    };
-
-    await service.SubmitSessionResultAsync(data);
-}
-```
-
-## Unity notes
-
-- Make sure the player is signed in before writing if your Firestore rules require `request.auth != null`.
-- If Unity will write directly from clients, keep rules tight and only allow the fields you expect.
-- If you want stronger security, move the write behind a Cloud Function and let Unity call that instead.
-
-## Recommended flow
-
-1. Teacher starts a session in the dashboard.
-2. Unity reads the `sessionCode`.
-3. Student joins and plays.
-4. Unity writes one `sessionResults` document per completed run.
-5. Teacher/admin dashboards can read results for reports and exports.
-
-## CSV export from Unity side
-
-If you want a local CSV export in Unity too, use the same field order as the Firestore document and write the rows to `Application.persistentDataPath`.
-
-## Indexes to keep
-
-For the current app, keep this composite index for results queries:
-
-- `sessionResults` with `teacherId` ascending and `createdAt` descending
-
-If you query results by section across the school, Firestore may suggest a separate index later.
+Teacher reports query `sessionResults` by `teacherId` (plus `sessionId` for single-session
+exports). Keep the `teacherId` + `createdAt` composite index in `firestore.indexes.json`.

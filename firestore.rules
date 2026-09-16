@@ -1,50 +1,149 @@
-// Firestore security rules - admins collection pattern
+// Firestore security rules
+//
+// Who can do what:
+//   admin    - a signed-in user with a document in /admins/{uid}
+//   teacher  - a signed-in user with a document in /teachers/{uid}
+//   student  - a signed-in user whose /students doc has authUid == their uid
+//
+// Passwords never live in teacher/student documents (those are readable by the
+// teacher and the student themselves). The admin dashboard keeps them in
+// /accountSecrets, which only admins can read.
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // helper functions
-    function isAuthenticated() { return request.auth != null; }
-    function isAdmin() { return isAuthenticated() && exists(/databases/$(database)/documents/admins/$(request.auth.uid)); }
-
-    // TEACHERS: admins create/delete; teacher can update own doc; everyone authenticated can read
-    match /teachers/{teacherId} {
-      allow read: if isAuthenticated();
-      allow create: if isAdmin();
-      allow delete: if isAdmin();
-      allow update: if isAdmin() || (isAuthenticated() && request.auth.uid == teacherId);
+    function signedIn() { return request.auth != null; }
+    function isAdmin() {
+      return signedIn() && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+    function isTeacher() {
+      return signedIn() && exists(/databases/$(database)/documents/teachers/$(request.auth.uid));
+    }
+    function changedKeys() {
+      return request.resource.data.diff(resource.data).affectedKeys();
+    }
+    // A plaintext password may not be added to (or changed on) a profile document.
+    // An old one may still be removed, which is what the admin dashboard's cleanup does.
+    function noNewPassword() {
+      return !('password' in request.resource.data)
+        || (resource != null && 'password' in resource.data
+            && request.resource.data.password == resource.data.password);
     }
 
-    // STUDENTS: admins or the teacher assigned in the document can create/update/delete
-    match /students/{studentId} {
-      allow read: if isAuthenticated();
-      allow create: if isAuthenticated() && (isAdmin() || request.auth.uid == request.resource.data.teacherId);
-      allow update: if isAuthenticated() && (isAdmin() || request.auth.uid == resource.data.teacherId || request.auth.uid == resource.data.authUid);
-      allow delete: if isAuthenticated() && (isAdmin() || request.auth.uid == resource.data.teacherId);
-    }
-
-    // SESSIONS: authenticated users can read/create/update (for joining); only admin/teacher can delete
-    match /sessions/{sessionId} {
-      allow read: if isAuthenticated();
-      allow create: if isAuthenticated();
-      allow update: if isAuthenticated();
-      allow delete: if isAdmin() || (isAuthenticated() && request.auth.uid == resource.data.teacherId);
-    }
-
-    // SESSION RESULTS: authenticated users can read/write (for recording game results)
-    match /sessionResults/{resultId} {
-      allow read: if isAuthenticated();
-      allow create: if isAuthenticated();
-      allow update: if isAuthenticated() && (isAdmin() || request.auth.uid == resource.data.studentId || request.auth.uid == resource.data.teacherId);
-      allow delete: if isAdmin();
-    }
-
-    // Admins collection (readable only by admins)
+    // ---- ADMINS --------------------------------------------------------------
+    // A user may check whether they themselves are an admin (the login page does).
     match /admins/{adminId} {
-      allow read: if isAdmin();
-      allow create: if isAdmin();
+      allow get: if signedIn() && request.auth.uid == adminId;
+      allow list, write: if isAdmin();
+    }
+
+    // ---- ACCOUNT SECRETS (admin-only password vault) -------------------------
+    match /accountSecrets/{uid} {
+      allow read, write: if isAdmin();
+    }
+
+    // ---- TEACHERS ------------------------------------------------------------
+    // Doc id is the teacher's Auth uid.
+    match /teachers/{teacherId} {
+      allow get: if isAdmin() || (signedIn() && request.auth.uid == teacherId);
+      allow list: if isAdmin();
+      allow create: if isAdmin() && noNewPassword();
+      allow update: if (isAdmin() && noNewPassword())
+        // A teacher may only stamp their own activity times
+        || (signedIn() && request.auth.uid == teacherId
+            && changedKeys().hasOnly(['lastSessionCreatedAt', 'updatedAt']));
+      allow delete: if isAdmin();
+    }
+
+    // ---- STUDENTS ------------------------------------------------------------
+    match /students/{studentId} {
+      allow read: if isAdmin()
+        || (signedIn() && resource.data.teacherId == request.auth.uid)
+        || (signedIn() && resource.data.authUid == request.auth.uid);
+      allow create: if isAdmin() && noNewPassword();
+      allow update: if isAdmin() && noNewPassword();
+      allow delete: if isAdmin();
+    }
+
+    // ---- SESSIONS ------------------------------------------------------------
+    // Any signed-in user may look a session up by its code (that is how students
+    // join). Only the owning teacher changes it, except for a student adding
+    // themselves to playersList.
+    match /sessions/{sessionId} {
+      allow read: if signedIn();
+      allow create: if isTeacher()
+        && request.resource.data.teacherId == request.auth.uid
+        && request.resource.data.status == 'waiting';
+      allow update: if isAdmin()
+        || (signedIn() && resource.data.teacherId == request.auth.uid
+            && request.resource.data.teacherId == request.auth.uid)
+        || isSelfJoin();
+      allow delete: if isAdmin() || (signedIn() && resource.data.teacherId == request.auth.uid);
+
+      // Exactly one entry appended to the end of playersList, and it is the caller
+      function isSelfJoin() {
+        let before = resource.data.get('playersList', []);
+        let after = request.resource.data.get('playersList', []);
+        return signedIn()
+          && resource.data.status in ['waiting', 'active']
+          && changedKeys().hasOnly(['playersList'])
+          && after.size() == before.size() + 1
+          && after[0:before.size()] == before
+          && after[before.size()] is map
+          && after[before.size()].keys().hasOnly(['studentId', 'username', 'uid', 'joinedAt'])
+          && after[before.size()].uid == request.auth.uid;
+      }
+    }
+
+    // ---- SESSION RESULTS -----------------------------------------------------
+    // Written by the game, once per student per session: the doc id is
+    // "{sessionId}_{studentId}", so a second write is an update and is refused.
+    match /sessionResults/{resultId} {
+      allow read: if isAdmin()
+        || (signedIn() && resource.data.teacherId == request.auth.uid)
+        || (signedIn() && resource.data.get('studentUid', '') == request.auth.uid);
+      allow create: if isValidResult(resultId);
       allow update: if isAdmin();
       allow delete: if isAdmin();
+
+      function isValidResult(resultId) {
+        let d = request.resource.data;
+        let session = get(/databases/$(database)/documents/sessions/$(d.sessionId)).data;
+        let student = get(/databases/$(database)/documents/students/$(d.studentId)).data;
+        return signedIn()
+          && d.keys().hasAll(['sessionId', 'sessionCode', 'teacherId', 'studentId', 'studentUid',
+                              'studentName', 'section', 'score', 'completionTime', 'attempts',
+                              'stage', 'essentials', 'essentialsMax', 'errors', 'difficulty',
+                              'createdAt', 'updatedAt'])
+          && d.keys().hasOnly(['sessionId', 'sessionCode', 'teacherId', 'studentId', 'studentUid',
+                               'studentName', 'section', 'score', 'completionTime', 'attempts',
+                               'stage', 'essentials', 'essentialsMax', 'errors', 'difficulty',
+                               'createdAt', 'updatedAt'])
+          && resultId == d.sessionId + '_' + d.studentId
+          // The caller is the student, writing into their own record
+          && d.studentUid == request.auth.uid
+          && student.authUid == request.auth.uid
+          && d.section == student.section
+          // The session is real, and the result carries its own teacher / code / level
+          && d.teacherId == session.teacherId
+          && d.sessionCode == session.sessionCode
+          && d.difficulty == session.difficulty
+          // Still running, or stopped only moments ago (a run that finished as it ended)
+          && (session.status == 'active'
+              || (session.status == 'ended' && 'endedAt' in session
+                  && request.time < session.endedAt + duration.value(10, 'm')))
+          // Values in range
+          && d.studentName is string && d.studentName.size() <= 120
+          && d.score is int && d.score >= 0 && d.score <= 100
+          && d.completionTime is int && d.completionTime >= 0 && d.completionTime <= 7200
+          && d.attempts == 1
+          && d.stage in ['Cognitive', 'Associative', 'Autonomous']
+          && d.essentialsMax is int && d.essentialsMax > 0 && d.essentialsMax <= 100
+          && d.essentials is int && d.essentials >= 0 && d.essentials <= d.essentialsMax
+          && d.errors is int && d.errors >= 0 && d.errors <= 200
+          && d.createdAt == request.time
+          && d.updatedAt == request.time;
+      }
     }
   }
 }

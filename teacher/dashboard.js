@@ -71,6 +71,17 @@ window.addEventListener('load', () => {
   teacherId = sessionStorage.getItem('teacherId');
   teacherSection = section;
 
+  // Every read is checked against the signed-in teacher: with no Firebase session there is
+  // nothing to show, so go back to the login page
+  if (window.authReadyPromise) {
+    window.authReadyPromise.then((user) => {
+      if (window.auth && (!user || user.uid !== teacherId)) {
+        sessionStorage.clear();
+        window.location.href = '../index.html';
+      }
+    });
+  }
+
   // Load student count for this teacher
   loadTeacherStudentCount();
 
@@ -116,8 +127,9 @@ function showTeacherOfflineFallback() {
 function loadTeacherStudentCount() {
   // Ensure Firebase is initialized before attaching listener
   (async () => {
-    if (!window.firebaseReady && window.firebaseInitPromise) {
-      await window.firebaseInitPromise;
+    // Reads are checked against the signed-in teacher, so wait for Auth, not just the SDK
+    if (window.authReadyPromise) {
+      await window.authReadyPromise;
     }
 
     if (!teacherId) return;
@@ -222,8 +234,9 @@ function filterResults(query) {
 /* ---- LOAD RECENT ACTIVITY ---- */
 function loadTeacherRecentActivity() {
   (async () => {
-    if (!window.firebaseReady && window.firebaseInitPromise) {
-      await window.firebaseInitPromise;
+    // Reads are checked against the signed-in teacher, so wait for Auth, not just the SDK
+    if (window.authReadyPromise) {
+      await window.authReadyPromise;
     }
 
     if (!teacherId) return;
@@ -276,16 +289,18 @@ function loadTeacherRecentActivity() {
           const dateSource = session.startedAt || session.updatedAt || session.createdAt;
           const date = dateSource ? new Date(dateSource.toDate()).toLocaleDateString('en-US', {month: 'short', day: 'numeric'}) : 'Unknown';
           const difficulty = session.difficulty || 'Unknown';
-          const playerCount = session.playersList ? session.playersList.length : 0;
+          const playerCount = countJoinedPlayers(session.playersList);
           const started = session.status === 'active' || !!session.startedAt;
           const statusLabel = started ? 'Started' : 'Created';
           const meta = teacherSection || 'Unknown section';
+          // Sessions from before the bag picker used the standard bag
+          const bagLabel = { small: 'Small Bag', medium: 'Medium Bag' }[session.bagType] || 'Standard Bag';
 
           return `<div class="session-card${started ? '' : ' is-created'}">
             <div class="session-card-date">\u25cf ${esc(date)}</div>
             <div class="session-card-who">${esc(meta)}</div>
             <div class="session-card-title">${statusLabel} ${esc(difficulty.charAt(0).toUpperCase() + difficulty.slice(1))} Session</div>
-            <div class="session-card-meta">Code: <b>${esc(session.sessionCode || '')}</b> (${playerCount} student${playerCount === 1 ? '' : 's'})</div>
+            <div class="session-card-meta">Code: <b>${esc(session.sessionCode || '')}</b> (${playerCount} student${playerCount === 1 ? '' : 's'}) &middot; ${esc(bagLabel)}</div>
             <div class="session-card-actions">
               <button class="session-link" onclick="viewTeacherSessionReport('${jsArg(entry.id)}','${jsArg(session.sessionCode || '')}','${jsArg(difficulty)}','${jsArg(meta)}')">\u25a4 Click to view report for this session</button>
               <button class="session-export" onclick="exportSingleTeacherSessionCsv('${jsArg(entry.id)}','${jsArg(session.sessionCode || '')}')">\u2b07 EXPORT CSV</button>
@@ -348,8 +363,9 @@ function syncTeacherSessionScopeBanner() {
    ============================================================================ */
 function loadTeacherReports() {
   (async () => {
-    if (!window.firebaseReady && window.firebaseInitPromise) {
-      await window.firebaseInitPromise;
+    // Reads are checked against the signed-in teacher, so wait for Auth, not just the SDK
+    if (window.authReadyPromise) {
+      await window.authReadyPromise;
     }
     if (!teacherId || !window.db || !window.RSBAnalytics) return;
 
@@ -659,8 +675,8 @@ async function exportTeacherSessionResultsCsv() {
 // After Firebase initializes, if the restored page is REPORTS, load recent
 // activity. This used to sit at the bottom of exportTeacherSessionResultsCsv(),
 // where it only ran if the teacher happened to click Export.
-if (window.firebaseInitPromise) {
-  window.firebaseInitPromise.then(() => {
+if (window.authReadyPromise) {
+  window.authReadyPromise.then(() => {
     try {
       const isReports = document.getElementById('page-reports')?.classList.contains('active');
       if (isReports) loadTeacherRecentActivity();
@@ -701,7 +717,10 @@ function teacherResultCsvRow(doc) {
 async function exportSingleTeacherSessionCsv(sessionId, sessionCode) {
   if (!window.db) { showToast('Firebase not initialized.', 'error'); return; }
   try {
-    const snap = await window.db.collection('sessionResults').where('sessionId', '==', sessionId).get();
+    // The teacherId filter is required: the rules only let a teacher query their own results
+    const snap = await window.db.collection('sessionResults')
+      .where('teacherId', '==', teacherId)
+      .where('sessionId', '==', sessionId).get();
     if (snap.empty) { showToast('No results recorded for this session yet.', 'error'); return; }
     const rows = [TEACHER_RESULT_CSV_HEADER];
     snap.forEach(doc => rows.push(teacherResultCsvRow(doc)));
@@ -721,7 +740,9 @@ async function exportRecentTeacherSessionsCsv() {
   if (!ids.length) { showToast('No recent sessions to export yet.', 'error'); return; }
   try {
     // Firestore caps an 'in' query at 10 values; this list is capped at 5.
-    const snap = await window.db.collection('sessionResults').where('sessionId', 'in', ids).get();
+    const snap = await window.db.collection('sessionResults')
+      .where('teacherId', '==', teacherId)
+      .where('sessionId', 'in', ids).get();
     if (snap.empty) { showToast('No results recorded for these sessions yet.', 'error'); return; }
     const rows = [TEACHER_RESULT_CSV_HEADER];
     snap.forEach(doc => rows.push(teacherResultCsvRow(doc)));

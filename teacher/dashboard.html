@@ -262,6 +262,29 @@
               <div class="diff-desc">For experienced students only</div>
             </div>
           </label>
+
+          <!-- Go-bag the whole class packs this session -->
+          <div class="bag-picker-title">GO-BAG FOR THIS SESSION</div>
+          <div class="bag-options">
+            <label class="diff-option bag-option selected" id="bag-standard">
+              <input type="radio" name="bagType" value="standard" checked onchange="selectBag(this)">
+              <img class="bag-option-img" src="../images/bags/standard-bag.png" alt="">
+              <div class="bag-option-name">Standard</div>
+              <div class="bag-option-desc">Four pockets</div>
+            </label>
+            <label class="diff-option bag-option" id="bag-small">
+              <input type="radio" name="bagType" value="small" onchange="selectBag(this)">
+              <img class="bag-option-img" src="../images/bags/small-bag.png" alt="">
+              <div class="bag-option-name">Small</div>
+              <div class="bag-option-desc">One pocket</div>
+            </label>
+            <label class="diff-option bag-option" id="bag-medium">
+              <input type="radio" name="bagType" value="medium" onchange="selectBag(this)">
+              <img class="bag-option-img" src="../images/bags/medium-bag.png" alt="">
+              <div class="bag-option-name">Medium</div>
+              <div class="bag-option-desc">Three pockets</div>
+            </label>
+          </div>
         </div>
 
         <!-- Step 2: Session Code -->

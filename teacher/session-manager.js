@@ -5,6 +5,8 @@
 let currentSessionCode = null;
 let currentSessionId = null;
 let currentDifficulty = 'beginner';
+// Which go-bag the class packs: 'standard' | 'small' | 'medium' (the game's bag order)
+let currentBagType = 'standard';
 let sessionListener = null;
 
 // ---- SESSION STATES ----
@@ -13,7 +15,8 @@ let sessionListener = null;
 // active → launched; everything locked except Stop Session
 
 function applySessionState(state) {
-  const diffInputs      = document.querySelectorAll('input[name="difficulty"]');
+  // Bag options share the .diff-option styling, so they lock along with the difficulty
+  const diffInputs      = document.querySelectorAll('input[name="difficulty"], input[name="bagType"]');
   const diffLabels      = document.querySelectorAll('.diff-option');
   const btnGenerate     = document.getElementById('btn-generate');
   const btnLaunch       = document.getElementById('btn-launch');
@@ -71,6 +74,18 @@ function applySessionState(state) {
   }
 }
 
+// Distinct students in a session's playersList. A student who leaves the join screen and
+// comes back adds a second entry (each carries its own join time), so count them once.
+function countJoinedPlayers(playersList) {
+  if (!Array.isArray(playersList)) return 0;
+  const seen = new Set();
+  playersList.forEach((p) => {
+    const key = p && typeof p === 'object' ? (p.studentId || p.uid || p.username) : p;
+    if (key) seen.add(key);
+  });
+  return seen.size;
+}
+
 // Start in idle state on page load
 document.addEventListener('DOMContentLoaded', () => {
   applySessionState('idle');
@@ -79,9 +94,7 @@ document.addEventListener('DOMContentLoaded', () => {
 // ---- GENERATE CODE ----
 async function generateCode() {
   try {
-    if (!window.firebaseReady) {
-      await window.firebaseInitPromise;
-    }
+    await window.authReadyPromise;
 
     // End any previous pending session before creating a new one
     if (currentSessionId) {
@@ -100,6 +113,8 @@ async function generateCode() {
 
     const selectedDiff = document.querySelector('input[name="difficulty"]:checked');
     const difficulty = selectedDiff ? selectedDiff.value : 'beginner';
+    const selectedBag = document.querySelector('input[name="bagType"]:checked');
+    const bagType = selectedBag ? selectedBag.value : 'standard';
     const teacherId = sessionStorage.getItem('teacherId');
     const timestamp = new Date();
 
@@ -107,6 +122,7 @@ async function generateCode() {
       sessionCode: code,
       teacherId: teacherId,
       difficulty: difficulty,
+      bagType: bagType,
       status: 'waiting',
       playersJoined: 0,
       playersList: [],
@@ -128,6 +144,7 @@ async function generateCode() {
     currentSessionCode = code;
     currentSessionId = sessionRef.id;
     currentDifficulty = difficulty;
+    currentBagType = bagType;
 
     document.getElementById('session-code').textContent = code;
     document.getElementById('code-inline').textContent = code;
@@ -150,7 +167,7 @@ function listenToPlayerJoins() {
   sessionListener = window.db.collection('sessions').doc(currentSessionId).onSnapshot((doc) => {
     if (doc.exists) {
       const data = doc.data();
-      const joinedCount = data.playersList ? data.playersList.length : 0;
+      const joinedCount = countJoinedPlayers(data.playersList);
       document.getElementById('joined-count').textContent = joinedCount;
       document.getElementById('joined-bar').style.width = (joinedCount / 40 * 100) + '%';
 
@@ -171,7 +188,7 @@ async function selectDiff(radio) {
     const difficulty = radio.value;
     currentDifficulty = difficulty;
 
-    document.querySelectorAll('.diff-option').forEach(o => o.classList.remove('selected'));
+    document.querySelectorAll('.diff-option:not(.bag-option)').forEach(o => o.classList.remove('selected'));
     radio.closest('.diff-option').classList.add('selected');
 
     if (currentSessionId) {
@@ -183,6 +200,28 @@ async function selectDiff(radio) {
     }
   } catch (error) {
     console.error('Error updating difficulty:', error);
+  }
+}
+
+// ---- SELECT GO-BAG ----
+// Like difficulty, it can change until the session is launched; the game reads it when
+// the session starts.
+async function selectBag(radio) {
+  try {
+    const bagType = radio.value;
+    currentBagType = bagType;
+
+    document.querySelectorAll('.bag-option').forEach(o => o.classList.remove('selected'));
+    radio.closest('.bag-option').classList.add('selected');
+
+    if (currentSessionId) {
+      await window.db.collection('sessions').doc(currentSessionId).update({
+        bagType: bagType,
+        updatedAt: new Date()
+      });
+    }
+  } catch (error) {
+    console.error('Error updating go-bag:', error);
   }
 }
 

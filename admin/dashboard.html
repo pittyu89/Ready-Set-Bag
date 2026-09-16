@@ -45,6 +45,7 @@
     <div class="avatar-dropdown">
       <button class="topbar-avatar" onclick="toggleAvatarMenu()">SA</button>
       <div class="avatar-menu" id="avatar-menu">
+        <button onclick="openPasswordModal()" class="avatar-menu-item">CHANGE PASSWORD</button>
         <button onclick="logout()" class="avatar-menu-item">LOGOUT</button>
       </div>
     </div>
@@ -443,7 +444,7 @@
     </div>
     <div class="form-group">
       <label class="form-label">ASSIGNED SECTION: *</label>
-      <div style="display:flex;gap:8px;align-items:center;">
+      <div class="section-picker-row">
         <select class="form-select section-select" id="input-section">
         <option value="">Select section...</option>
         <option>G6-Sampaguita</option>
@@ -455,7 +456,7 @@
         <option>G6-Daisies</option>
         <option>G6-Tulips</option>
         </select>
-        <button type="button" class="btn-add" style="background:#8FBF8F;padding:6px 8px;font-size:15px;height:32px;" onclick="promptAddSection()">+ ADD SECTION</button>
+        <button type="button" class="btn-add btn-add-section" onclick="promptAddSection()">+ ADD SECTION</button>
       </div>
     </div>
     <div class="form-group">
@@ -502,9 +503,9 @@
       </div>
       <div class="form-group">
         <label class="form-label">ASSIGN TO TEACHER SECTION: *</label>
-        <div style="display:flex;gap:8px;align-items:center;">
+        <div class="section-picker-row">
           <select class="form-select section-select" id="s-input-section"><option value="">Select section...</option></select>
-          <button type="button" class="btn-add" style="background:#8FBF8F;padding:6px 8px;font-size:15px;height:32px;" onclick="promptAddSection()">+ ADD SECTION</button>
+          <button type="button" class="btn-add btn-add-section" onclick="promptAddSection()">+ ADD SECTION</button>
         </div>
       </div>
       <div class="form-note" id="s-form-note" style="margin-top:0;">&#9888; Default password is Student@123. Username will be auto-generated.</div>
@@ -519,9 +520,9 @@
       <div class="modal-section-label">CSV FORMAT: first_name,last_name (one per line)</div>
       <div class="form-group">
         <label class="form-label">ASSIGN TO TEACHER SECTION: *</label>
-        <div style="display:flex;gap:8px;align-items:center;">
+        <div class="section-picker-row">
           <select class="form-select section-select" id="s-csv-section"><option value="">Select section...</option></select>
-          <button type="button" class="btn-add" style="background:#8FBF8F;padding:6px 8px;font-size:15px;height:32px;" onclick="promptAddSection()">+ ADD SECTION</button>
+          <button type="button" class="btn-add btn-add-section" onclick="promptAddSection()">+ ADD SECTION</button>
         </div>
       </div>
       <div class="form-group">
@@ -536,6 +537,32 @@
         <button class="btn-cancel" onclick="closeStudentModal()">CANCEL</button>
         <button class="btn-create" id="s-import-btn" disabled onclick="importAdminStudentsFromCSV()">IMPORT STUDENTS</button>
       </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- Change Admin Password Modal -->
+<div class="modal-overlay" id="password-modal-overlay" onclick="closePasswordModalOutside(event)">
+  <div class="modal" style="max-width:460px;">
+    <div class="modal-title">CHANGE ADMIN PASSWORD</div>
+    <button class="modal-close" onclick="closePasswordModal()">&#10005;</button>
+    <div class="form-group">
+      <label class="form-label">CURRENT PASSWORD: *</label>
+      <input class="form-input" type="password" id="pw-current" autocomplete="current-password">
+    </div>
+    <div class="form-group">
+      <label class="form-label">NEW PASSWORD: *</label>
+      <input class="form-input" type="password" id="pw-new" autocomplete="new-password">
+    </div>
+    <div class="form-group">
+      <label class="form-label">CONFIRM NEW PASSWORD: *</label>
+      <input class="form-input" type="password" id="pw-confirm" autocomplete="new-password">
+    </div>
+    <div class="form-note">&#9888; AT LEAST 8 CHARACTERS. YOU'LL USE IT THE NEXT TIME YOU LOG IN.</div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closePasswordModal()">CANCEL</button>
+      <button class="btn-create" id="pw-submit-btn" onclick="changeAdminPassword()">UPDATE PASSWORD</button>
     </div>
   </div>
 </div>

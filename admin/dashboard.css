@@ -624,6 +624,29 @@ body {
 
 .btn-add:hover { filter: brightness(1.1); }
 
+/* Section dropdown + "+ ADD SECTION" in the teacher/student forms: the button keeps to one
+   line and stretches to the dropdown's height instead of overflowing a fixed-height box */
+.section-picker-row {
+  display: flex;
+  align-items: stretch;
+  gap: 10px;
+}
+
+.section-picker-row .form-select { flex: 1; min-width: 0; }
+
+.btn-add.btn-add-section {
+  flex-shrink: 0;
+  width: auto;                 /* the small-screen .btn-add rule makes buttons full width */
+  justify-content: center;
+  padding: 0 14px;
+  margin-right: 3px;           /* room for the shadow */
+  background: #8FBF8F;
+  color: #1a1a1a;
+  font-size: 13px;
+  white-space: nowrap;
+  box-shadow: 3px 3px 0px #000;
+}
+
 .teacher-table-panel {
   background: var(--bg-panel);
   padding: 20px;

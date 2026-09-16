@@ -1,0 +1,12 @@
+{
+  "name": "ready-set-bag-rules-tests",
+  "private": true,
+  "description": "Firestore security rules tests. Runs against the local emulator only.",
+  "scripts": {
+    "test": "firebase emulators:exec --only firestore --project demo-readysetbag \"node --test firestore.rules.test.js\""
+  },
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "^5.0.2",
+    "firebase": "^12.19.0"
+  }
+}
