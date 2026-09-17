@@ -68,7 +68,7 @@ service cloud.firestore {
     // ---- SESSIONS ------------------------------------------------------------
     // Any signed-in user may look a session up by its code (that is how students
     // join). Only the owning teacher changes it, except for a student adding
-    // themselves to playersList.
+    // themselves to playersList (and their uid to playerUids).
     match /sessions/{sessionId} {
       allow read: if signedIn();
       allow create: if isTeacher()
@@ -86,24 +86,39 @@ service cloud.firestore {
         let after = request.resource.data.get('playersList', []);
         return signedIn()
           && resource.data.status in ['waiting', 'active']
-          && changedKeys().hasOnly(['playersList'])
+          && changedKeys().hasOnly(['playersList', 'playerUids'])
           && after.size() == before.size() + 1
           // Nobody already in the list was changed. Skipped for an empty list: a [0:0] slice
           // is an index-out-of-bounds error in the rules language, which denied the first join.
           && (before.size() == 0 || after[0:before.size()] == before)
           && after[before.size()] is map
           && after[before.size()].keys().hasOnly(['studentId', 'username', 'uid', 'joinedAt'])
-          && after[before.size()].uid == request.auth.uid;
+          && after[before.size()].uid == request.auth.uid
+          && isSelfUidAdded();
+      }
+
+      // playerUids is a plain list of the joined students' uids, so the results rules can check
+      // membership (they can't search the maps in playersList). A join may leave it alone (older
+      // game builds, or a rejoin already listed) or add only the caller's own uid.
+      function isSelfUidAdded() {
+        let before = resource.data.get('playerUids', []);
+        let after = request.resource.data.get('playerUids', []);
+        return after == before
+          || (!(request.auth.uid in before) && after == before.concat([request.auth.uid]));
       }
     }
 
     // ---- SESSION RESULTS -----------------------------------------------------
     // Written by the game, once per student per session: the doc id is
     // "{sessionId}_{studentId}", so a second write is an update and is refused.
+    // Students who joined a session can read its results - that is the game's leaderboard.
+    // The game queries with sessionId == ..., which is what lets the list be checked.
     match /sessionResults/{resultId} {
       allow read: if isAdmin()
         || (signedIn() && resource.data.teacherId == request.auth.uid)
-        || (signedIn() && resource.data.get('studentUid', '') == request.auth.uid);
+        || (signedIn() && resource.data.get('studentUid', '') == request.auth.uid)
+        || (signedIn() && request.auth.uid in
+            get(/databases/$(database)/documents/sessions/$(resource.data.sessionId)).data.get('playerUids', []));
       allow create: if isValidResult(resultId);
       allow update: if isAdmin();
       allow delete: if isAdmin();
@@ -120,7 +135,7 @@ service cloud.firestore {
           && d.keys().hasOnly(['sessionId', 'sessionCode', 'teacherId', 'studentId', 'studentUid',
                                'studentName', 'section', 'score', 'completionTime', 'attempts',
                                'stage', 'essentials', 'essentialsMax', 'errors', 'difficulty',
-                               'createdAt', 'updatedAt'])
+                               'createdAt', 'updatedAt', 'timeLeft'])
           && resultId == d.sessionId + '_' + d.studentId
           // The caller is the student, writing into their own record
           && d.studentUid == request.auth.uid
@@ -138,6 +153,8 @@ service cloud.firestore {
           && d.studentName is string && d.studentName.size() <= 120
           && d.score is int && d.score >= 0 && d.score <= 100
           && d.completionTime is int && d.completionTime >= 0 && d.completionTime <= 7200
+          // Exact seconds left on the clock, for the game's leaderboard. Optional: older builds don't send it
+          && (!('timeLeft' in d) || (d.timeLeft is number && d.timeLeft >= 0 && d.timeLeft <= 7200))
           && d.attempts == 1
           && d.stage in ['Cognitive', 'Associative', 'Autonomous']
           && d.essentialsMax is int && d.essentialsMax > 0 && d.essentialsMax <= 100

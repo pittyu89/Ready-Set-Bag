@@ -147,6 +147,21 @@ test('a student can add only themselves to a session', async () => {
   await assertFails(updateDoc(doc(as(STUDENT_UID), 'sessions/endedOld'), { playersList: arrayUnion(me) }));
 });
 
+test('a joining student may add only their own uid to playerUids', async () => {
+  const me = { studentId: 's1', username: 'G6ROSES001', uid: STUDENT_UID, joinedAt: new Date() };
+  const db = as(STUDENT_UID);
+  // The game adds both at once
+  await assertSucceeds(updateDoc(doc(db, 'sessions/waiting1'), { playersList: arrayUnion(me), playerUids: arrayUnion(STUDENT_UID) }));
+  // Someone else's uid, or playerUids on its own, is not a join
+  await assertFails(updateDoc(doc(db, 'sessions/active1'), { playersList: arrayUnion(me), playerUids: arrayUnion(OTHER_STUDENT_UID) }));
+  await assertFails(updateDoc(doc(db, 'sessions/active1'), { playerUids: arrayUnion(STUDENT_UID) }));
+  // Replacing the list (dropping classmates) is refused
+  await env.withSecurityRulesDisabled(async (ctx) => updateDoc(doc(ctx.firestore(), 'sessions/active1'), { playerUids: ['u9'] }));
+  await assertFails(updateDoc(doc(db, 'sessions/active1'), { playersList: arrayUnion(me), playerUids: [STUDENT_UID] }));
+  // Rejoining when already listed leaves playerUids unchanged
+  await assertSucceeds(updateDoc(doc(db, 'sessions/waiting1'), { playersList: arrayUnion({ ...me, joinedAt: new Date(Date.now() + 1000) }), playerUids: arrayUnion(STUDENT_UID) }));
+});
+
 // ---- results ------------------------------------------------------------------------
 
 test('a student can submit one valid result for a session', async () => {
@@ -178,6 +193,14 @@ test('results are rejected when they don\'t match the session, the student or th
   await assertFails(setDoc(doc(anon(), 'sessionResults/endedJust_s1'), result()));
 });
 
+test('a result may carry the exact time left, within range', async () => {
+  const db = as(STUDENT_UID);
+  await assertFails(setDoc(doc(db, 'sessionResults/endedJust_s1'), result({ timeLeft: -1 })));
+  await assertFails(setDoc(doc(db, 'sessionResults/endedJust_s1'), result({ timeLeft: 9000 })));
+  await assertFails(setDoc(doc(db, 'sessionResults/endedJust_s1'), result({ timeLeft: '05:34.45' })));
+  await assertSucceeds(setDoc(doc(db, 'sessionResults/endedJust_s1'), result({ timeLeft: 334.45 })));
+});
+
 test('results in an active session are accepted', async () => {
   await env.withSecurityRulesDisabled(async (ctx) => deleteDoc(doc(ctx.firestore(), 'sessionResults/active1_s1')));
   await assertSucceeds(setDoc(doc(as(STUDENT_UID), 'sessionResults/active1_s1'),
@@ -194,4 +217,22 @@ test('teachers read only their own results; students only their own', async () =
   await assertFails(getDoc(doc(as(STUDENT_UID), 'sessionResults/other_s2')));
   await assertSucceeds(getDocs(collection(as('admin1'), 'sessionResults')));
   await assertFails(deleteDoc(doc(t, 'sessionResults/active1_s1')));
+});
+
+test('students who joined a session can read its leaderboard, nobody else can', async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    const db = ctx.firestore();
+    await updateDoc(doc(db, 'sessions/active1'), { playerUids: [STUDENT_UID, 'u3'] });
+    await setDoc(doc(db, 'sessionResults/active1_s3'), { sessionId: 'active1', teacherId: TEACHER, studentId: 's3', studentUid: 'u3', score: 90 });
+  });
+  const leaderboard = (uid) => getDocs(query(collection(as(uid), 'sessionResults'), where('sessionId', '==', 'active1')));
+  await assertSucceeds(leaderboard(STUDENT_UID));
+  await assertSucceeds(getDoc(doc(as(STUDENT_UID), 'sessionResults/active1_s3')));
+  // Not in the session
+  await assertFails(leaderboard(OTHER_STUDENT_UID));
+  await assertFails(getDoc(doc(as(OTHER_STUDENT_UID), 'sessionResults/active1_s3')));
+  // Joining one session doesn't open up another session's results
+  await assertFails(getDocs(collection(as(STUDENT_UID), 'sessionResults')));
+  await assertFails(getDoc(doc(as(STUDENT_UID), 'sessionResults/other_s2')));
+  await assertFails(leaderboard('u9'));
 });
