@@ -216,7 +216,6 @@ test('teachers read only their own results; students only their own', async () =
   await assertSucceeds(getDoc(doc(as(STUDENT_UID), 'sessionResults/active1_s1')));
   await assertFails(getDoc(doc(as(STUDENT_UID), 'sessionResults/other_s2')));
   await assertSucceeds(getDocs(collection(as('admin1'), 'sessionResults')));
-  await assertFails(deleteDoc(doc(t, 'sessionResults/active1_s1')));
 });
 
 test('students who joined a session can read its leaderboard, nobody else can', async () => {
@@ -235,4 +234,14 @@ test('students who joined a session can read its leaderboard, nobody else can', 
   await assertFails(getDocs(collection(as(STUDENT_UID), 'sessionResults')));
   await assertFails(getDoc(doc(as(STUDENT_UID), 'sessionResults/other_s2')));
   await assertFails(leaderboard('u9'));
+});
+
+// Deleting a session (by hand, or the 5-sessions-per-section cap) removes its scores, so a
+// teacher may delete results from their OWN sessions - never another section's, and a
+// student never. Runs last: it removes fixtures the tests above read.
+test('teachers delete only their own results; students cannot delete results', async () => {
+  await assertFails(deleteDoc(doc(as(STUDENT_UID), 'sessionResults/active1_s1')));
+  await assertFails(deleteDoc(doc(as(TEACHER), 'sessionResults/other_s2')));
+  await assertSucceeds(deleteDoc(doc(as(TEACHER), 'sessionResults/active1_s1')));
+  await assertSucceeds(deleteDoc(doc(as('admin1'), 'sessionResults/other_s2')));
 });
