@@ -118,7 +118,9 @@
         </div>
       </div>
 
-      <div class="home-bottom">
+      <!-- Stacked: Recent Activity spans the full width under the shortcuts,
+           matching the teacher dashboard. -->
+      <div class="home-bottom home-bottom--stacked">
         <div class="home-left">
           <div class="panel">
             <div class="panel-title">SCHOOL-WIDE STATISTICS</div>
@@ -147,12 +149,18 @@
         <div class="panel">
           <div class="activity-panel-head">
             <div class="panel-title" style="margin:0;">RECENT ACTIVITY (LAST 5 SESSIONS)</div>
-            <button class="btn-activity-export" onclick="exportRecentSessionsCsv()">&#11015; EXPORT 5 SESSIONS (CSV)</button>
+            <div class="activity-head-actions">
+              <select class="filter-select activity-section-filter" id="admin-activity-section" aria-label="Show sessions for section" onchange="renderAdminRecentActivity()">
+                <option value="">ALL SECTIONS</option>
+              </select>
+              <button class="btn-activity-export" onclick="exportRecentSessionsCsv()">&#11015; EXPORT 5 SESSIONS (CSV)</button>
+            </div>
           </div>
           <div class="archive-reminder">
             <span>&#9888;</span>
-            <div><strong>Archive Reminder:</strong> Only the 5 most recent sessions are listed below.
-              Export session results regularly to maintain complete school-wide archives.</div>
+            <div><strong>Archive Reminder:</strong> Each section keeps only its 5 most recent sessions. When a 6th is
+              created, the oldest session and all of its student scores are deleted permanently. Export regularly
+              to keep a complete school-wide archive.</div>
           </div>
             <div id="admin-recent-activity" class="activity-scroll">
               <!-- initial loader placeholder: will be replaced by JS when data arrives -->
@@ -586,6 +594,9 @@
 
 <!-- Shared chart renderers -->
 <script src="../dashboard-charts.js"></script>
+
+<!-- Session delete + 5-per-section retention (shared by admin and teacher) -->
+<script src="../session-retention.js"></script>
 
 <!-- Dashboard Script -->
 <script src="dashboard.js"></script>

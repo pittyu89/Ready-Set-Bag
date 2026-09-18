@@ -107,9 +107,15 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 /**
- * A refresh or a closed tab used to forget the running session: the page went back to
- * "generate code" with no way to stop it while students were still playing. Reattach to
- * the teacher's most recent session that hasn't ended.
+ * On page open the Session page always starts blank: a code only appears after the
+ * teacher clicks Generate.
+ *
+ * - A session that was generated but never launched (status 'waiting' - e.g. the tab was
+ *   closed before Launch) is deleted. Otherwise its code would reappear on the next visit
+ *   and, left lying around, would count against the section's 5-session cap.
+ * - A session that was LAUNCHED and is still running ('active') is different: students are
+ *   mid-game, so the page reattaches to it to keep the Stop button reachable. That code was
+ *   generated and launched by the teacher, not produced on their behalf.
  */
 async function restoreOpenSession() {
   try {
@@ -123,8 +129,17 @@ async function restoreOpenSession() {
       .get();
     if (snap.empty || currentSessionId) return;
 
+    // Discard never-launched sessions (they have no results to lose).
+    const waiting = snap.docs.filter(d => d.data().status === 'waiting');
+    for (const d of waiting) {
+      await discardUnlaunchedSession(d.id);
+    }
+
+    const active = snap.docs.filter(d => d.data().status === 'active');
+    if (!active.length || currentSessionId) return;
+
     const millis = (v) => (v && v.toMillis ? v.toMillis() : (v ? new Date(v).getTime() : 0));
-    const latest = snap.docs.slice().sort((a, b) => millis(b.data().createdAt) - millis(a.data().createdAt))[0];
+    const latest = active.slice().sort((a, b) => millis(b.data().createdAt) - millis(a.data().createdAt))[0];
     const s = latest.data();
 
     currentSessionId = latest.id;
@@ -138,9 +153,25 @@ async function restoreOpenSession() {
     checkOption('bagType', currentBagType, '.bag-option');
 
     listenToPlayerJoins();
-    applySessionState(s.status === 'active' ? 'active' : 'ready');
+    applySessionState('active');
   } catch (error) {
     console.warn('Could not restore the open session', error);
+  }
+}
+
+// A generated-but-never-launched session: delete it outright instead of marking it ended.
+// Ending it would leave an empty "Created" session that still counts toward the section's
+// 5-session cap - clicking Regenerate five times would then push real, played sessions
+// (and their scores) out of the cap.
+async function discardUnlaunchedSession(sessionId) {
+  try {
+    if (window.RSBSessions) {
+      await window.RSBSessions.deleteSessionCascade(sessionId, { teacherId: sessionStorage.getItem('teacherId') });
+    } else {
+      await window.db.collection('sessions').doc(sessionId).delete();
+    }
+  } catch (e) {
+    console.warn('Could not discard unlaunched session', sessionId, e);
   }
 }
 
@@ -157,13 +188,11 @@ async function generateCode() {
   try {
     await window.authReadyPromise;
 
-    // End any previous pending session before creating a new one
+    // Regenerating replaces a code that was never launched, so drop that session entirely
+    // (see discardUnlaunchedSession) rather than leaving an empty one behind.
     if (currentSessionId) {
-      await window.db.collection('sessions').doc(currentSessionId).update({
-        status: 'ended',
-        endedAt: new Date()
-      }).catch(() => {});
       if (sessionListener) { sessionListener(); sessionListener = null; }
+      await discardUnlaunchedSession(currentSessionId);
       currentSessionCode = null;
       currentSessionId = null;
     }
@@ -182,6 +211,8 @@ async function generateCode() {
     const sessionRef = await window.db.collection('sessions').add({
       sessionCode: code,
       teacherId: teacherId,
+      // Stored so the admin's Recent Activity can filter by section directly
+      section: sessionStorage.getItem('teacherSection') || '',
       difficulty: difficulty,
       bagType: bagType,
       status: 'waiting',
@@ -212,6 +243,15 @@ async function generateCode() {
 
     listenToPlayerJoins();
     applySessionState('ready');
+
+    // Each section keeps only its 5 newest sessions: creating a 6th permanently deletes the
+    // oldest one together with its students' scores. Runs after the UI is ready so a slow
+    // or failed prune never delays the new code; it simply retries on the next creation.
+    if (window.RSBSessions) {
+      window.RSBSessions.pruneTeacherSessions(teacherId).then((removed) => {
+        if (removed) showToast(`Oldest session${removed === 1 ? '' : 's'} removed (5-session limit).`);
+      });
+    }
 
 
   } catch (error) {

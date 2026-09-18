@@ -493,8 +493,9 @@
         </div>
         <div class="archive-reminder">
           <span>&#9888;</span>
-          <div><strong>Archive Reminder:</strong> Only your 5 most recent sessions are listed below.
-            Export session results regularly to keep a complete class archive.</div>
+          <div><strong>Archive Reminder:</strong> Your section keeps only its 5 most recent sessions. When you create
+            a 6th, the oldest session and all of its student scores are deleted permanently. Export regularly to keep
+            a complete class archive.</div>
         </div>
         <div id="teacher-recent-activity" class="activity-scroll">
           <!-- initial loader placeholder; JS will replace when data arrives -->
@@ -537,6 +538,9 @@
 
 <!-- Shared chart renderers -->
 <script src="../dashboard-charts.js"></script>
+
+<!-- Session delete + 5-per-section retention (shared by admin and teacher) -->
+<script src="../session-retention.js"></script>
 
 <!-- Dashboard Script -->
 <script src="dashboard.js"></script>

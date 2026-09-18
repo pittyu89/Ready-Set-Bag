@@ -2239,9 +2239,9 @@ function loadAdminRecentActivity() {
     window.authReadyPromise.then((user) => { if (user) loadAdminRecentActivity(); });
     return;
   }
-  
+
   if (!window.db) return;
-  
+
   const container = document.getElementById('admin-recent-activity');
   if (!container) return;
 
@@ -2254,89 +2254,132 @@ function loadAdminRecentActivity() {
     adminRecentActivityListener();
     adminRecentActivityListener = null;
   }
-  
-  // Listen to sessions collection for recent activity
+
+  // The section filter needs every section's own latest five, not just the
+  // five newest school-wide, so listen to the whole (small, capped) collection
+  // and slice client-side. Each section is pruned to 5 on creation, so this
+  // stays around 5 x number of sections.
   adminRecentActivityListener = window.db.collection('sessions')
     .orderBy('createdAt', 'desc')
-    .limit(5)
+    .limit(500)
     .onSnapshot(async (snapshot) => {
-      if (snapshot.empty) {
-        container.innerHTML = '<div class="activity-item"><div class="activity-desc">No recent activity</div></div>';
-        return;
-      }
-
-      // Gather teacherIds referenced in these sessions
-      const teacherIds = Array.from(new Set(snapshot.docs.map(d => d.data().teacherId).filter(Boolean)));
-      const teacherMap = {};
+      // Teacher names/sections label the cards and give legacy sessions (made
+      // before sessions stored their own section) a section to filter by.
       try {
-        if (teacherIds.length) {
-          // Firestore 'in' query (safe for up to 10 ids)
-          const tSnap = await window.db.collection('teachers').where(firebase.firestore.FieldPath.documentId(), 'in', teacherIds).get();
-          tSnap.forEach(td => teacherMap[td.id] = td.data());
-        }
+        const tSnap = await window.db.collection('teachers').get();
+        adminActivityTeacherMap = {};
+        tSnap.forEach(td => { adminActivityTeacherMap[td.id] = td.data(); });
       } catch (e) {
-        // ignore lookup errors; we'll fallback to unknown
         console.warn('Failed to load teacher names for recent activity', e);
       }
-
-      // Render each session with teacher name/section when available
-      const recentSessions = snapshot.docs
-        .map((doc) => ({ id: doc.id, data: doc.data() }))
-        .filter((entry) => entry.data.startedAt || entry.data.status === 'active' || entry.data.endedAt)
-        .sort((left, right) => {
-          const leftTime = left.data.startedAt?.toDate?.() || left.data.updatedAt?.toDate?.() || left.data.createdAt?.toDate?.() || new Date(0);
-          const rightTime = right.data.startedAt?.toDate?.() || right.data.updatedAt?.toDate?.() || right.data.createdAt?.toDate?.() || new Date(0);
-          return rightTime - leftTime;
-        });
-
-      // Build the whole list, then write it in one assignment. Appending in a
-      // loop after the `await` above let two overlapping invocations each add
-      // their own five rows, so the panel showed every session twice.
-      const esc = (window.RSBAnalytics && window.RSBAnalytics.esc) || ((s) => s);
-
-      // Cached so the "export these 5" button doesn't have to re-query.
-      adminRecentSessions = recentSessions.map((entry) => {
-        const session = entry.data;
-        const teacher = teacherMap[session.teacherId] || null;
-        return {
-          id: entry.id,
-          code: session.sessionCode || '',
-          difficulty: session.difficulty || '',
-          section: (teacher && teacher.section) || '',
-          teacherLabel: teacher
-            ? `Teacher ${teacher.lastName || teacher.firstName || session.teacherId}`
-            : (session.teacherId || 'Unknown Teacher')
-        };
-      });
-
-      container.innerHTML = recentSessions.map((entry) => {
-        const session = entry.data;
-        const dateSource = session.startedAt || session.updatedAt || session.createdAt;
-        const date = dateSource ? new Date(dateSource.toDate()).toLocaleDateString('en-US', {month: 'short', day: 'numeric'}) : 'Unknown';
-        const difficulty = session.difficulty || 'Unknown';
-        // Distinct students: rejoining the join screen appends a second entry for the same one
-        const playerCount = new Set((session.playersList || [])
-          .map(p => (p && typeof p === 'object') ? (p.studentId || p.uid || p.username) : p)
-          .filter(Boolean)).size;
-        const started = session.status === 'active' || !!session.startedAt;
-        const statusLabel = started ? 'Started' : 'Created';
-        const teacher = teacherMap[session.teacherId] || null;
-        const teacherLabel = teacher ? (`Teacher ${teacher.lastName || teacher.firstName || session.teacherId}`) : (session.teacherId || 'Unknown Teacher');
-        const sectionLabel = teacher && teacher.section ? ` – ${teacher.section}` : '';
-        const meta = `${teacherLabel}${sectionLabel}`;
-
-        return `<div class="session-card${started ? '' : ' is-created'}">
-          <div class="session-card-date">● ${esc(date)}</div>
-          <div class="session-card-who">${esc(meta)}</div>
-          <div class="session-card-title">${statusLabel} ${esc(difficulty.charAt(0).toUpperCase() + difficulty.slice(1))} Session</div>
-          <div class="session-card-meta">Code: <b>${esc(session.sessionCode)}</b> (${playerCount} student${playerCount === 1 ? '' : 's'})</div>
-          <div class="session-card-actions">
-            <button class="session-link" onclick="viewAdminSessionReport('${jsArg(entry.id)}','${jsArg(session.sessionCode || '')}','${jsArg(difficulty)}','${jsArg(meta)}')">▤ Click to view report for this session</button>
-            <button class="session-export" onclick="exportSingleSessionCsv('${jsArg(entry.id)}','${jsArg(session.sessionCode || '')}')">⬇ EXPORT CSV</button>
-          </div>
-        </div>`;
-      }).join('');
+      adminActivitySessions = snapshot.docs.map((doc) => ({ id: doc.id, data: doc.data() }));
+      populateAdminActivitySectionFilter();
+      renderAdminRecentActivity();
+    }, (err) => {
+      console.warn('recent activity listener error', err);
+      container.innerHTML = '<div class="activity-item"><div class="activity-desc">Recent activity unavailable</div></div>';
     });
+}
+
+let adminActivitySessions = [];
+let adminActivityTeacherMap = {};
+
+function adminSessionSection(session) {
+  const teacher = adminActivityTeacherMap[session.teacherId];
+  return session.section || (teacher && teacher.section) || '';
+}
+
+function populateAdminActivitySectionFilter() {
+  const sel = document.getElementById('admin-activity-section');
+  if (!sel) return;
+  const set = new Set();
+  Object.values(adminActivityTeacherMap).forEach(t => { if (t && t.section) set.add(t.section); });
+  adminActivitySessions.forEach(e => { const sec = adminSessionSection(e.data); if (sec) set.add(sec); });
+  const current = sel.value;
+  const esc = (window.RSBAnalytics && window.RSBAnalytics.esc) || ((v) => v);
+  sel.innerHTML = '<option value="">ALL SECTIONS</option>' +
+    Array.from(set).sort().map(sec => `<option value="${esc(sec)}">${esc(sec)}</option>`).join('');
+  // Keep the admin's choice across live updates.
+  if (current && set.has(current)) sel.value = current;
+}
+
+// "All sections" = the five newest sessions school-wide; a picked section =
+// that section's own (up to) five.
+function renderAdminRecentActivity() {
+  const container = document.getElementById('admin-recent-activity');
+  if (!container) return;
+  const section = document.getElementById('admin-activity-section')?.value || '';
+  const esc = (window.RSBAnalytics && window.RSBAnalytics.esc) || ((s) => s);
+  const when = (d) => d.startedAt?.toDate?.() || d.updatedAt?.toDate?.() || d.createdAt?.toDate?.() || new Date(0);
+
+  const recentSessions = adminActivitySessions
+    .filter((entry) => entry.data.startedAt || entry.data.status === 'active' || entry.data.endedAt)
+    .filter((entry) => !section || adminSessionSection(entry.data) === section)
+    .sort((left, right) => when(right.data) - when(left.data))
+    .slice(0, window.RSBSessions ? window.RSBSessions.MAX_SESSIONS : 5);
+
+  // Cached so the "export these 5" button exports exactly what is on screen.
+  adminRecentSessions = recentSessions.map((entry) => ({
+    id: entry.id,
+    code: entry.data.sessionCode || '',
+    difficulty: entry.data.difficulty || '',
+    section: adminSessionSection(entry.data)
+  }));
+
+  if (!recentSessions.length) {
+    container.innerHTML = `<div class="activity-item"><div class="activity-desc">No recent sessions${section ? ' for ' + esc(section) : ''}</div></div>`;
+    return;
+  }
+
+  container.innerHTML = recentSessions.map((entry) => {
+    const session = entry.data;
+    const dateSource = session.startedAt || session.updatedAt || session.createdAt;
+    const date = dateSource ? new Date(dateSource.toDate()).toLocaleDateString('en-US', {month: 'short', day: 'numeric'}) : 'Unknown';
+    const difficulty = session.difficulty || 'Unknown';
+    // Distinct students: rejoining the join screen appends a second entry for the same one
+    const playerCount = new Set((session.playersList || [])
+      .map(p => (p && typeof p === 'object') ? (p.studentId || p.uid || p.username) : p)
+      .filter(Boolean)).size;
+    const started = session.status === 'active' || !!session.startedAt;
+    const statusLabel = session.status === 'active' ? 'Running' : (started ? 'Started' : 'Created');
+    const teacher = adminActivityTeacherMap[session.teacherId] || null;
+    const teacherLabel = teacher ? (`Teacher ${teacher.lastName || teacher.firstName || session.teacherId}`) : (session.teacherId || 'Unknown Teacher');
+    const sec = adminSessionSection(session);
+    const meta = `${teacherLabel}${sec ? ' – ' + sec : ''}`;
+
+    return `<div class="session-card${started ? '' : ' is-created'}">
+      <div class="session-card-date">● ${esc(date)}</div>
+      <div class="session-card-who">${esc(meta)}</div>
+      <div class="session-card-title">${statusLabel} ${esc(difficulty.charAt(0).toUpperCase() + difficulty.slice(1))} Session</div>
+      <div class="session-card-meta">Code: <b>${esc(session.sessionCode)}</b> (${playerCount} student${playerCount === 1 ? '' : 's'})</div>
+      <div class="session-card-actions">
+        <button class="session-link" onclick="viewAdminSessionReport('${jsArg(entry.id)}','${jsArg(session.sessionCode || '')}','${jsArg(difficulty)}','${jsArg(meta)}')">▤ Click to view report for this session</button>
+        <button class="session-export" onclick="exportSingleSessionCsv('${jsArg(entry.id)}','${jsArg(session.sessionCode || '')}')">⬇ EXPORT CSV</button>
+        <button class="session-delete" onclick="deleteAdminSession('${jsArg(entry.id)}','${jsArg(session.sessionCode || '')}','${jsArg(session.status || '')}')">🗑 DELETE</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// Permanent: removes the session AND every student score recorded in it.
+async function deleteAdminSession(sessionId, sessionCode, status) {
+  if (!window.RSBSessions) { showToast('Session tools not loaded.', 'error'); return; }
+  const running = status === 'active' || status === 'waiting';
+  const ok = confirm(
+    `Permanently delete session ${sessionCode || sessionId}?\n\n` +
+    'This also deletes every student score recorded in it. It will disappear from ' +
+    'Reports, the charts and the master CSV, and cannot be undone.' +
+    (running ? '\n\nThis session is still open — students in it will be disconnected.' : '')
+  );
+  if (!ok) return;
+  try {
+    const removed = await window.RSBSessions.deleteSessionCascade(sessionId);
+    if (adminSessionScope && adminSessionScope.sessionId === sessionId) clearAdminSessionScope();
+    showToast(`Session deleted (${removed} score${removed === 1 ? '' : 's'} removed).`);
+  } catch (err) {
+    console.error('Delete session failed', err);
+    showToast('Could not delete session: ' + err.message, 'error');
+  }
 }
 
 /* ============================================================================
