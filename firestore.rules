@@ -121,7 +121,9 @@ service cloud.firestore {
             get(/databases/$(database)/documents/sessions/$(resource.data.sessionId)).data.get('playerUids', []));
       allow create: if isValidResult(resultId);
       allow update: if isAdmin();
-      allow delete: if isAdmin();
+      // A teacher may delete results from their own sessions: deleting a session (manually,
+      // or the automatic 5-sessions-per-section cap) removes its scores with it.
+      allow delete: if isAdmin() || (signedIn() && resource.data.teacherId == request.auth.uid);
 
       function isValidResult(resultId) {
         let d = request.resource.data;

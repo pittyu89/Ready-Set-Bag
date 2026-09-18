@@ -348,6 +348,7 @@ function loadTeacherRecentActivity() {
             <div class="session-card-actions">
               <button class="session-link" onclick="viewTeacherSessionReport('${jsArg(entry.id)}','${jsArg(session.sessionCode || '')}','${jsArg(difficulty)}','${jsArg(meta)}')">\u25a4 Click to view report for this session</button>
               <button class="session-export" onclick="exportSingleTeacherSessionCsv('${jsArg(entry.id)}','${jsArg(session.sessionCode || '')}')">\u2b07 EXPORT CSV</button>
+              <button class="session-delete" onclick="deleteTeacherSession('${jsArg(entry.id)}','${jsArg(session.sessionCode || '')}','${jsArg(session.status || '')}')">\ud83d\uddd1 DELETE</button>
             </div>
           </div>`;
         }).join('');
@@ -778,6 +779,36 @@ function teacherResultCsvRow(doc) {
 
 // One session's results. Keyed on sessionId rather than sessionCode because
 // codes are short and get reused across terms.
+// Permanent: removes the session AND every student score recorded in it.
+async function deleteTeacherSession(sessionId, sessionCode, status) {
+  if (!window.RSBSessions) { showToast('Session tools not loaded.', 'error'); return; }
+  const running = status === 'active' || status === 'waiting';
+  const ok = confirm(
+    `Permanently delete session ${sessionCode || sessionId}?\n\n` +
+    'This also deletes every student score recorded in it. It will disappear from ' +
+    'your reports, the charts and the master CSV, and cannot be undone.' +
+    (running ? '\n\nThis session is still open \u2014 students in it will be disconnected.' : '')
+  );
+  if (!ok) return;
+  try {
+    const removed = await window.RSBSessions.deleteSessionCascade(sessionId, { teacherId });
+    // Deleting the session the Session page is running resets that page, or
+    // its buttons would keep acting on a session that no longer exists.
+    if (typeof currentSessionId !== 'undefined' && currentSessionId === sessionId) {
+      if (sessionListener) { sessionListener(); sessionListener = null; }
+      currentSessionId = null;
+      currentSessionCode = null;
+      updateJoinedDisplay(0);
+      applySessionState('idle');
+    }
+    if (teacherSessionScope && teacherSessionScope.sessionId === sessionId) clearTeacherSessionScope();
+    showToast(`Session deleted (${removed} score${removed === 1 ? '' : 's'} removed).`);
+  } catch (err) {
+    console.error('Delete session failed', err);
+    showToast('Could not delete session: ' + err.message, 'error');
+  }
+}
+
 async function exportSingleTeacherSessionCsv(sessionId, sessionCode) {
   if (!window.db) { showToast('Firebase not initialized.', 'error'); return; }
   try {

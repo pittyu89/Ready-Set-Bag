@@ -1598,3 +1598,13 @@ tbody td {
   background: #2d6e2d !important;
   color: #aaffaa !important;
 }
+
+/* Home: Recent Activity sits full-width BELOW the stats + shortcuts instead of
+   in a side column. Two classes so it outranks every breakpoint's
+   .home-bottom grid-template-columns without !important. */
+.home-bottom.home-bottom--stacked {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+.home-bottom.home-bottom--stacked > * { align-self: stretch; width: 100%; }

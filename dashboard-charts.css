@@ -501,6 +501,31 @@
 
 .session-export:hover { background: var(--chart-good); color: #111; }
 
+/* Delete is permanent (session + its scores), so it reads as danger and sits
+   last in the row, away from the everyday actions. */
+.session-delete {
+  background: #1f1f1f;
+  border: 2px solid var(--chart-bad);
+  color: var(--chart-bad);
+  font-family: var(--pixel);
+  font-weight: 600;
+  font-size: 10px;
+  letter-spacing: 1px;
+  padding: 6px 9px;
+  cursor: pointer;
+}
+
+.session-delete:hover { background: var(--chart-bad); color: #fff; }
+
+.activity-head-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.activity-section-filter { min-width: 170px; }
+
 .btn-activity-export {
   background: #2f6b2f;
   border: 2px solid #000;
