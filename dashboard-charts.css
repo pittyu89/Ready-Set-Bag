@@ -526,6 +526,41 @@
 
 .activity-section-filter { min-width: 170px; }
 
+/* Session page: offer (never force) a return to a session that may still be live. */
+.resume-session-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  background: rgba(232, 179, 44, 0.12);
+  border: 2px solid var(--chart-warn);
+  padding: 10px 12px;
+  margin-bottom: 16px;
+  font-family: var(--mono);
+  font-size: 14px;
+  color: #222;
+}
+
+.resume-session-banner span { flex: 1; min-width: 200px; }
+
+.btn-resume,
+.btn-end-open {
+  border: 2px solid #000;
+  box-shadow: 2px 2px 0 #000;
+  color: #fff;
+  font-family: var(--pixel);
+  font-weight: 600;
+  font-size: 11px;
+  letter-spacing: 1px;
+  padding: 7px 11px;
+  cursor: pointer;
+}
+
+.btn-resume { background: #2f8f4f; }
+.btn-end-open { background: #b03a3a; }
+.btn-resume:active,
+.btn-end-open:active { box-shadow: none; transform: translate(2px, 2px); }
+
 .btn-activity-export {
   background: #2f6b2f;
   border: 2px solid #000;

@@ -222,6 +222,14 @@
         <h1>START NEW GAME SESSION</h1>
       </div>
 
+      <!-- Shown only when a session launched in the last few minutes may still be running.
+           The page never reattaches on its own; the teacher decides. -->
+      <div class="resume-session-banner" id="resume-session-banner" style="display:none;">
+        <span id="resume-session-text">A session you launched may still be running.</span>
+        <button class="btn-resume" onclick="resumeOpenSession()">&#9654; RESUME IT</button>
+        <button class="btn-end-open" onclick="endOpenSession()">&#9632; END IT</button>
+      </div>
+
       <div class="session-setup">
         <!-- Step 1: Difficulty -->
         <div class="setup-card blue-bar">

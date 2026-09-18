@@ -113,9 +113,9 @@ document.addEventListener('DOMContentLoaded', () => {
  * - A session that was generated but never launched (status 'waiting' - e.g. the tab was
  *   closed before Launch) is deleted. Otherwise its code would reappear on the next visit
  *   and, left lying around, would count against the section's 5-session cap.
- * - A session that was LAUNCHED and is still running ('active') is different: students are
- *   mid-game, so the page reattaches to it to keep the Stop button reachable. That code was
- *   generated and launched by the teacher, not produced on their behalf.
+ * - A LAUNCHED session ('active') is never shown automatically either. One launched more
+ *   than STALE_SESSION_MS ago is over and gets ended (scores kept). One launched in the last
+ *   few minutes might still have students playing, so a notice offers Resume / End it.
  */
 async function restoreOpenSession() {
   try {
@@ -135,27 +135,90 @@ async function restoreOpenSession() {
       await discardUnlaunchedSession(d.id);
     }
 
-    const active = snap.docs.filter(d => d.data().status === 'active');
-    if (!active.length || currentSessionId) return;
-
+    // Launched sessions. Nothing ends a session except the teacher's Stop button, so one
+    // that was launched and never stopped stays 'active' indefinitely. Past the longest game
+    // (10 minutes) plus a margin it is certainly over: end it quietly. It is ENDED, not
+    // deleted - it was played, so its scores are kept.
     const millis = (v) => (v && v.toMillis ? v.toMillis() : (v ? new Date(v).getTime() : 0));
-    const latest = active.slice().sort((a, b) => millis(b.data().createdAt) - millis(a.data().createdAt))[0];
-    const s = latest.data();
+    const now = Date.now();
+    const live = [];
+    for (const d of snap.docs.filter(x => x.data().status === 'active')) {
+      const data = d.data();
+      const started = millis(data.startedAt) || millis(data.createdAt);
+      if (!started || now - started > STALE_SESSION_MS) {
+        await window.db.collection('sessions').doc(d.id)
+          .update({ status: 'ended', endedAt: new Date(), updatedAt: new Date() })
+          .catch((e) => console.warn('Could not end stale session', d.id, e));
+      } else {
+        live.push(d);
+      }
+    }
+    if (!live.length || currentSessionId) return;
 
-    currentSessionId = latest.id;
-    currentSessionCode = s.sessionCode || '';
-    currentDifficulty = s.difficulty || 'beginner';
-    currentBagType = s.bagType || 'standard';
-
-    document.getElementById('session-code').textContent = currentSessionCode;
-    document.getElementById('code-inline').textContent = currentSessionCode;
-    checkOption('difficulty', currentDifficulty, '.diff-option:not(.bag-option)');
-    checkOption('bagType', currentBagType, '.bag-option');
-
-    listenToPlayerJoins();
-    applySessionState('active');
+    // A session launched in the last few minutes may genuinely still be running (e.g. the
+    // teacher refreshed mid-game). The page still opens blank - it only offers to resume.
+    const latest = live.slice().sort((a, b) => millis(b.data().createdAt) - millis(a.data().createdAt))[0];
+    offerResumeSession(latest.id, latest.data());
   } catch (error) {
     console.warn('Could not restore the open session', error);
+  }
+}
+
+// Longest game is 10 minutes (Beginner); anything launched longer ago than this is over.
+const STALE_SESSION_MS = 30 * 60 * 1000;
+
+function offerResumeSession(sessionId, s) {
+  const bar = document.getElementById('resume-session-banner');
+  if (!bar) return;
+  const started = s.startedAt && s.startedAt.toDate ? s.startedAt.toDate() : null;
+  document.getElementById('resume-session-text').textContent =
+    'A session you launched' + (started ? ' at ' + started.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : '') +
+    ' may still be running.';
+  bar.dataset.sessionId = sessionId;
+  bar._session = s;
+  bar.style.display = '';
+}
+
+function hideResumeBanner() {
+  const bar = document.getElementById('resume-session-banner');
+  if (bar) { bar.style.display = 'none'; bar._session = null; delete bar.dataset.sessionId; }
+}
+
+// Teacher chose to go back to the running session.
+function resumeOpenSession() {
+  const bar = document.getElementById('resume-session-banner');
+  const sessionId = bar && bar.dataset.sessionId;
+  const s = bar && bar._session;
+  if (!sessionId || !s) return;
+  hideResumeBanner();
+
+  currentSessionId = sessionId;
+  currentSessionCode = s.sessionCode || '';
+  currentDifficulty = s.difficulty || 'beginner';
+  currentBagType = s.bagType || 'standard';
+
+  document.getElementById('session-code').textContent = currentSessionCode;
+  document.getElementById('code-inline').textContent = currentSessionCode;
+  checkOption('difficulty', currentDifficulty, '.diff-option:not(.bag-option)');
+  checkOption('bagType', currentBagType, '.bag-option');
+
+  listenToPlayerJoins();
+  applySessionState('active');
+}
+
+// Teacher chose to close it instead. Ended, not deleted: it was played.
+async function endOpenSession() {
+  const bar = document.getElementById('resume-session-banner');
+  const sessionId = bar && bar.dataset.sessionId;
+  if (!sessionId) return;
+  try {
+    await window.db.collection('sessions').doc(sessionId)
+      .update({ status: 'ended', endedAt: new Date(), updatedAt: new Date() });
+    hideResumeBanner();
+    showToast('Session ended.');
+  } catch (error) {
+    console.error('Error ending session:', error);
+    showToast('Failed to end session', 'error');
   }
 }
 
@@ -186,6 +249,7 @@ function checkOption(name, value, optionSelector) {
 // ---- GENERATE CODE ----
 async function generateCode() {
   try {
+    hideResumeBanner();
     await window.authReadyPromise;
 
     // Regenerating replaces a code that was never launched, so drop that session entirely
