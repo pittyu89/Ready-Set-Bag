@@ -84,8 +84,9 @@ async function withAccount(uid, fallbackEmail, action) {
 async function deleteLoginOrConfirm(uid, fallbackEmail, name) {
   const secret = await getAccountSecret(uid);
   if (!secret || !secret.password) {
-    return confirm(`There's no saved password for ${name}, so their login can't be deleted from here.\n\n` +
-      'Remove their profile anyway? The leftover login won\'t be able to see any data.');
+    return RSBDialog.confirm(`There's no saved password for ${name}, so their login can't be deleted from here.\n\n` +
+      'Remove their profile anyway? The leftover login won\'t be able to see any data.',
+      { title: 'LOGIN CAN\'T BE DELETED', okText: 'REMOVE PROFILE', danger: true });
   }
 
   await withAccount(uid, fallbackEmail, (user) => user.delete());
@@ -564,8 +565,9 @@ function closeModalOutside(e) {
 }
 
 // Prompt admin to add a new section name and append it to all section selects
-function promptAddSection() {
-  const name = prompt('Enter new section name (e.g. G6-NewSection):');
+async function promptAddSection() {
+  const name = await RSBDialog.prompt('Name of the new section:',
+    { title: 'ADD SECTION', placeholder: 'e.g. G6-NewSection', okText: 'ADD SECTION', maxLength: 40 });
   if (!name) return;
   const sectionName = name.trim();
   if (!sectionName) return;
@@ -916,7 +918,8 @@ async function resetPassword(btn) {
   const name = row.querySelector('.td-name').textContent;
   const newPassword = 'TempPass123!';
 
-  if (confirm(`Reset password for ${name} to "${newPassword}"?`)) {
+  if (await RSBDialog.confirm(`Reset the password for ${name} to "${newPassword}"? They'll use it at their next login.`,
+      { title: 'RESET PASSWORD', okText: 'RESET PASSWORD', tone: 'warn' })) {
     try {
       const teacherData = await getDocumentData('teachers', teacherId);
 
@@ -954,7 +957,8 @@ async function confirmDelete(btn) {
   const teacherId = row.getAttribute('data-teacher-id');
   const name = row.querySelector('.td-name').textContent;
   
-  if (confirm(`Delete ${name}?`)) {
+  if (await RSBDialog.confirm(`Delete ${name}? Their teacher account and login are removed.`,
+      { title: 'DELETE TEACHER', okText: 'DELETE', danger: true })) {
     try {
       const teacherData = await getDocumentData('teachers', teacherId);
 
@@ -1650,7 +1654,8 @@ async function resetAdminStudentPassword(btn) {
   const row = btn.closest('tr');
   const id = row.getAttribute('data-student-id');
   const name = row.querySelector('td:nth-child(2)').textContent;
-  if (confirm(`Reset password for ${name} to "Student@123"?`)) {
+  if (await RSBDialog.confirm(`Reset the password for ${name} to "Student@123"?`,
+      { title: 'RESET PASSWORD', okText: 'RESET PASSWORD', tone: 'warn' })) {
     try {
       const studentData = await getDocumentData('students', id);
       const studentEmail = getStudentAuthEmail(studentData);
@@ -1908,7 +1913,8 @@ async function deleteAdminStudent(btn) {
   const row = btn.closest('tr');
   const id = row.getAttribute('data-student-id');
   const name = row.querySelector('td:nth-child(2)').textContent;
-  if (confirm(`Delete ${name}?`)) {
+  if (await RSBDialog.confirm(`Delete ${name}? Their student account and login are removed.`,
+      { title: 'DELETE STUDENT', okText: 'DELETE', danger: true })) {
     try {
       const studentData = await getDocumentData('students', id);
 
@@ -2458,11 +2464,12 @@ function renderAdminRecentActivity() {
 async function deleteAdminSession(sessionId, sessionCode, status) {
   if (!window.RSBSessions) { showToast('Session tools not loaded.', 'error'); return; }
   const running = status === 'active' || status === 'waiting';
-  const ok = confirm(
+  const ok = await RSBDialog.confirm(
     `Permanently delete session ${sessionCode || sessionId}?\n\n` +
     'This also deletes every student score recorded in it. It will disappear from ' +
     'Reports, the charts and the master CSV, and cannot be undone.' +
-    (running ? '\n\nThis session is still open — students in it will be disconnected.' : '')
+    (running ? '\n\nThis session is still open — students in it will be disconnected.' : ''),
+    { title: 'DELETE SESSION', okText: 'DELETE SESSION', danger: true }
   );
   if (!ok) return;
   try {
@@ -2555,3 +2562,105 @@ function printAdminReport() {
   // Let the DOM paint the stamped header before the print dialog freezes it.
   setTimeout(() => window.print(), 60);
 }
+
+/* ============================================================================
+   ONBOARDING TOUR
+   Runs once per admin account on first visit; TAKE THE TOUR in the profile
+   menu replays it. Follows the order an admin sets the school up in.
+   ============================================================================ */
+function adminTourGoTo(page) {
+  const order = ['home', 'teachers', 'students', 'reports'];
+  const btn = document.querySelectorAll('.sidebar-nav .nav-item')[order.indexOf(page)];
+  const current = document.getElementById('page-' + page);
+  if (current && !current.classList.contains('active')) navigate(page, btn);
+}
+
+function adminTourSteps() {
+  const actionsOf = (page) => () => {
+    const btn = document.querySelector('#page-' + page + ' .teachers-header .btn-add');
+    return btn ? btn.parentElement : null;
+  };
+  return [
+    {
+      title: 'Welcome to the admin dashboard!',
+      body: 'This quick tour shows how to <b>set up teachers and students</b> and where to find <b>school-wide results</b>. It takes about a minute. You can skip it now and replay it any time from your profile menu.'
+    },
+    {
+      target: () => document.querySelectorAll('.sidebar-nav .nav-item'),
+      before: () => adminTourGoTo('home'),
+      title: 'Four pages',
+      body: '<b>HOME</b> is the school at a glance, <b>TEACHERS</b> and <b>STUDENTS</b> are where you manage accounts, and <b>REPORTS</b> shows drill results for every section.'
+    },
+    {
+      target: '#page-home .stat-cards',
+      before: () => adminTourGoTo('home'),
+      title: 'The school at a glance',
+      body: 'How many teachers, students and drill sessions the school has.'
+    },
+    {
+      target: () => { const a = document.getElementById('admin-recent-activity'); return a ? a.closest('.panel') : null; },
+      before: () => adminTourGoTo('home'),
+      title: 'Latest drills',
+      body: 'The newest sessions run by any teacher. Pick a section to narrow the list, open a session\u2019s report, export it, or delete it.'
+    },
+    {
+      target: actionsOf('teachers'),
+      before: () => adminTourGoTo('teachers'),
+      title: 'Add teachers first',
+      body: '<b>Add new teacher</b> creates a teacher\u2019s login and assigns their section. Teachers can then start drills for that section.'
+    },
+    {
+      target: '#teacher-table',
+      before: () => adminTourGoTo('teachers'),
+      title: 'Manage teacher accounts',
+      body: 'Edit a teacher\u2019s details, reset their password or remove them from the actions on each row.'
+    },
+    {
+      target: actionsOf('students'),
+      before: () => adminTourGoTo('students'),
+      title: 'Then add students',
+      body: 'Add students one by one, or <b>Import CSV</b> to add a whole section at once. Each student gets a username and a starting password for the game.'
+    },
+    {
+      target: '#page-reports .filter-bar',
+      before: () => adminTourGoTo('reports'),
+      title: 'School-wide reports',
+      body: 'Choose a section and difficulty to compare results. Leave the section on <b>All sections</b> to see the whole school.'
+    },
+    {
+      target: '#page-reports .results-scope',
+      before: () => adminTourGoTo('reports'),
+      title: 'Latest 5 sessions per section',
+      body: 'To stay within the free database limits, reports load each section\u2019s newest 5 sessions first. <b>Load 5 older sessions</b> goes further back; <b>Refresh</b> picks up new results.'
+    },
+    {
+      target: '#page-reports .chart-grid',
+      before: () => adminTourGoTo('reports'),
+      title: 'Readiness at a glance',
+      body: 'How prepared students are, speed against score, bag-packing accuracy, and progress over time.'
+    },
+    {
+      target: '#page-reports .archive-panel',
+      before: () => adminTourGoTo('reports'),
+      title: 'Download everything',
+      body: 'The master CSV has every drill result in the school, and the printable report is ready for filing or PDF.'
+    },
+    {
+      target: '#admin-avatar',
+      title: 'You\u2019re all set!',
+      body: 'Your profile menu is up here: <b>Change password</b>, <b>Take the tour</b> to see this again, and <b>Logout</b>.'
+    }
+  ];
+}
+
+function startAdminTour(auto) {
+  const menu = document.getElementById('avatar-menu');
+  if (menu) menu.classList.remove('show');
+  const startPage = (document.querySelector('.page.active') || {}).id || 'page-home';
+  const opts = { onClose: () => adminTourGoTo(startPage.replace('page-', '')) };
+  if (!window.RSBTour) return;
+  if (auto) RSBTour.autoStart('admin:' + (sessionStorage.getItem('adminId') || 'unknown'), adminTourSteps(), opts);
+  else RSBTour.start(adminTourSteps(), opts);
+}
+
+window.addEventListener('load', () => setTimeout(() => startAdminTour(true), 1200));

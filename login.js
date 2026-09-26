@@ -30,10 +30,49 @@ function clearPassword() {
   if (pwField) pwField.value = '';
 }
 
-function showLoginError(msg) {
-  clearPassword();
-  alert(msg);
+// Shown in the card under the Log In button, not in a browser pop-up
+function showLoginError(msg, keepPassword) {
+  if (!keepPassword) clearPassword();
+  const box = document.getElementById('login-error');
+  if (!box) return;
+  box.textContent = msg;
+  box.hidden = false;
+  // Restart the shake so a repeated error is still noticed
+  box.classList.remove('shake');
+  void box.offsetWidth;
+  box.classList.add('shake');
 }
+
+function clearLoginError() {
+  const box = document.getElementById('login-error');
+  if (box) { box.hidden = true; box.textContent = ''; }
+}
+
+function setBusy(busy) {
+  const btn = document.getElementById('btn-login');
+  if (!btn) return;
+  btn.disabled = busy;
+  btn.textContent = busy ? 'Logging in…' : 'Log In';
+}
+
+// Sent back here by the dashboards' inactivity timeout
+try {
+  const reason = new URLSearchParams(location.search).get('reason');
+  const REASONS = {
+    expired: 'You were logged out after 30 minutes of inactivity. Please log in again.',
+    inactive: 'This teacher account is inactive. Please contact your administrator.'
+  };
+  if (REASONS[reason]) {
+    showLoginError(REASONS[reason], true);
+    history.replaceState(null, '', location.pathname);
+  }
+} catch (e) {}
+
+// Typing again clears the old message
+['username', 'password'].forEach((id) => {
+  const field = document.getElementById(id);
+  if (field) field.addEventListener('input', clearLoginError);
+});
 
 function isOnline() {
   return navigator.onLine;
@@ -44,8 +83,9 @@ async function handleLogin(event) {
   event.preventDefault();
 
   // REQ-1.2.3: Check network before doing anything
+  clearLoginError();
   if (!isOnline()) {
-    alert('No internet connection detected. A stable connection is required to log in. Please check your network and try again.');
+    showLoginError('No internet connection. Connect to the internet and try again.', true);
     return;
   }
 
@@ -59,6 +99,7 @@ async function handleLogin(event) {
     return;
   }
 
+  setBusy(true);
   try {
     if (role === 'teacher') {
       await authenticateTeacher(email, password);
@@ -68,6 +109,9 @@ async function handleLogin(event) {
   } catch (error) {
     console.error('Login error:', error);
     showLoginError('Login error: ' + error.message);
+  } finally {
+    // A successful login redirects away; anything else needs the button back
+    setTimeout(() => setBusy(false), 400);
   }
 }
 
@@ -77,13 +121,13 @@ async function authenticateTeacher(email, password) {
   await window.firebaseInitPromise;
 
   if (!window.auth) {
-    alert('System error: Firebase not initialized. Please refresh and try again.');
+    showLoginError('Something went wrong loading the page. Refresh and try again.', true);
     return;
   }
 
   // REQ-1.2.3: Double-check network right before the Firebase call
   if (!isOnline()) {
-    alert('Connection lost. A stable internet connection is required to authenticate. Please check your network and try again.');
+    showLoginError('Connection lost. Check your internet and try again.', true);
     return;
   }
 
@@ -104,8 +148,7 @@ async function authenticateTeacher(email, password) {
     const teacherData = teacher.data();
 
     if (teacherData.status && teacherData.status !== 'active') {
-      clearPassword();
-      alert('This teacher account is inactive. Please contact your administrator.');
+      showLoginError('This teacher account is inactive. Please contact your administrator.');
       await window.auth.signOut();
       return;
     }
@@ -139,15 +182,15 @@ async function authenticateTeacher(email, password) {
       error.code === 'auth/network-request-failed' ||
       error.message?.toLowerCase().includes('network')
     ) {
-      alert('Network error: Could not reach the authentication server. Please check your internet connection and try again.');
+      showLoginError("Couldn't reach the login server. Check your internet and try again.");
     } else if (
       error.code === 'auth/user-not-found' ||
       error.code === 'auth/wrong-password' ||
       error.code === 'auth/invalid-credential'
     ) {
-      alert('Invalid email or password. Please try again.');
+      showLoginError('Wrong email or password. Please try again.');
     } else {
-      alert('Authentication error: ' + error.message);
+      showLoginError("Couldn't log in: " + error.message);
     }
   }
 }
@@ -161,13 +204,13 @@ async function authenticateAdmin(username, password) {
   await window.firebaseInitPromise;
 
   if (!window.auth) {
-    alert('System error: Firebase not initialized. Please refresh and try again.');
+    showLoginError('Something went wrong loading the page. Refresh and try again.', true);
     return;
   }
 
   // Check network right before the Firebase call
   if (!isOnline()) {
-    alert('Connection lost. A stable internet connection is required to authenticate. Please check your network and try again.');
+    showLoginError('Connection lost. Check your internet and try again.', true);
     return;
   }
 
@@ -204,15 +247,15 @@ async function authenticateAdmin(username, password) {
       error.code === 'auth/network-request-failed' ||
       error.message?.toLowerCase().includes('network')
     ) {
-      alert('Network error: Could not reach the authentication server. Please check your internet connection and try again.');
+      showLoginError("Couldn't reach the login server. Check your internet and try again.");
     } else if (
       error.code === 'auth/user-not-found' ||
       error.code === 'auth/wrong-password' ||
       error.code === 'auth/invalid-credential'
     ) {
-      alert('Invalid credentials. Please check your username and password.');
+      showLoginError('Wrong username or password. Please try again.');
     } else {
-      alert('Authentication error: ' + error.message);
+      showLoginError("Couldn't log in: " + error.message);
     }
   }
 }

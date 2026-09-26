@@ -156,10 +156,7 @@ function loadTeacherProfile() {
       renderTeacherProfile({ name: name, section: teacherSection, status: t.status });
 
       // Deactivated by an admin while signed in: same outcome as trying to log in
-      if (t.status === 'inactive') {
-        alert('This teacher account is inactive. Please contact your administrator.');
-        logout();
-      }
+      if (t.status === 'inactive') logout('inactive');
     }, (err) => console.warn('teacher profile listener error', err));
   })();
 }
@@ -213,14 +210,15 @@ function navigate(page, btn) {
 }
 
 /* ---- LOGOUT ---- */
-function logout() {
+// reason: optional, for the login page to explain why (e.g. 'inactive')
+function logout(reason) {
   if (window.auth) {
     window.auth.signOut().catch(err => console.error('Sign out error:', err));
   }
   sessionStorage.clear();
   showToast('Logged out.');
   setTimeout(() => {
-    window.location.href = '../index.html';
+    window.location.href = '../index.html' + (typeof reason === 'string' ? '?reason=' + encodeURIComponent(reason) : '');
   }, 500);
 }
 
@@ -875,11 +873,12 @@ function teacherResultCsvRow(doc) {
 async function deleteTeacherSession(sessionId, sessionCode, status) {
   if (!window.RSBSessions) { showToast('Session tools not loaded.', 'error'); return; }
   const running = status === 'active' || status === 'waiting';
-  const ok = confirm(
+  const ok = await RSBDialog.confirm(
     `Permanently delete session ${sessionCode || sessionId}?\n\n` +
     'This also deletes every student score recorded in it. It will disappear from ' +
     'your reports, the charts and the master CSV, and cannot be undone.' +
-    (running ? '\n\nThis session is still open \u2014 students in it will be disconnected.' : '')
+    (running ? '\n\nThis session is still open \u2014 students in it will be disconnected.' : ''),
+    { title: 'DELETE SESSION', okText: 'DELETE SESSION', danger: true }
   );
   if (!ok) return;
   try {
@@ -967,3 +966,105 @@ function printTeacherReport() {
   // Let the DOM paint the stamped header before the print dialog freezes it.
   setTimeout(() => window.print(), 120);
 }
+
+/* ============================================================================
+   ONBOARDING TOUR
+   Runs once per teacher account on first visit; TAKE THE TOUR in the profile
+   menu replays it. Walks through the three pages in the order a drill happens.
+   ============================================================================ */
+function teacherTourGoTo(page) {
+  const order = ['home', 'session', 'reports'];
+  const btn = document.querySelectorAll('.sidebar-nav .nav-item')[order.indexOf(page)];
+  const current = document.getElementById('page-' + page);
+  if (current && !current.classList.contains('active')) navigate(page, btn);
+}
+
+function teacherTourSteps() {
+  return [
+    {
+      title: 'Welcome to your teacher dashboard!',
+      body: 'This quick tour shows you how to <b>run an earthquake drill</b> with your class and <b>read the results</b>. It takes about a minute. You can skip it now and replay it any time from your profile menu.'
+    },
+    {
+      target: () => document.querySelectorAll('.sidebar-nav .nav-item'),
+      before: () => teacherTourGoTo('home'),
+      title: 'Three pages',
+      body: '<b>HOME</b> is your class at a glance. <b>SESSION</b> is where you start a drill. <b>REPORTS</b> shows how your students did.'
+    },
+    {
+      target: '.home-stats',
+      before: () => teacherTourGoTo('home'),
+      title: 'Your class at a glance',
+      body: 'How many students you have, how many drills you have run, the class average score and how many students finished.'
+    },
+    {
+      target: '.archive-panel',
+      before: () => teacherTourGoTo('home'),
+      title: 'Download the full record',
+      body: 'The <b>Master CSV</b> has every student run from every session. <b>Print / Save PDF</b> makes a class summary you can file.'
+    },
+    {
+      target: '.setup-card.blue-bar',
+      before: () => teacherTourGoTo('session'),
+      title: 'Step 1: pick the difficulty',
+      body: 'Choose how hard the drill is (time limit) and which go-bag the whole class packs. <b>Beginner</b> is best for a first drill.'
+    },
+    {
+      target: '#card-code',
+      before: () => teacherTourGoTo('session'),
+      title: 'Step 2: share a session code',
+      body: 'Press <b>Generate session code</b> and write the code on the board. Students type it in the game on their phones to join your session.'
+    },
+    {
+      target: '#card-launch',
+      before: () => teacherTourGoTo('session'),
+      title: 'Step 3: launch when everyone is in',
+      body: 'Watch students join here. When your class is ready, press <b>Launch session</b> and the drill starts on every phone. <b>Stop session</b> ends it.'
+    },
+    {
+      target: '.results-scope',
+      before: () => teacherTourGoTo('reports'),
+      title: 'Reports start with your latest 5 sessions',
+      body: 'Filter by difficulty above this bar. To keep within the free database limits, reports load your newest 5 sessions first: <b>Load 5 older sessions</b> goes further back, and <b>Refresh</b> picks up new results.'
+    },
+    {
+      target: '.chart-grid',
+      before: () => teacherTourGoTo('reports'),
+      title: 'See who is ready',
+      body: 'The charts show how prepared the class is, speed against score, how well bags were packed, and whether scores are improving over time.'
+    },
+    {
+      target: '.individual-panel',
+      before: () => teacherTourGoTo('reports'),
+      title: 'Every student\u2019s result',
+      body: 'Each student\u2019s best score and time. Use the search box to find someone quickly.'
+    },
+    {
+      target: '.recent-activity-section',
+      before: () => teacherTourGoTo('reports'),
+      title: 'Past sessions',
+      body: 'Each card is one drill. Open a card\u2019s report to see only that session, export it as a CSV, or delete it.'
+    },
+    {
+      target: '#teacher-avatar',
+      title: 'You\u2019re all set!',
+      body: 'Your profile menu is up here. Choose <b>Take the tour</b> to see this again, or <b>Logout</b> when you\u2019re done.'
+    }
+  ];
+}
+
+function startTeacherTour(auto) {
+  const menu = document.getElementById('avatar-menu');
+  if (menu) menu.classList.remove('show');
+  const startPage = (document.querySelector('.page.active') || {}).id || 'page-home';
+  const opts = { onClose: () => teacherTourGoTo(startPage.replace('page-', '')) };
+  if (!window.RSBTour) return;
+  if (auto) RSBTour.autoStart('teacher:' + (sessionStorage.getItem('teacherId') || 'unknown'), teacherTourSteps(), opts);
+  else RSBTour.start(teacherTourSteps(), opts);
+}
+
+// First visit: wait for the page to settle, and never interrupt a running session
+window.addEventListener('load', () => setTimeout(() => {
+  if (typeof currentSessionId !== 'undefined' && currentSessionId) return;
+  startTeacherTour(true);
+}, 1200));

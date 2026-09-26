@@ -67,14 +67,15 @@ function checkTimeout() {
   const timeLeft = SESSION_TIMEOUT_MS - (Date.now() - loginTime);
   if (timeLeft < 2 * 60 * 1000 && !_warningShown) {
     _warningShown = true;
-    const stay = confirm(
-      'Your session will expire in less than 2 minutes due to inactivity.\n\nClick OK to stay logged in, or Cancel to log out now.'
-    );
-    if (stay) {
-      resetActivityTimer();
-    } else {
-      handleTimeout();
-    }
+    // In-page dialog: unlike confirm() it doesn't freeze this check, so the session
+    // still ends on time if nobody answers
+    RSBDialog.confirm(
+      'You\'ll be logged out in less than 2 minutes because of inactivity.',
+      { title: 'STILL THERE?', okText: 'STAY LOGGED IN', cancelText: 'LOG OUT NOW', tone: 'warn' }
+    ).then((stay) => {
+      if (stay) resetActivityTimer();
+      else handleTimeout();
+    });
   }
 }
 
@@ -88,8 +89,8 @@ function handleTimeout() {
   }
 
   sessionStorage.clear();
-  alert('Your session has expired due to inactivity. Please log in again.');
-  window.location.href = getLoginPath();
+  // The login page explains why, in its own error box
+  window.location.href = getLoginPath() + '?reason=expired';
 }
 
 /* ---- HELPER: path back to login from /admin/ ---- */

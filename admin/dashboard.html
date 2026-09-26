@@ -46,6 +46,7 @@
       <button class="topbar-avatar" id="admin-avatar" onclick="toggleAvatarMenu()"></button>
       <div class="avatar-menu" id="avatar-menu">
         <button onclick="openPasswordModal()" class="avatar-menu-item">CHANGE PASSWORD</button>
+        <button onclick="startAdminTour()" class="avatar-menu-item">TAKE THE TOUR</button>
         <button onclick="logout()" class="avatar-menu-item">LOGOUT</button>
       </div>
     </div>
@@ -595,6 +596,10 @@
 <script src="../firebase-config.js"></script>
 
 <!-- Auth Guard Script -->
+<!-- In-page dialogs and the onboarding tour (replace alert/confirm pop-ups) -->
+<script src="../ui-dialogs.js"></script>
+<script src="../ui-tour.js"></script>
+
 <script src="auth-guard-admin.js"></script>
 
 <!-- Shared reports analytics helper -->

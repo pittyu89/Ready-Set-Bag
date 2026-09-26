@@ -43,6 +43,7 @@
     <div class="avatar-dropdown">
       <button class="topbar-avatar" id="teacher-avatar" onclick="toggleAvatarMenu()"></button>
       <div class="avatar-menu" id="avatar-menu">
+        <button onclick="startTeacherTour()" class="avatar-menu-item">TAKE THE TOUR</button>
         <button onclick="logout()" class="avatar-menu-item">LOGOUT</button>
       </div>
     </div>
@@ -547,6 +548,10 @@
 <script src="session-manager.js"></script>
 
 <!-- Auth Guard Script -->
+<!-- In-page dialogs and the onboarding tour (replace alert/confirm pop-ups) -->
+<script src="../ui-dialogs.js"></script>
+<script src="../ui-tour.js"></script>
+
 <script src="auth-guard-teacher.js"></script>
 
 <!-- Shared reports analytics helper -->

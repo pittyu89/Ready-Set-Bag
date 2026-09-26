@@ -414,7 +414,8 @@ async function stopSession() {
   try {
     if (!currentSessionId) return;
 
-    const confirmed = confirm('Stop the current session? Students will be disconnected.');
+    const confirmed = await RSBDialog.confirm('Stop the current session? Students still playing will be disconnected.',
+      { title: 'STOP SESSION', okText: 'STOP SESSION', danger: true });
     if (!confirmed) return;
 
     await window.db.collection('sessions').doc(currentSessionId).update({
