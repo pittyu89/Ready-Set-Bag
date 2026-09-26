@@ -148,7 +148,7 @@
 
         <div class="panel">
           <div class="activity-panel-head">
-            <div class="panel-title" style="margin:0;">RECENT ACTIVITY (LAST 5 SESSIONS)</div>
+            <div class="panel-title" style="margin:0;">RECENT ACTIVITY (LATEST 5 SESSIONS)</div>
             <div class="activity-head-actions">
               <select class="filter-select activity-section-filter" id="admin-activity-section" aria-label="Show sessions for section" onchange="renderAdminRecentActivity()">
                 <option value="">ALL SECTIONS</option>
@@ -157,10 +157,10 @@
             </div>
           </div>
           <div class="archive-reminder">
-            <span>&#9888;</span>
-            <div><strong>Archive Reminder:</strong> Each section keeps only its 5 most recent sessions. When a 6th is
-              created, the oldest session and all of its student scores are deleted permanently. Export regularly
-              to keep a complete school-wide archive.</div>
+            <span>&#8505;</span>
+            <div><strong>Every session is kept.</strong> Reports cover each section's latest 5 sessions to stay within
+              the free plan's daily database reads; use LOAD 5 OLDER SESSIONS on the Reports page to go further back,
+              or the Master CSV for the full school record.</div>
           </div>
             <div id="admin-recent-activity" class="activity-scroll">
               <!-- initial loader placeholder: will be replaced by JS when data arrives -->
@@ -287,6 +287,14 @@
         </select>
       </div>
 
+      <!-- Which sessions the numbers below are built from. Every result is kept;
+           the reports start with each section's latest few to save the free plan's reads. -->
+      <div class="results-scope">
+        <span id="reports-scope-text">Loading results…</span>
+        <button class="btn-scope" id="reports-scope-more" style="display:none;" onclick="loadOlderAdminSessions()">&#8634; LOAD 5 OLDER SESSIONS</button>
+        <button class="btn-scope" onclick="refreshAdminResults()">&#10227; REFRESH</button>
+      </div>
+
       <div class="reports-stats">
         <div class="stat-card blue">
           <div class="stat-label">TOTAL STUDENTS</div>
@@ -395,8 +403,8 @@
         <div class="table-footer" id="admin-individual-footer"></div>
       </div>
 
-      <!-- Master archive. The Recent Activity panel only reaches the last five
-           sessions, so this is where a complete school record comes from. -->
+      <!-- Master archive. Reports start with each section's latest few sessions to
+           save reads, so this is where the complete school record comes from. -->
       <div class="archive-panel">
         <div class="archive-head">
           <div class="archive-icon">&#128451;</div>
@@ -597,6 +605,7 @@
 
 <!-- Session delete + 5-per-section retention (shared by admin and teacher) -->
 <script src="../session-retention.js"></script>
+<script src="../report-scope.js"></script>
 
 <!-- Dashboard Script -->
 <script src="dashboard.js"></script>

@@ -183,8 +183,8 @@
       </div>
       </div>
 
-      <!-- Master archive. Recent Activity on the Reports tab only reaches the
-           last five sessions, so a complete class record comes from here. -->
+      <!-- Master archive. Reports start with the latest few sessions to save reads,
+           so the complete class record comes from here. -->
       <div class="archive-panel">
         <div class="archive-head">
           <div class="archive-icon">&#128451;</div>
@@ -377,6 +377,14 @@
         </select>
       </div>
 
+      <!-- Which sessions the numbers below are built from. Every result is kept;
+           the reports start with the latest few to save the free plan's reads. -->
+      <div class="results-scope">
+        <span id="tr-scope-text">Loading results…</span>
+        <button class="btn-scope" id="tr-scope-more" style="display:none;" onclick="loadOlderTeacherSessions()">&#8634; LOAD 5 OLDER SESSIONS</button>
+        <button class="btn-scope" onclick="refreshTeacherResults()">&#10227; REFRESH</button>
+      </div>
+
       <div class="reports-stats">
         <div class="report-stat-card">
           <div class="report-stat-icon green">
@@ -496,14 +504,14 @@
            for, not something that should interrupt summary -> findings -> detail. -->
       <div class="recent-activity-section">
         <div class="activity-panel-head">
-          <div class="panel-title" style="margin:0;">RECENT ACTIVITY (LAST 5 SESSIONS)</div>
-          <button class="btn-activity-export" onclick="exportRecentTeacherSessionsCsv()">&#11015; EXPORT 5 SESSIONS (CSV)</button>
+          <div class="panel-title" style="margin:0;">RECENT ACTIVITY</div>
+          <button class="btn-activity-export" onclick="exportRecentTeacherSessionsCsv()">&#11015; EXPORT LISTED SESSIONS (CSV)</button>
         </div>
         <div class="archive-reminder">
-          <span>&#9888;</span>
-          <div><strong>Archive Reminder:</strong> Your section keeps only its 5 most recent sessions. When you create
-            a 6th, the oldest session and all of its student scores are deleted permanently. Export regularly to keep
-            a complete class archive.</div>
+          <span>&#8505;</span>
+          <div><strong>Every session is kept.</strong> Reports and this list start with your latest 5 sessions to stay
+            within the free plan's daily database reads. Use LOAD 5 OLDER SESSIONS at the top of this page to go further
+            back, or the Master CSV on the Home tab for the full record.</div>
         </div>
         <div id="teacher-recent-activity" class="activity-scroll">
           <!-- initial loader placeholder; JS will replace when data arrives -->
@@ -549,6 +557,7 @@
 
 <!-- Session delete + 5-per-section retention (shared by admin and teacher) -->
 <script src="../session-retention.js"></script>
+<script src="../report-scope.js"></script>
 
 <!-- Dashboard Script -->
 <script src="dashboard.js"></script>

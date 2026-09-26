@@ -1,34 +1,19 @@
 /* ============================================================================
-   READY-SET-BAG! — SESSION RETENTION
+   READY-SET-BAG! — SESSION DELETION
    ----------------------------------------------------------------------------
-   Shared by the admin and teacher dashboards. Two jobs:
+   Shared by the admin and teacher dashboards.
 
-     1. deleteSessionCascade() — permanently delete ONE session together with
-        every student result recorded in it. Used by the Delete buttons on both
-        dashboards and by the automatic cap below.
-     2. pruneTeacherSessions() — keep each section to its MAX_SESSIONS most
-        recent sessions. Called right after a teacher creates a session, so
-        creating a 6th deletes the oldest (and its scores) for good.
+     deleteSessionCascade() — permanently delete ONE session together with
+     every student result recorded in it. Used by the Delete buttons on both
+     dashboards, and to discard a code that was generated but never launched.
 
-   A section has one teacher, so "a section's sessions" is queried as "this
-   teacher's sessions" (sessions are keyed by teacherId, and the Firestore
-   rules only let a teacher delete their own).
-
-   Deletion is permanent by design (confirmed requirement): results removed
-   here disappear from Reports, the charts and the master CSV as well.
+   Sessions are no longer deleted automatically to save database reads. Every
+   result is kept; the reports load only the latest few sessions by default
+   instead (see report-scope.js).
    Exposes window.RSBSessions.
    ============================================================================ */
 (function () {
   'use strict';
-
-  var MAX_SESSIONS = 5;
-
-  function millis(v) {
-    if (!v) return 0;
-    if (typeof v.toMillis === 'function') return v.toMillis();
-    var t = new Date(v).getTime();
-    return isNaN(t) ? 0 : t;
-  }
 
   /**
    * Delete a session and all of its results.
@@ -65,35 +50,7 @@
     return refs.length;
   }
 
-  /**
-   * Keep only the newest MAX_SESSIONS sessions for this teacher's section.
-   * Anything older is deleted with its results. Resolves to the number of
-   * sessions removed. Never throws — a failed prune must not break the
-   * session the teacher just created; it retries on the next creation.
-   */
-  async function pruneTeacherSessions(teacherId) {
-    var db = window.db;
-    if (!db || !teacherId) return 0;
-    try {
-      // Sorted client-side so this needs no composite index.
-      var snap = await db.collection('sessions').where('teacherId', '==', teacherId).get();
-      var docs = snap.docs.slice().sort(function (a, b) {
-        return millis(b.data().createdAt) - millis(a.data().createdAt);
-      });
-      var extra = docs.slice(MAX_SESSIONS);
-      for (var i = 0; i < extra.length; i++) {
-        await deleteSessionCascade(extra[i].id, { teacherId: teacherId });
-      }
-      return extra.length;
-    } catch (e) {
-      console.warn('Session prune failed; will retry on the next new session.', e);
-      return 0;
-    }
-  }
-
   window.RSBSessions = {
-    MAX_SESSIONS: MAX_SESSIONS,
-    deleteSessionCascade: deleteSessionCascade,
-    pruneTeacherSessions: pruneTeacherSessions
+    deleteSessionCascade: deleteSessionCascade
   };
 })();

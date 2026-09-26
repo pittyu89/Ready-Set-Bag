@@ -112,7 +112,7 @@ document.addEventListener('DOMContentLoaded', () => {
  *
  * - A session that was generated but never launched (status 'waiting' - e.g. the tab was
  *   closed before Launch) is deleted. Otherwise its code would reappear on the next visit
- *   and, left lying around, would count against the section's 5-session cap.
+ *   and clutter Recent Activity with sessions nobody played.
  * - A LAUNCHED session ('active') is never shown automatically either. One launched more
  *   than STALE_SESSION_MS ago is over and gets ended (scores kept). One launched in the last
  *   few minutes might still have students playing, so a notice offers Resume / End it.
@@ -223,9 +223,7 @@ async function endOpenSession() {
 }
 
 // A generated-but-never-launched session: delete it outright instead of marking it ended.
-// Ending it would leave an empty "Created" session that still counts toward the section's
-// 5-session cap - clicking Regenerate five times would then push real, played sessions
-// (and their scores) out of the cap.
+// Ending it would leave an empty "Created" session in Recent Activity for every Regenerate.
 async function discardUnlaunchedSession(sessionId) {
   try {
     if (window.RSBSessions) {
@@ -308,15 +306,8 @@ async function generateCode() {
     listenToPlayerJoins();
     applySessionState('ready');
 
-    // Each section keeps only its 5 newest sessions: creating a 6th permanently deletes the
-    // oldest one together with its students' scores. Runs after the UI is ready so a slow
-    // or failed prune never delays the new code; it simply retries on the next creation.
-    if (window.RSBSessions) {
-      window.RSBSessions.pruneTeacherSessions(teacherId).then((removed) => {
-        if (removed) showToast(`Oldest session${removed === 1 ? '' : 's'} removed (5-session limit).`);
-      });
-    }
-
+    // Older sessions are no longer deleted to save database reads: every result is kept,
+    // and the reports load only the latest few by default (see report-scope.js).
 
   } catch (error) {
     console.error('Error creating session:', error);

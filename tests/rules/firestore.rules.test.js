@@ -236,7 +236,7 @@ test('students who joined a session can read its leaderboard, nobody else can', 
   await assertFails(leaderboard('u9'));
 });
 
-// Deleting a session (by hand, or the 5-sessions-per-section cap) removes its scores, so a
+// Deleting a session by hand (the Delete button) removes its scores, so a
 // teacher may delete results from their OWN sessions - never another section's, and a
 // student never. Runs last: it removes fixtures the tests above read.
 test('teachers delete only their own results; students cannot delete results', async () => {

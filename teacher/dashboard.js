@@ -302,11 +302,13 @@ function loadTeacherRecentActivity() {
       teacherRecentActivityListener = null;
     }
 
-    // Listen to sessions collection for this teacher
+    // Listen to sessions collection for this teacher. Lists as many sessions as the
+    // reports currently cover, so "Load older sessions" also brings their cards here.
+    const shown = Math.max(5, teacherScopeCount || 0);
     teacherRecentActivityListener = window.db.collection('sessions')
       .where('teacherId', '==', teacherId)
       .orderBy('createdAt', 'desc')
-      .limit(5)
+      .limit(shown)
       .onSnapshot((snapshot) => {
         container.innerHTML = '';
 
@@ -382,13 +384,15 @@ function viewTeacherSessionReport(sessionId, code, difficulty, meta) {
   }
   syncTeacherSessionScopeBanner();
   renderTeacherReports();
+  // An older session's results may not be loaded yet
+  syncTeacherResults();
   document.querySelector('.main')?.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 function clearTeacherSessionScope() {
   teacherSessionScope = null;
   syncTeacherSessionScopeBanner();
-  renderTeacherReports();
+  rebuildTeacherResults();
 }
 
 function syncTeacherSessionScopeBanner() {
@@ -419,22 +423,110 @@ function loadTeacherReports() {
 
     // Sessions run (Home quick-stat), live. Only sessions that were actually launched count,
     // the same ones Recent Activity lists. The latest one also picks the level the Reports
-    // filter opens on, until the teacher chooses one themselves.
+    // filter opens on, until the teacher chooses one themselves. Session documents are
+    // few and small; the list also decides which sessions' results the reports load.
     window.db.collection('sessions').where('teacherId', '==', teacherId)
       .onSnapshot((snap) => {
-        const run = snap.docs.map(d => d.data()).filter(s => s.startedAt || s.status === 'active');
+        teacherSessionEntries = snap.docs.map(d => ({ id: d.id, data: d.data() }));
+        const run = teacherSessionEntries.map(e => e.data).filter(s => s.startedAt || s.status === 'active');
         teacherSessionsCount = run.length;
         applyDefaultLevelFilter(run);
-        renderTeacherReports();
+        syncTeacherResults();
       }, (err) => console.warn('teacher reports: sessions listener error', err));
-
-    // Live results listener
-    if (teacherResultsListener) { teacherResultsListener(); teacherResultsListener = null; }
-    teacherResultsListener = window.db.collection('sessionResults')
-      .where('teacherId', '==', teacherId).limit(1000)
-      .onSnapshot((snap) => { teacherResultsCache = snap.docs.map(d => d.data()); renderTeacherReports(); },
-        (err) => console.warn('teacher reports: results listener error', err));
   })();
+}
+
+/* ---- RESULTS SCOPE ----
+   Every result is kept. To stay inside the free plan's daily reads, the reports
+   start with the latest few sessions (window.RSBScope.RECENT_SESSIONS), read once;
+   older ones load on request. Only the newest session is watched live, so a class
+   that is playing right now still fills in as students finish. */
+let teacherSessionEntries = [];
+let teacherScopeCount = null;          // how many recent sessions the reports cover
+const teacherResultsBySession = {};    // sessionId -> [result data], for sessions loaded so far
+let teacherLiveSessionId = null;
+let teacherSyncSeq = 0;
+
+function teacherScopedSessionIds() {
+  const S = window.RSBScope;
+  if (teacherScopeCount === null) teacherScopeCount = S.RECENT_SESSIONS;
+  const ids = S.recentSessionIds(teacherSessionEntries, teacherScopeCount);
+  // A session opened from Recent Activity is always included, however old
+  if (teacherSessionScope && ids.indexOf(teacherSessionScope.sessionId) === -1) ids.push(teacherSessionScope.sessionId);
+  return ids;
+}
+
+async function syncTeacherResults(options) {
+  const S = window.RSBScope;
+  if (!S || !window.db || !teacherId) return;
+  const refresh = !!(options && options.refresh);
+  const seq = ++teacherSyncSeq;
+  const ids = teacherScopedSessionIds();
+
+  // Newest launched session: watched live, and never fetched separately
+  const newest = S.launchedNewestFirst(teacherSessionEntries)[0];
+  watchTeacherLiveSession(newest ? newest.id : null);
+
+  const missing = ids.filter(id => id !== teacherLiveSessionId && (refresh || !teacherResultsBySession[id]));
+  if (missing.length) {
+    setTeacherScopeStatus('Loading results…');
+    try {
+      const got = await S.fetchResults(window.db, missing, teacherId);
+      Object.keys(got).forEach(id => { teacherResultsBySession[id] = got[id]; });
+    } catch (err) {
+      console.warn('teacher reports: results fetch failed', err);
+      if (seq === teacherSyncSeq) setTeacherScopeStatus('Could not load results. Check the connection and press Refresh.');
+      return;
+    }
+  }
+  if (seq !== teacherSyncSeq) return;   // a newer sync has taken over
+  rebuildTeacherResults();
+}
+
+function watchTeacherLiveSession(sessionId) {
+  if (sessionId === teacherLiveSessionId) return;
+  if (teacherResultsListener) { teacherResultsListener(); teacherResultsListener = null; }
+  teacherLiveSessionId = sessionId;
+  if (!sessionId) return;
+  teacherResultsListener = window.db.collection('sessionResults')
+    .where('teacherId', '==', teacherId)
+    .where('sessionId', '==', sessionId)
+    .onSnapshot((snap) => {
+      teacherResultsBySession[sessionId] = snap.docs.map(d => d.data());
+      rebuildTeacherResults();
+    }, (err) => console.warn('teacher reports: live results listener error', err));
+}
+
+function rebuildTeacherResults() {
+  const ids = teacherScopedSessionIds();
+  teacherResultsCache = [];
+  ids.forEach(id => { (teacherResultsBySession[id] || []).forEach(r => teacherResultsCache.push(r)); });
+  renderTeacherReports();
+  renderTeacherScopeBar();
+}
+
+function renderTeacherScopeBar() {
+  const S = window.RSBScope;
+  if (!S) return;
+  const launched = S.launchedNewestFirst(teacherSessionEntries).length;
+  const shown = Math.min(teacherScopeCount || S.RECENT_SESSIONS, launched);
+  setTeacherScopeStatus(launched
+    ? `Reports cover your latest ${shown} of ${launched} session${launched === 1 ? '' : 's'} (${teacherResultsCache.length} result${teacherResultsCache.length === 1 ? '' : 's'}).`
+    : 'No sessions have been played yet.');
+  const more = document.getElementById('tr-scope-more');
+  if (more) more.style.display = shown < launched ? '' : 'none';
+}
+
+function setTeacherScopeStatus(text) { setTeacherText('tr-scope-text', text); }
+
+function loadOlderTeacherSessions() {
+  teacherScopeCount = (teacherScopeCount || window.RSBScope.RECENT_SESSIONS) + window.RSBScope.RECENT_SESSIONS;
+  syncTeacherResults();
+  loadTeacherRecentActivity();
+}
+
+function refreshTeacherResults() {
+  syncTeacherResults({ refresh: true });
 }
 
 // Set once the teacher picks a level themselves; after that the filter is theirs.
@@ -827,21 +919,22 @@ async function exportSingleTeacherSessionCsv(sessionId, sessionCode) {
   }
 }
 
-// The five sessions currently listed in Recent Activity, in one file — the
-// panel's answer to its own archive warning.
+// The sessions currently listed in Recent Activity, in one file.
 async function exportRecentTeacherSessionsCsv() {
   if (!window.db) { showToast('Firebase not initialized.', 'error'); return; }
   const ids = teacherRecentSessions.map(s => s.id).filter(Boolean);
   if (!ids.length) { showToast('No recent sessions to export yet.', 'error'); return; }
   try {
-    // Firestore caps an 'in' query at 10 values; this list is capped at 5.
-    const snap = await window.db.collection('sessionResults')
-      .where('teacherId', '==', teacherId)
-      .where('sessionId', 'in', ids).get();
-    if (snap.empty) { showToast('No results recorded for these sessions yet.', 'error'); return; }
+    // "Load older sessions" can list more than one 'in' filter takes (30), so batch it
     const rows = [TEACHER_RESULT_CSV_HEADER];
-    snap.forEach(doc => rows.push(teacherResultCsvRow(doc)));
-    downloadCsv('recent-5-sessions-results.csv', rows.join('\n'));
+    for (let i = 0; i < ids.length; i += 30) {
+      const snap = await window.db.collection('sessionResults')
+        .where('teacherId', '==', teacherId)
+        .where('sessionId', 'in', ids.slice(i, i + 30)).get();
+      snap.forEach(doc => rows.push(teacherResultCsvRow(doc)));
+    }
+    if (rows.length === 1) { showToast('No results recorded for these sessions yet.', 'error'); return; }
+    downloadCsv('recent-sessions-results.csv', rows.join('\n'));
     showToast('Recent sessions CSV exported.');
   } catch (err) {
     console.error('Export recent sessions CSV failed', err);

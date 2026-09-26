@@ -1958,37 +1958,126 @@ function loadTotalSessionsCount() {
 /* ============================================================================
    SCHOOL-WIDE REPORTS ENGINE
    Uses window.RSBAnalytics for all aggregation so the numbers match the
-   teacher dashboard. Reads the full sessionResults + students collections
-   (school-wide, admin scope) once via a live listener, caches them, and
-   re-renders whenever the section/level filters change.
+   teacher dashboard.
+
+   Every result is kept. To stay inside the free plan's daily reads, the
+   reports cover each section's latest few sessions (RSBScope.RECENT_SESSIONS),
+   read ONCE per page visit rather than through a live listener: a live listener
+   re-reads every document whenever it is re-attached, and this page used to
+   re-attach it on every visit to Reports. Refresh re-reads on demand; older
+   sessions load on request. The master CSV still exports everything.
    ============================================================================ */
 let adminResultsCache = [];
 let adminStudentsCache = [];
-let adminResultsListener = null;
 let adminReportsFiltersPopulated = false;
 
-function loadAdminReports() {
+let adminReportsLoaded = false;
+let adminReportSessions = [];          // [{id, data}] every session, from a one-time read
+let adminTeacherSections = {};         // teacherId -> section, for sessions saved without one
+let adminScopePerSection = null;       // how many recent sessions per section the reports cover
+const adminResultsBySession = {};      // sessionId -> [result data], for sessions loaded so far
+let adminSyncSeq = 0;
+
+function loadAdminReports(options) {
   if (!window.auth || !window.auth.currentUser) {
-    window.authReadyPromise.then((user) => { if (user) loadAdminReports(); });
+    window.authReadyPromise.then((user) => { if (user) loadAdminReports(options); });
     return;
   }
-  if (!window.db || !window.RSBAnalytics) return;
+  if (!window.db || !window.RSBAnalytics || !window.RSBScope) return;
 
-  // Fetch the roster once (students rarely change during a reports view).
+  const refresh = !!(options && options.refresh);
+  // Already loaded this visit: going back to Reports only needs a redraw
+  if (adminReportsLoaded && !refresh) { renderAdminReports(); return; }
+  adminReportsLoaded = true;
+
+  // The roster (total students, completion rate)
   window.db.collection('students').get().then((snap) => {
     adminStudentsCache = snap.docs.map(d => d.data());
     populateAdminSectionFilter();
     renderAdminReports();
   }).catch(e => console.warn('admin reports: students fetch failed', e));
 
-  // Live listener on results so numbers update as the game feeds data.
-  if (adminResultsListener) { adminResultsListener(); adminResultsListener = null; }
-  adminResultsListener = window.db.collection('sessionResults').limit(2000)
-    .onSnapshot((snap) => {
-      adminResultsCache = snap.docs.map(d => d.data());
-      populateAdminSectionFilter();
-      renderAdminReports();
-    }, (err) => console.warn('admin reports: results listener error', err));
+  syncAdminResults({ refresh: refresh, reloadSessions: true });
+}
+
+function adminReportSection(entry) {
+  return entry.data.section || adminTeacherSections[entry.data.teacherId] || entry.data.teacherId || '';
+}
+
+function adminScopedSessionIds() {
+  const S = window.RSBScope;
+  if (adminScopePerSection === null) adminScopePerSection = S.RECENT_SESSIONS;
+  const ids = S.recentSessionIds(adminReportSessions, adminScopePerSection, adminReportSection);
+  // A session opened from Recent Activity is always included, however old
+  if (adminSessionScope && ids.indexOf(adminSessionScope.sessionId) === -1) ids.push(adminSessionScope.sessionId);
+  return ids;
+}
+
+async function syncAdminResults(opts) {
+  const S = window.RSBScope;
+  if (!S || !window.db) return;
+  opts = opts || {};
+  const seq = ++adminSyncSeq;
+  setAdminScopeStatus('Loading results…');
+
+  try {
+    if (opts.reloadSessions || !adminReportSessions.length) {
+      const [sessSnap, teacherSnap] = await Promise.all([
+        window.db.collection('sessions').get(),
+        window.db.collection('teachers').get()
+      ]);
+      adminReportSessions = sessSnap.docs.map(d => ({ id: d.id, data: d.data() }));
+      adminTeacherSections = {};
+      teacherSnap.forEach(t => { adminTeacherSections[t.id] = (t.data() || {}).section || ''; });
+    }
+
+    const ids = adminScopedSessionIds();
+    const missing = ids.filter(id => opts.refresh || !adminResultsBySession[id]);
+    if (missing.length) {
+      const got = await S.fetchResults(window.db, missing);
+      Object.keys(got).forEach(id => { adminResultsBySession[id] = got[id]; });
+    }
+  } catch (err) {
+    console.warn('admin reports: results fetch failed', err);
+    if (seq === adminSyncSeq) setAdminScopeStatus('Could not load results. Check the connection and press Refresh.');
+    return;
+  }
+  if (seq !== adminSyncSeq) return;   // a newer sync has taken over
+  rebuildAdminResults();
+}
+
+function rebuildAdminResults() {
+  adminResultsCache = [];
+  adminScopedSessionIds().forEach(id => {
+    (adminResultsBySession[id] || []).forEach(r => adminResultsCache.push(r));
+  });
+  populateAdminSectionFilter();
+  renderAdminReports();
+  renderAdminScopeBar();
+}
+
+function renderAdminScopeBar() {
+  const S = window.RSBScope;
+  if (!S) return;
+  const launched = S.launchedNewestFirst(adminReportSessions);
+  const covered = S.recentSessionIds(adminReportSessions, adminScopePerSection || S.RECENT_SESSIONS, adminReportSection).length;
+  const n = adminResultsCache.length;
+  setAdminScopeStatus(launched.length
+    ? `Reports cover each section's latest ${adminScopePerSection || S.RECENT_SESSIONS} sessions: ${covered} of ${launched.length} sessions played (${n} result${n === 1 ? '' : 's'}). Press Refresh to pick up new results.`
+    : 'No sessions have been played yet.');
+  const more = document.getElementById('reports-scope-more');
+  if (more) more.style.display = covered < launched.length ? '' : 'none';
+}
+
+function setAdminScopeStatus(text) { setText('reports-scope-text', text); }
+
+function loadOlderAdminSessions() {
+  adminScopePerSection = (adminScopePerSection || window.RSBScope.RECENT_SESSIONS) + window.RSBScope.RECENT_SESSIONS;
+  syncAdminResults();
+}
+
+function refreshAdminResults() {
+  loadAdminReports({ refresh: true });
 }
 
 function populateAdminSectionFilter() {
@@ -2031,13 +2120,15 @@ function viewAdminSessionReport(sessionId, code, difficulty, meta) {
   navigate('reports', reportsNav);
   syncAdminSessionScopeBanner();
   renderAdminReports();
+  // An older session's results may not be loaded yet
+  syncAdminResults();
   document.querySelector('.main')?.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 function clearAdminSessionScope() {
   adminSessionScope = null;
   syncAdminSessionScopeBanner();
-  renderAdminReports();
+  rebuildAdminResults();
 }
 
 function syncAdminSessionScopeBanner() {
@@ -2245,33 +2336,35 @@ function loadAdminRecentActivity() {
   const container = document.getElementById('admin-recent-activity');
   if (!container) return;
 
+  // Already listening: re-attaching would re-read every session, so just redraw
+  if (adminRecentActivityListener) {
+    renderAdminRecentActivity();
+    return;
+  }
+
   // show loader immediately while snapshot listener initializes
   try {
     container.innerHTML = '<div class="gif-loader"><img src="/images/loading.gif" class="gif-loader-image" width="72" height="72" style="width:72px;height:72px;" onerror="this.src=\'../images/loading.gif\'"/><div class="gif-loader-text">LOADING…</div></div>';
   } catch (e) { console.warn('show admin loader failed', e); }
 
-  if (adminRecentActivityListener) {
-    adminRecentActivityListener();
-    adminRecentActivityListener = null;
-  }
+  // Teacher names/sections label the cards and give legacy sessions (made
+  // before sessions stored their own section) a section to filter by. Read
+  // once: re-reading them on every session change cost a read per teacher
+  // each time a student joined.
+  const teachersLoaded = window.db.collection('teachers').get().then((tSnap) => {
+    adminActivityTeacherMap = {};
+    tSnap.forEach(td => { adminActivityTeacherMap[td.id] = td.data(); });
+  }).catch((e) => console.warn('Failed to load teacher names for recent activity', e));
 
-  // The section filter needs every section's own latest five, not just the
-  // five newest school-wide, so listen to the whole (small, capped) collection
-  // and slice client-side. Each section is pruned to 5 on creation, so this
-  // stays around 5 x number of sections.
+  // The section filter needs every section's own latest few, not just the
+  // newest school-wide, so listen to the newest 500 sessions and slice
+  // client-side. Sessions are kept now, so this covers roughly the last
+  // 60 sessions per section for eight sections.
   adminRecentActivityListener = window.db.collection('sessions')
     .orderBy('createdAt', 'desc')
     .limit(500)
     .onSnapshot(async (snapshot) => {
-      // Teacher names/sections label the cards and give legacy sessions (made
-      // before sessions stored their own section) a section to filter by.
-      try {
-        const tSnap = await window.db.collection('teachers').get();
-        adminActivityTeacherMap = {};
-        tSnap.forEach(td => { adminActivityTeacherMap[td.id] = td.data(); });
-      } catch (e) {
-        console.warn('Failed to load teacher names for recent activity', e);
-      }
+      await teachersLoaded;
       adminActivitySessions = snapshot.docs.map((doc) => ({ id: doc.id, data: doc.data() }));
       populateAdminActivitySectionFilter();
       renderAdminRecentActivity();
@@ -2316,7 +2409,7 @@ function renderAdminRecentActivity() {
     .filter((entry) => entry.data.startedAt || entry.data.status === 'active' || entry.data.endedAt)
     .filter((entry) => !section || adminSessionSection(entry.data) === section)
     .sort((left, right) => when(right.data) - when(left.data))
-    .slice(0, window.RSBSessions ? window.RSBSessions.MAX_SESSIONS : 5);
+    .slice(0, window.RSBScope ? window.RSBScope.RECENT_SESSIONS : 5);
 
   // Cached so the "export these 5" button exports exactly what is on screen.
   adminRecentSessions = recentSessions.map((entry) => ({
