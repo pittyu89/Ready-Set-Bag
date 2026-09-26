@@ -7,7 +7,7 @@ let currentSessionId = null;
 let currentDifficulty = 'beginner';
 // Which go-bag the class packs: 'standard' | 'small' | 'medium' (the game's bag order).
 // The values are what the game reads; BAG_LABELS are the names players see in the game.
-const BAG_LABELS = { standard: 'Standard Backpack', small: 'Roll-Top Waterproof Pack', medium: 'Modular Tactical Duffel' };
+const BAG_LABELS = { standard: 'Standard Backpack', small: 'Roll-Top Waterproof Pack', medium: 'Tactical Modular Duffel' };
 let currentBagType = 'standard';
 let sessionListener = null;
 
