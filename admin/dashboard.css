@@ -1198,27 +1198,6 @@ tbody td {
 .main::-webkit-scrollbar-track { background: #1a1a1a; }
 .main::-webkit-scrollbar-thumb { background: #444; border-radius: 3px; }
 
-.toast {
-  position: fixed;
-  bottom: 24px;
-  right: 24px;
-  background: #2a2a2a;
-  border: 1px solid var(--accent-green);
-  border-left: 4px solid var(--accent-green);
-  padding: 14px 20px;
-  border-radius: 3px;
-  font-family: var(--pixel);
-  font-weight: 600;
-  font-size: 13px;
-  color: var(--accent-green);
-  letter-spacing: 1px;
-  z-index: 2000;
-  transform: translateX(200%);
-  transition: transform 0.3s ease;
-}
-
-.toast.show { transform: translateX(0); }
-
 /* ============================================================================
    RESPONSIVE DESIGN
    ============================================================================ */
@@ -1482,8 +1461,6 @@ tbody td {
   .settings-row { padding: 10px 0; }
   .settings-key { font-size: 12px; }
   .settings-val { font-size: 14px; }
-  
-  .toast { bottom: 16px; right: 16px; padding: 10px 14px; font-size: 12px; }
   .main::-webkit-scrollbar { width: 4px; }
 }
 

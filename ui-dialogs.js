@@ -11,6 +11,9 @@
      // name is null when cancelled
 
    Escape or the backdrop cancels, Enter confirms, and focus stays inside the box.
+
+   Also the dashboards' notifications, top centre under the top bar:
+     RSBDialog.toast('Teacher created.');          // or 'error' / 'info' as a 2nd argument
    ============================================================================ */
 (function () {
   const STYLE = `
@@ -56,6 +59,38 @@
     .rsbd-btn { width: 100%; }
   }
   @media (prefers-reduced-motion: reduce) { .rsbd-overlay, .rsbd-box { transition: none; } }
+
+  /* ---- notifications: top centre, just under the top bar ---- */
+  .rsbn-stack {
+    position: fixed; left: 50%; transform: translateX(-50%); z-index: 2900; width: 460px; max-width: calc(100vw - 24px);
+    display: flex; flex-direction: column; gap: 8px; pointer-events: none;
+  }
+  .rsbn {
+    pointer-events: auto; display: flex; align-items: flex-start; gap: 12px; padding: 12px 10px 12px 14px;
+    background: var(--bg-panel2, #222); color: var(--text-primary, #e8e8e8); border: 1px solid #444;
+    border-left: 4px solid var(--card-green, #97A329); box-shadow: 4px 4px 0 #000;
+    font-family: var(--pixel, 'Poppins', 'Segoe UI', Arial, sans-serif); font-size: 14px; line-height: 1.45;
+    opacity: 0; transform: translateY(-10px); transition: opacity .18s ease, transform .18s ease;
+    position: relative; overflow: hidden;
+  }
+  .rsbn.show { opacity: 1; transform: none; }
+  .rsbn-icon {
+    flex: none; width: 22px; height: 22px; display: grid; place-items: center; margin-top: 1px;
+    font-size: 13px; font-weight: 700; color: #fff; background: var(--card-green, #97A329);
+  }
+  .rsbn-msg { flex: 1; min-width: 0; overflow-wrap: anywhere; padding-top: 1px; }
+  .rsbn-close {
+    flex: none; width: 28px; height: 28px; margin: -3px 0 -3px 2px; border: 0; background: none; cursor: pointer;
+    color: var(--text-secondary, #aaa); font-size: 18px; line-height: 1;
+  }
+  .rsbn-close:hover { color: var(--text-primary, #e8e8e8); }
+  .rsbn-close:focus-visible { outline: 2px solid #fff; outline-offset: 1px; }
+  .rsbn-timer { position: absolute; left: 0; bottom: 0; height: 2px; width: 100%; background: currentColor; opacity: .35; transform-origin: left; }
+  .rsbn.error { border-left-color: var(--btn-delete, #D74040); }
+  .rsbn.error .rsbn-icon { background: var(--btn-delete, #D74040); }
+  .rsbn.info { border-left-color: var(--card-blue, #3C7CDD); }
+  .rsbn.info .rsbn-icon { background: var(--card-blue, #3C7CDD); }
+  @media (prefers-reduced-motion: reduce) { .rsbn { transition: none; } }
   `;
 
   function injectStyle() {
@@ -170,9 +205,88 @@
     return p;
   }
 
+  // ---- notifications ---------------------------------------------------------
+  // type: 'success' (default) | 'error' | 'info'. Errors stay longer and are announced
+  // straight away. Hovering pauses the countdown; × closes early.
+  const MAX_SHOWN = 3;
+  let signingOut = false;
+
+  function stack() {
+    let el = document.getElementById('rsbn-stack');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'rsbn-stack';
+      el.className = 'rsbn-stack';
+      document.body.appendChild(el);
+    }
+    // Sit just under the top bar, whatever height it has at this screen size
+    const bar = document.querySelector('.topbar');
+    el.style.top = ((bar ? bar.getBoundingClientRect().bottom : 0) + 12) + 'px';
+    return el;
+  }
+
+  function toast(message, type) {
+    type = type === 'error' || type === 'info' ? type : 'success';
+    // Signing out drops access while live listeners are still attached; their
+    // "insufficient permissions" errors are expected then and mean nothing
+    if (signingOut && type === 'error') return;
+    injectStyle();
+    const host = stack();
+
+    const item = document.createElement('div');
+    item.className = 'rsbn ' + type;
+    item.setAttribute('role', type === 'error' ? 'alert' : 'status');
+    const icon = document.createElement('span');
+    icon.className = 'rsbn-icon';
+    icon.setAttribute('aria-hidden', 'true');
+    icon.textContent = type === 'error' ? '!' : type === 'info' ? 'i' : '✓';
+    const msg = document.createElement('div');
+    msg.className = 'rsbn-msg';
+    msg.textContent = message;
+    const close = document.createElement('button');
+    close.type = 'button';
+    close.className = 'rsbn-close';
+    close.setAttribute('aria-label', 'Dismiss');
+    close.textContent = '×';
+    const bar = document.createElement('span');
+    bar.className = 'rsbn-timer';
+    bar.setAttribute('aria-hidden', 'true');
+    item.append(icon, msg, close, bar);
+    host.appendChild(item);
+    while (host.children.length > MAX_SHOWN) host.firstElementChild.remove();
+    setTimeout(() => item.classList.add('show'), 10);
+
+    const life = type === 'error' ? 6000 : 3500;
+    let left = life, started = Date.now(), timer;
+    const dismiss = () => {
+      clearTimeout(timer);
+      item.classList.remove('show');
+      setTimeout(() => item.remove(), 200);
+    };
+    const run = () => {
+      started = Date.now();
+      bar.style.transition = 'transform ' + left + 'ms linear';
+      bar.style.transform = 'scaleX(0)';
+      timer = setTimeout(dismiss, left);
+    };
+    const pause = () => {
+      clearTimeout(timer);
+      left = Math.max(800, left - (Date.now() - started));
+      bar.style.transition = 'none';
+      bar.style.transform = 'scaleX(' + (left / life) + ')';
+    };
+    item.addEventListener('mouseenter', pause);
+    item.addEventListener('mouseleave', run);
+    close.addEventListener('click', dismiss);
+    setTimeout(run, 20);
+  }
+
   window.RSBDialog = {
     alert: (message, opts) => open('alert', message, opts),
     confirm: (message, opts) => open('confirm', message, opts),
-    prompt: (message, opts) => open('prompt', message, opts)
+    prompt: (message, opts) => open('prompt', message, opts),
+    toast,
+    // Call before signing out: hides the listener errors that signing out causes
+    beginSignOut() { signingOut = true; }
   };
 })();

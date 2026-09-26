@@ -9,6 +9,12 @@
   <link rel="icon" type="image/png" sizes="256x256" href="images/logo.png">
 </head>
 <body class="admin-mode">
+  <!-- Login problems show here, across the top of the screen, instead of a browser pop-up -->
+  <div class="login-error" id="login-error" role="alert" aria-live="assertive" hidden>
+    <span class="login-error-icon" aria-hidden="true">!</span>
+    <span class="login-error-msg"></span>
+    <button type="button" class="login-error-close" aria-label="Dismiss" onclick="clearLoginError()">&times;</button>
+  </div>
   <div class="login-wrapper">
 
     <!-- LEFT HALF -->
@@ -34,9 +40,6 @@
         </div>
 
         <button type="submit" class="btn-login-index" id="btn-login">Log In</button>
-
-        <!-- Login problems show here, in the card, instead of a browser pop-up -->
-        <p class="login-error" id="login-error" role="alert" aria-live="assertive" hidden></p>
       </form>
 
       <!-- Toggle -->

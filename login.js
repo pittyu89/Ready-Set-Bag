@@ -30,22 +30,51 @@ function clearPassword() {
   if (pwField) pwField.value = '';
 }
 
-// Shown in the card under the Log In button, not in a browser pop-up
-function showLoginError(msg, keepPassword) {
+// Shown in a banner across the top of the screen, not in a browser pop-up.
+// tone: 'error' (default) or 'info' for notices that aren't the user's mistake.
+function showLoginError(msg, keepPassword, tone) {
   if (!keepPassword) clearPassword();
   const box = document.getElementById('login-error');
   if (!box) return;
-  box.textContent = msg;
+  box.querySelector('.login-error-msg').textContent = msg;
+  box.classList.toggle('info', tone === 'info');
+  box.querySelector('.login-error-icon').textContent = tone === 'info' ? 'i' : '!';
+  box.setAttribute('role', tone === 'info' ? 'status' : 'alert');
   box.hidden = false;
-  // Restart the shake so a repeated error is still noticed
-  box.classList.remove('shake');
+  // Restart the drop-in so a repeated error is still noticed
+  box.classList.remove('show');
   void box.offsetWidth;
-  box.classList.add('shake');
+  box.classList.add('show');
 }
 
 function clearLoginError() {
   const box = document.getElementById('login-error');
-  if (box) { box.hidden = true; box.textContent = ''; }
+  if (box) box.hidden = true;
+}
+
+// Firebase's own messages ("auth/invalid-email" and so on) mean nothing to a teacher;
+// every failure gets a plain sentence instead. The real error still goes to the console.
+function friendlyAuthError(error, role) {
+  const code = (error && error.code) || '';
+  const who = role === 'teacher' ? 'email' : 'username';
+  switch (code) {
+    case 'auth/invalid-email':
+    case 'auth/user-not-found':
+    case 'auth/wrong-password':
+    case 'auth/invalid-credential':
+    case 'auth/invalid-login-credentials':
+    case 'auth/missing-password':
+      return 'Wrong ' + who + ' or password. Please try again.';
+    case 'auth/too-many-requests':
+      return 'Too many tries. Wait a few minutes, then try again.';
+    case 'auth/user-disabled':
+      return 'This account has been turned off. Please contact your administrator.';
+    case 'auth/network-request-failed':
+      return "Couldn't reach the login server. Check your internet and try again.";
+    default:
+      if (error && /network/i.test(error.message || '')) return "Couldn't reach the login server. Check your internet and try again.";
+      return "Couldn't log you in. Please try again.";
+  }
 }
 
 function setBusy(busy) {
@@ -63,7 +92,7 @@ try {
     inactive: 'This teacher account is inactive. Please contact your administrator.'
   };
   if (REASONS[reason]) {
-    showLoginError(REASONS[reason], true);
+    showLoginError(REASONS[reason], true, 'info');
     history.replaceState(null, '', location.pathname);
   }
 } catch (e) {}
@@ -108,7 +137,7 @@ async function handleLogin(event) {
     }
   } catch (error) {
     console.error('Login error:', error);
-    showLoginError('Login error: ' + error.message);
+    showLoginError(friendlyAuthError(error, role));
   } finally {
     // A successful login redirects away; anything else needs the button back
     setTimeout(() => setBusy(false), 400);
@@ -177,21 +206,8 @@ async function authenticateTeacher(email, password) {
     // REQ-1.2.2: Always clear the password field on failure
     clearPassword();
 
-    // REQ-1.2.3: Distinguish network errors from bad credentials
-    if (
-      error.code === 'auth/network-request-failed' ||
-      error.message?.toLowerCase().includes('network')
-    ) {
-      showLoginError("Couldn't reach the login server. Check your internet and try again.");
-    } else if (
-      error.code === 'auth/user-not-found' ||
-      error.code === 'auth/wrong-password' ||
-      error.code === 'auth/invalid-credential'
-    ) {
-      showLoginError('Wrong email or password. Please try again.');
-    } else {
-      showLoginError("Couldn't log in: " + error.message);
-    }
+    // REQ-1.2.3: network problems and bad credentials get different messages
+    showLoginError(friendlyAuthError(error, 'teacher'));
   }
 }
 
@@ -242,20 +258,7 @@ async function authenticateAdmin(username, password) {
     console.error('Admin authentication error:', error);
     clearPassword();
 
-    // Distinguish network errors from credential errors
-    if (
-      error.code === 'auth/network-request-failed' ||
-      error.message?.toLowerCase().includes('network')
-    ) {
-      showLoginError("Couldn't reach the login server. Check your internet and try again.");
-    } else if (
-      error.code === 'auth/user-not-found' ||
-      error.code === 'auth/wrong-password' ||
-      error.code === 'auth/invalid-credential'
-    ) {
-      showLoginError('Wrong username or password. Please try again.');
-    } else {
-      showLoginError("Couldn't log in: " + error.message);
-    }
+    // Network problems and bad credentials get different messages
+    showLoginError(friendlyAuthError(error, 'admin'));
   }
 }

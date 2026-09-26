@@ -212,6 +212,9 @@ function navigate(page, btn) {
 /* ---- LOGOUT ---- */
 // reason: optional, for the login page to explain why (e.g. 'inactive')
 function logout(reason) {
+  // The live listeners lose access the moment sign-out lands; their permission
+  // errors are expected then, so they are not shown
+  RSBDialog.beginSignOut();
   if (window.auth) {
     window.auth.signOut().catch(err => console.error('Sign out error:', err));
   }
@@ -246,14 +249,9 @@ document.addEventListener('click', (e) => {
 // Handled by session-manager.js (real-time Firebase listener)
 
 /* ---- TOAST ---- */
-let toastTimer;
+// Notifications are drawn by the shared ui-dialogs.js (top centre, under the top bar)
 function showToast(msg, type = 'success') {
-  const toast = document.getElementById('toast');
-  toast.textContent = msg;
-  toast.className = 'toast' + (type === 'error' ? ' error' : '');
-  toast.classList.add('show');
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => toast.classList.remove('show'), 3000);
+  RSBDialog.toast(msg, type);
 }
 
 /* ---- FILTER INDIVIDUAL RESULTS ---- */
@@ -1025,7 +1023,7 @@ function teacherTourSteps() {
       target: '.results-scope',
       before: () => teacherTourGoTo('reports'),
       title: 'Reports start with your latest 5 sessions',
-      body: 'Filter by difficulty above this bar. To keep within the free database limits, reports load your newest 5 sessions first: <b>Load 5 older sessions</b> goes further back, and <b>Refresh</b> picks up new results.'
+      body: 'Filter by difficulty above this bar. Reports start with your newest 5 sessions: <b>Load 5 older sessions</b> goes further back, and <b>Refresh</b> picks up new results.'
     },
     {
       target: '.chart-grid',

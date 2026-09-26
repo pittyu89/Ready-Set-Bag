@@ -1240,27 +1240,7 @@ tbody td {
 .btn-create:hover { opacity: 0.88; }
 
 /* ---- TOAST ---- */
-.toast {
-  position: fixed;
-  bottom: 24px;
-  right: 24px;
-  background: #2a2a2a;
-  border: 1px solid var(--card-green);
-  border-left: 4px solid var(--card-green);
-  padding: 14px 20px;
-  font-family: var(--pixel);
-  font-weight: 600;
-  font-size: 13px;
-  color: var(--accent-green);
-  letter-spacing: 1px;
-  z-index: 2000;
-  transform: translateX(200%);
-  transition: transform 0.3s ease;
-  box-shadow: 4px 4px 0 #000;
-}
-
-.toast.show { transform: translateX(0); }
-.toast.error { border-color: var(--accent-red); color: var(--accent-red); }
+/* Notifications are styled by ../ui-dialogs.js */
 
 /* ---- SCROLLBAR ---- */
 .main::-webkit-scrollbar { width: 6px; }

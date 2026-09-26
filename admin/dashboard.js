@@ -439,6 +439,9 @@ function navigate(page, btn) {
 
 // ---- LOGOUT ----
 function logout() {
+  // The live listeners lose access the moment sign-out lands; their permission
+  // errors are expected then, so they are not shown
+  RSBDialog.beginSignOut();
   if (window.auth) {
     window.auth.signOut().catch(err => console.error('Sign out error:', err));
   }
@@ -997,18 +1000,9 @@ function updateTeacherCount() {
 }
 
 // ---- NOTIFICATIONS ----
-let toastTimer;
+// Notifications are drawn by the shared ui-dialogs.js (top centre, under the top bar)
 function showToast(msg, type = 'success') {
-  const toast = document.getElementById('toast');
-  const isError = type === 'error';
-  
-  toast.textContent = msg;
-  toast.style.borderColor = isError ? 'var(--accent-red)' : 'var(--accent-green)';
-  toast.style.color = isError ? 'var(--accent-red)' : 'var(--accent-green)';
-  toast.classList.add('show');
-  
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => toast.classList.remove('show'), 3000);
+  RSBDialog.toast(msg, type);
 }
 
 // ---- INITIALIZE ON PAGE LOAD ----
@@ -2631,7 +2625,7 @@ function adminTourSteps() {
       target: '#page-reports .results-scope',
       before: () => adminTourGoTo('reports'),
       title: 'Latest 5 sessions per section',
-      body: 'To stay within the free database limits, reports load each section\u2019s newest 5 sessions first. <b>Load 5 older sessions</b> goes further back; <b>Refresh</b> picks up new results.'
+      body: 'Reports start with each section\u2019s newest 5 sessions. <b>Load 5 older sessions</b> goes further back; <b>Refresh</b> picks up new results.'
     },
     {
       target: '#page-reports .chart-grid',

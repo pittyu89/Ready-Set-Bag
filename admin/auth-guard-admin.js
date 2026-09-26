@@ -82,6 +82,7 @@ function checkTimeout() {
 /* ---- HANDLE EXPIRY ---- */
 function handleTimeout() {
   clearInterval(_timeoutCheckInterval);
+  if (window.RSBDialog) RSBDialog.beginSignOut();
 
   // Sign out of Firebase Auth if available
   if (typeof firebase !== 'undefined' && firebase.auth) {
