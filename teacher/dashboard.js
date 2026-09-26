@@ -338,7 +338,7 @@ function loadTeacherRecentActivity() {
           const statusLabel = started ? 'Started' : 'Created';
           const meta = teacherSection || 'Unknown section';
           // Sessions from before the bag picker used the standard bag
-          const bagLabel = { small: 'Small Bag', medium: 'Medium Bag' }[session.bagType] || 'Standard Bag';
+          const bagLabel = BAG_LABELS[session.bagType] || BAG_LABELS.standard;
 
           return `<div class="session-card${started ? '' : ' is-created'}">
             <div class="session-card-date">\u25cf ${esc(date)}</div>
