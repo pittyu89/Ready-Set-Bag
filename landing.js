@@ -179,35 +179,35 @@ cycleCharAnimation2();
 const itemCells = document.querySelectorAll('.item-cell');
 const itemDetailCard = document.querySelector('.item-detail-card');
 
-// Revised 20-item database following your project specifications
+// The 20 essentials, in the game's order, with the game's names, weights, importance
+// and descriptions (Assets/Resources/ItemData). Keep in step when the game changes.
 const itemsDatabase = {
-  "water": { name: 'Water Bottle', weight: '1.5 kg', importance: 'Critical', desc: 'Clean drinking water for 72-hour hydration. The average person needs water for survival. PHIVOLCS Priority #1', img: 'images/items/Water Bottle.png' },
-  "canned-food": { name: 'Canned Food', weight: '800g', importance: 'Critical', desc: 'Non-perishable energy source (sardines, corned beef, or canned tuna). 3-day food supply.', img: 'images/items/cannedgood.png' },
-  "ziplock": { name: 'Ziplock Bag', weight: '30g', importance: 'Medium', desc: 'Waterproof storage, waste disposal, and a makeshift raincoat.', img: 'images/items/ziplock.png' },
-  "whistle": { name: 'Whistle', weight: '20g', importance: 'Critical', desc: 'Signal rescuers without exhausting your voice. Sound travels farther than shouting. Essential for trapped victims.', img: 'images/items/whistle.png' },
-  "flashlight": { name: 'Hand-Pressing Flashlight', weight: '200g', importance: 'Critical', desc: 'Provides light during power outages or night.', img: 'images/items/flashlight2.png' },
-  "first-aid-kit": { name: 'First Aid Kit', weight: '500g', importance: 'Critical', desc: 'Basic medical supplies: bandages, gauze, alcohol, betadine, and tape. Treats injuries and prevents infection. Supplies for treating minor injuries and wounds.', img: 'images/items/medkit.png ' },
-  "maintenance-meds": { name: 'Prescription Medication', weight: '100g', importance: 'Low', desc: 'Required medicines for chronic conditions (asthma, diabetes, allergies). Only if the student has medical needs.', img: 'images/items/medication.png' },
-  "Toiletries": { name: 'Toiletries (mini kit)', weight: '150g', importance: 'Medium', desc: 'A small soap, toothbrush, and toothpaste. Maintains hygiene during an extended shelter stay.', img: 'images/items/toiletries.png' },
-  "face-mask": { name: 'Dust Mask (N95)', weight: '20g', importance: 'High', desc: 'Protects the respiratory system from dust and ash.', img: 'images/items/95 mask.png' },
-  "blanket": { name: 'Emergency Thermal Blanket', weight: '200g', importance: 'High', desc: 'Thermal/space blanket. Prevents hypothermia, reflects body heat. Compact and lightweight.', img: 'images/items/blanket.png' },
-  "radio": { name: 'Radio', weight: '220g', importance: 'High', desc: 'Receives emergency broadcasts and government updates. Situational awareness when networks down.', img: 'images/items/radio.png' },
-  "batteries": { name: 'Batteries (4× AA)', weight: '100g', importance: 'High', desc: 'Power backup for radio. Extends usability when original batteries drain. Replacement power for radio and flashlight.', img: 'images/items/aa batteries.png' },
-  "glowsticks": { name: 'Glowsticks', weight: '100g', importance: 'Medium', desc: 'Backup lighting when batteries fail. Store matches in a waterproof container.', img: 'images/items/glowsticks.png' },
-  "pocketknife": { name: 'Pocket Knife', weight: '150g', importance: 'Medium', desc: 'Multi-use tool for cutting, opening cans, and minor repairs.', img: 'images/items/pockeknife.png' },
-  "clothes": { name: 'Spare Clothes (1 set)', weight: '500g', importance: 'High', desc: 'Clean underwear, shirt, and pants. Maintains hygiene and warmth after evacuation.', img: 'images/items/clothes.png' },
-  "id-documents": { name: 'Important Documents', weight: '100g', importance: 'High', desc: 'Photocopies of ID, birth certificate, and insurance. Needed for aid claims and identification.', img: 'images/items/importantdocuments.png' },
-  "cash": { name: 'Emergency Cash', weight: '50g', importance: 'Low', desc: 'Emergency purchases, transportation. Small bills for easier transactions when stores open.', img: 'images/items/money.png' },
-  "emergency-contacts": { name: 'Emergency Contact Card', weight: '10g', importance: 'High', desc: 'Names; phone numbers of family, barangay, hospital, and police. Critical for separated families.', img: 'images/items/contactcard.png' },
-  "Rope": { name: 'Rope', weight: '200g', importance: 'High', desc: 'Rescue operations, securing items, climbing. Multi-purpose emergency tool.', img: 'images/items/rope.png' },
-  "notebook-pen": { name: 'Pen & Paper', weight: '50g', importance: 'Medium', desc: 'Write emergency notes, leave messages for family, and record important information.', img: 'images/items/penpaper.png' }
+  "water": { name: 'Water Bottle', weight: '1.5 kg', importance: 'Critical', desc: 'Clean drinking water for 72-hour hydration.', img: 'images/items/Water Bottle.png' },
+  "first-aid-kit": { name: 'First Aid Kit', weight: '500 g', importance: 'Critical', desc: 'Treats injuries and prevents infection.', img: 'images/items/medkit.png' },
+  "flashlight": { name: 'Flashlight (Small or Big)', weight: '200–400 g', importance: 'Critical', desc: 'Light during power outages. The small one is light and compact, leaving weight for other supplies; the big one is brighter and lasts longer, but is heavier to carry.', img: 'images/items/flashlight2.png' },
+  "whistle": { name: 'Whistle', weight: '20 g', importance: 'Critical', desc: 'Signal rescuers without exhausting your voice. Sound travels farther than shouting.', img: 'images/items/whistle.png' },
+  "canned-food": { name: 'Canned Food (Corned Beef or Fish)', weight: '400 g', importance: 'Critical', desc: 'Non-perishable energy source. 3-day food supply.', img: 'images/items/cannedgood.png' },
+  "face-mask": { name: 'N95 Mask', weight: '20 g', importance: 'Important', desc: 'Filters fine dust, debris and smoke so you can breathe safely.', img: 'images/items/95 mask.png' },
+  "blanket": { name: 'Thermal Blanket', weight: '200 g', importance: 'Important', desc: 'A light foil sheet that wraps around the body to hold in heat.', img: 'images/items/blanket.png' },
+  "maintenance-meds": { name: 'Medication', weight: '100 g', importance: 'Useful', desc: 'Personal and maintenance medicines, since pharmacies may be closed after a disaster.', img: 'images/items/medication.png' },
+  "clothes": { name: 'Spare Clothes', weight: '500 g', importance: 'Important', desc: 'Maintains hygiene and warmth after evacuation.', img: 'images/items/clothes.png' },
+  "rope": { name: 'Rope', weight: '200 g', importance: 'Important', desc: 'At least 7 meters of rope ties down tents and tarps, and secures or carries items.', img: 'images/items/rope.png' },
+  "ziplock": { name: 'Ziplock Bag', weight: '30 g', importance: 'Useful', desc: 'Keeps small items like medicine and papers dry and clean.', img: 'images/items/ziplock.png' },
+  "glowsticks": { name: 'Glow Sticks', weight: '100 g', importance: 'Useful', desc: 'Gives light without batteries or a flame, and doubles as a signal for help.', img: 'images/items/glowsticks.png' },
+  "pocketknife": { name: 'Pocket Knife', weight: '150 g', importance: 'Useful', desc: 'Multi-use tool for cutting rope and cloth, and for minor repairs.', img: 'images/items/pockeknife.png' },
+  "gloves": { name: 'Gloves', weight: '100 g', importance: 'Useful', desc: 'Heavy-duty work gloves that protect your hands while clearing debris and broken glass.', img: 'images/items/gloves.png' },
+  "radio": { name: 'Radio', weight: '220 g', importance: 'Important', desc: 'Picks up news and official announcements when there is no internet or electricity.', img: 'images/items/radio.png' },
+  "batteries": { name: 'Batteries', weight: '100 g', importance: 'Important', desc: 'Powers flashlights, radios and other devices when there is no electricity.', img: 'images/items/aa batteries.png' },
+  "id-documents": { name: 'Important Documents', weight: '100 g', importance: 'Important', desc: 'Copies of your birth certificate, school and medical records, needed to register for relief and aid.', img: 'images/items/importantdocuments.png' },
+  "emergency-contacts": { name: 'Contact Card', weight: '10 g', importance: 'Important', desc: 'Lists your name, address and family phone numbers, so you or anyone helping you can reach them.', img: 'images/items/contactcard.png' },
+  "toiletries": { name: 'Toiletries', weight: '150 g', importance: 'Useful', desc: 'Soap, toothbrush and other hygiene supplies that help prevent illness in crowded shelters.', img: 'images/items/toiletries.png' },
+  "notebook-pen": { name: 'Pen & Paper', weight: '50 g', importance: 'Useful', desc: 'For writing down information, leaving messages and drawing maps.', img: 'images/items/penpaper.png' }
 };
 
 const importanceColors = {
   'Critical': '#FF4444',
-  'High': '#FF9944',
-  'Medium': '#FFDD44',
-  'Low': '#44DD44'
+  'Important': '#FF9944',
+  'Useful': '#FFDD44'
 };
 
 itemCells.forEach((cell) => {

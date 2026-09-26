@@ -221,18 +221,6 @@
     return arr;
   }
 
-  // Friendly display label for the learning stage. Data keeps the Fitts &
-  // Posner names; teachers see the level vocabulary they already use.
-  var STAGE_LABELS = {
-    Cognitive: 'Beginner',
-    Associative: 'Intermediate',
-    Autonomous: 'Advanced'
-  };
-
-  function stageLabel(stage) {
-    return STAGE_LABELS[stage] || '—';
-  }
-
   // How many results carry a difficulty the filters cannot match. Every filter
   // is a specific level now, so these would otherwise disappear from reports
   // with no warning — callers show the count instead.
@@ -467,7 +455,6 @@
     KNOWN_LEVELS: KNOWN_LEVELS,
     esc: esc,
     formatTime: formatTime,
-    stageLabel: stageLabel,
     countUnknownLevel: countUnknownLevel,
     normalizeResult: normalizeResult,
     computeMetrics: computeMetrics,
