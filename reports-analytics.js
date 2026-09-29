@@ -78,8 +78,15 @@
       essentialsMax: essMax,
       errors: num(d.errors),
       difficulty: (d.difficulty || '').toLowerCase(),
-      createdAt: d.createdAt && d.createdAt.toDate ? d.createdAt.toDate() : (d.createdAt || null)
+      // When the drill was played. A result uploaded late (the game closed mid-send and
+      // sent it on its next launch) carries its drill's finish time; date it by that.
+      createdAt: toDate(d.finishedAt) || toDate(d.createdAt)
     };
+  }
+
+  function toDate(v) {
+    if (!v) return null;
+    return v.toDate ? v.toDate() : v;
   }
 
   // Apply {section, difficulty, sessionId} filters. Empty / "all" values mean

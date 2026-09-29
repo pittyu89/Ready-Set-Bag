@@ -166,7 +166,7 @@ async function rekeyTeachersByLoginId() {
       const { password, ...profile } = data;   // never copy a plaintext password forward
       await window.db.collection('teachers').doc(uid).set({ ...profile, uid: uid, updatedAt: new Date() });
 
-      for (const collection of ['students', 'sessions', 'sessionResults']) {
+      for (const collection of ['students', 'sessions', 'sessionResults', 'sessionAttempts']) {
         await repointTeacherId(collection, doc.id, uid);
       }
 

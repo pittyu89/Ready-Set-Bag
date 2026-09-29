@@ -29,6 +29,16 @@ service cloud.firestore {
         || (resource != null && 'password' in resource.data
             && request.resource.data.password == resource.data.password);
     }
+    // A session still taking play: running, or stopped only moments ago (a run that
+    // finished as it ended)
+    function sessionOpen(session) {
+      return session.status == 'active'
+        || (session.status == 'ended' && 'endedAt' in session
+            && request.time < session.endedAt + duration.value(10, 'm'));
+    }
+    function attemptPath(attemptId) {
+      return /databases/$(database)/documents/sessionAttempts/$(attemptId);
+    }
 
     // ---- ADMINS --------------------------------------------------------------
     // A user may check whether they themselves are an admin (the login page does).
@@ -137,7 +147,7 @@ service cloud.firestore {
           && d.keys().hasOnly(['sessionId', 'sessionCode', 'teacherId', 'studentId', 'studentUid',
                                'studentName', 'section', 'score', 'completionTime', 'attempts',
                                'stage', 'essentials', 'essentialsMax', 'errors', 'difficulty',
-                               'createdAt', 'updatedAt', 'timeLeft'])
+                               'createdAt', 'updatedAt', 'timeLeft', 'finishedAt'])
           && resultId == d.sessionId + '_' + d.studentId
           // The caller is the student, writing into their own record
           && d.studentUid == request.auth.uid
@@ -147,10 +157,15 @@ service cloud.firestore {
           && d.teacherId == session.teacherId
           && d.sessionCode == session.sessionCode
           && d.difficulty == session.difficulty
-          // Still running, or stopped only moments ago (a run that finished as it ended)
-          && (session.status == 'active'
-              || (session.status == 'ended' && 'endedAt' in session
-                  && request.time < session.endedAt + duration.value(10, 'm')))
+          // Still running, or stopped only moments ago (a run that finished as it ended) -
+          // or the drill itself finished in time, as its attempt records by the server's
+          // clock, and only the upload came later (the game closed while sending it)
+          && (sessionOpen(session) || finishedInTime(resultId, session))
+          // When the drill ended, if given: the attempt's own server-stamped finish time,
+          // so the dashboards can date a late upload by when the drill was played
+          && (!('finishedAt' in d)
+              || (exists(attemptPath(resultId))
+                  && d.finishedAt == get(attemptPath(resultId)).data.get('finishedAt', null)))
           // Values in range
           && d.studentName is string && d.studentName.size() <= 120
           && d.score is int && d.score >= 0 && d.score <= 100
@@ -164,6 +179,69 @@ service cloud.firestore {
           && d.errors is int && d.errors >= 0 && d.errors <= 200
           && d.createdAt == request.time
           && d.updatedAt == request.time;
+      }
+
+      function finishedInTime(resultId, session) {
+        let attempt = get(attemptPath(resultId)).data;
+        return exists(attemptPath(resultId))
+          && attempt.status == 'finished'
+          && (session.status == 'active'
+              || (session.status == 'ended' && 'endedAt' in session
+                  && attempt.finishedAt < session.endedAt + duration.value(10, 'm')));
+      }
+    }
+
+    // ---- SESSION ATTEMPTS ----------------------------------------------------
+    // A student's drill in progress, saved by the game every few seconds, so a student who
+    // leaves or whose game closes carries on where they were when they rejoin - on any
+    // device. Doc id is "{sessionId}_{studentId}", like the result; one per student per
+    // session. savedAt and finishedAt are always the server's time, so the game measures
+    // time away by the server's clock, never the device's. 'finished' is final: the
+    // student's one drill of the session is over, and the game refuses to rejoin it.
+    match /sessionAttempts/{attemptId} {
+      allow read: if isAdmin()
+        || (signedIn() && resource.data.studentUid == request.auth.uid)
+        || (signedIn() && resource.data.teacherId == request.auth.uid);
+      allow create: if isValidAttemptStart(attemptId);
+      allow update: if isAdmin() || isValidAttemptSave();
+      // Deleted with the session, like its results
+      allow delete: if isAdmin() || (signedIn() && resource.data.teacherId == request.auth.uid);
+
+      function isValidAttemptStart(attemptId) {
+        let d = request.resource.data;
+        let session = get(/databases/$(database)/documents/sessions/$(d.sessionId)).data;
+        let student = get(/databases/$(database)/documents/students/$(d.studentId)).data;
+        return signedIn()
+          && d.keys().hasAll(['sessionId', 'studentId', 'studentUid', 'teacherId', 'status',
+                              'snapshot', 'startedAt', 'savedAt'])
+          && d.keys().hasOnly(['sessionId', 'studentId', 'studentUid', 'teacherId', 'status',
+                               'snapshot', 'startedAt', 'savedAt'])
+          && attemptId == d.sessionId + '_' + d.studentId
+          // The caller is the student, starting their own drill in a running session
+          && d.studentUid == request.auth.uid
+          && student.authUid == request.auth.uid
+          && d.teacherId == session.teacherId
+          && session.status == 'active'
+          && d.status == 'playing'
+          && d.snapshot is string && d.snapshot.size() <= 200000
+          && d.startedAt == request.time
+          && d.savedAt == request.time;
+      }
+
+      // Saving progress, or marking the drill finished. Only the student, only while it is
+      // still being played, and only what changes as it is played.
+      function isValidAttemptSave() {
+        let d = request.resource.data;
+        let session = get(/databases/$(database)/documents/sessions/$(resource.data.sessionId)).data;
+        return signedIn()
+          && resource.data.studentUid == request.auth.uid
+          && resource.data.status == 'playing'
+          && changedKeys().hasOnly(['status', 'snapshot', 'savedAt', 'finishedAt'])
+          && d.savedAt == request.time
+          && d.snapshot is string && d.snapshot.size() <= 200000
+          && sessionOpen(session)
+          && ((d.status == 'playing' && !('finishedAt' in d))
+              || (d.status == 'finished' && d.finishedAt == request.time));
       }
     }
   }

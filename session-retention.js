@@ -4,8 +4,10 @@
    Shared by the admin and teacher dashboards.
 
      deleteSessionCascade() — permanently delete ONE session together with
-     every student result recorded in it. Used by the Delete buttons on both
-     dashboards, and to discard a code that was generated but never launched.
+     every student result recorded in it, and the game's saved attempts (each
+     student's drill in progress, kept so they can rejoin). Used by the Delete
+     buttons on both dashboards, and to discard a code that was generated but
+     never launched.
 
    Sessions are no longer deleted automatically to save database reads. Every
    result is kept; the reports load only the latest few sessions by default
@@ -31,10 +33,15 @@
     if (opts.teacherId) q = q.where('teacherId', '==', opts.teacherId);
     var snap = await q.get();
 
+    // Attempts are constrained the same way; the same rule applies to them
+    var aq = db.collection('sessionAttempts').where('sessionId', '==', sessionId);
+    if (opts.teacherId) aq = aq.where('teacherId', '==', opts.teacherId);
+    var attempts = await aq.get();
+
     // One batch holds 500 writes. A session has at most a class's worth of
-    // results, so this is normally a single atomic batch with the session doc
-    // in it; the loop only matters for an unusually large session.
-    var refs = snap.docs.map(function (d) { return d.ref; });
+    // results and attempts, so this is normally a single atomic batch with the
+    // session doc in it; the loop only matters for an unusually large session.
+    var refs = snap.docs.concat(attempts.docs).map(function (d) { return d.ref; });
     var sessionRef = db.collection('sessions').doc(sessionId);
     var CHUNK = 450;
     for (var i = 0; i < refs.length; i += CHUNK) {
@@ -47,7 +54,7 @@
       await batch.commit();
     }
     if (!refs.length) await sessionRef.delete();
-    return refs.length;
+    return snap.size;
   }
 
   window.RSBSessions = {
