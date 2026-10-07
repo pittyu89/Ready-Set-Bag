@@ -63,8 +63,6 @@ navTabs.forEach(tab => {
     this.classList.add('active');
     const target = document.getElementById('sec-' + this.dataset.section);
     if (target) target.scrollIntoView({ behavior: 'smooth' });
-    // On a phone or tablet the open tabs cover the page, so pack them away
-    if (window.matchMedia('(max-width: 768px)').matches) setNavOpen(false);
   });
 });
 

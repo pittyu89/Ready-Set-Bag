@@ -128,13 +128,8 @@
   .nav-tab[data-section="items"]    { color: #C9A92E; }
   .nav-tab-portal                   { color: #333; }
 
-  /* Phones and tablets: the bag sits bottom-left and the tabs stack above it */
+  /* Phones and tablets: same top-left spot, slightly smaller tabs */
   @media (max-width: 768px) {
-    .nav {
-      top: auto;
-      bottom: 12px;
-      flex-direction: column-reverse;
-    }
     .nav-tab {
       font-size: 22px;
       height: 48px;
@@ -674,9 +669,6 @@
 
   /* Tablet (426px - 768px) */
   @media (min-width: 426px) and (max-width: 768px) {
-    .section-yellow {
-      padding-bottom: 100px;
-    }
     .gameplay-grid {
       grid-template-columns: 0.38fr 0.62fr;
     }
@@ -706,12 +698,5 @@
 
     .item-detail-card {
       grid-template-columns: 1fr 1fr;
-    }
-  }
-
-  /* Phones: room under the last section for the floating nav */
-  @media (max-width: 425px) {
-    .section-yellow {
-      padding-bottom: 96px;
     }
   }
