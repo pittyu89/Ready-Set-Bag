@@ -15,185 +15,139 @@
 
   body { font-family: 'Jersey 25', sans-serif; margin: 0; padding: 0; }
 
-  /* NAV — fixed/floating on both desktop and mobile */
+  /* NAV — the go-bag button floats in a corner; the tabs live "inside" it.
+     Opening pops them out of the bag one by one into a single column, closing
+     tucks them back in. Each tab's --from-x/--from-y (set by landing.js) is the
+     distance from its spot back to the bag, so it can start and end there, and
+     the bag sits above the tabs so they disappear behind it. */
   .nav {
     position: fixed;
-    top: 10px;
-    left: 10px;
+    top: 12px;
+    left: 12px;
     z-index: 999;
     display: flex;
+    flex-direction: column;
     align-items: flex-start;
-    background: transparent;
-    padding: 0;
+    gap: 10px;
+    pointer-events: none;
   }
 
   .nav-bag {
-    background: #E8E8E8;
+    position: relative;
+    z-index: 2;
+    width: 62px;
+    height: 62px;
+    padding: 0;
     border: none;
     border-radius: 0;
-    padding: 0;
-    font-size: 34px;
+    background: #E8E8E8;
     cursor: pointer;
-    line-height: 1;
-    flex-shrink: 0;
-    width: 58px;
-    height: 58px;
     display: flex;
     align-items: center;
     justify-content: center;
+    flex-shrink: 0;
+    pointer-events: auto;
     box-shadow: -2px 2px 0px rgba(0,0,0,0.2), 2px 2px 0px rgba(0,0,0,0.2);
+    -webkit-tap-highlight-color: transparent;
+  }
+  .nav-bag img {
+    width: 70%;
+    height: 70%;
+    object-fit: contain;
+    pointer-events: none;
+  }
+  .nav-bag.bounce img { animation: bag-open 0.45s ease-out; }
+  .nav-bag.gulp img   { animation: bag-gulp 0.35s ease-out; }
+
+  @keyframes bag-open {
+    0%   { transform: scale(1, 1); }
+    25%  { transform: scale(1.18, 0.82); }
+    55%  { transform: scale(0.9, 1.12) translateY(-3px); }
+    80%  { transform: scale(1.04, 0.97); }
+    100% { transform: scale(1, 1); }
+  }
+  @keyframes bag-gulp {
+    0%   { transform: scale(1, 1); }
+    40%  { transform: scale(1.12, 0.88); }
+    100% { transform: scale(1, 1); }
   }
 
-  /* Desktop layout:
-       row 1: bag + download + about
-       row 2: gameplay + items          */
-  .nav {
+  .nav-menu {
+    position: relative;
+    z-index: 1;
+    display: flex;
     flex-direction: column;
-    align-items: flex-start;
-    gap: 12px;
-  }
-  .nav-top-row {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-  }
-  /* Desktop row 2 (gameplay/items): hidden until open */
-  .nav-bottom-row {
-    display: flex;
-    flex-direction: row;
-    gap: 12px;
-  }
-
-  /* nav-links (download/about beside bag): hidden until open */
-  .nav-links {
-    display: flex;
-    flex-direction: row;
-    gap: 12px;
+    align-items: stretch;
+    gap: 8px;
   }
 
   .nav-tab {
     font-family: 'Jersey 25', sans-serif;
-    font-size: 26px;
-    padding: 0 26px;
-    height: 58px;
+    font-size: 24px;
+    height: 50px;
+    padding: 0 22px;
     display: flex;
     align-items: center;
     border: none;
-    cursor: pointer;
+    border-radius: 0;
     background: #E8E8E8;
     color: #333;
-    border-radius: 0;
+    text-decoration: none;
     white-space: nowrap;
+    cursor: pointer;
     box-shadow: -2px 2px 0px rgba(0,0,0,0.2), 2px 2px 0px rgba(0,0,0,0.2);
-  }
+    -webkit-tap-highlight-color: transparent;
 
-  /* Nav tabs always in layout but invisible when closed */
-  .nav-links,
-  .nav-bottom-row {
-    overflow: visible;
-  }
-
-  /* All animatable tabs start hidden */
-  .nav-links .nav-tab,
-  .nav-bottom-row .nav-tab {
+    /* Closed: shrunk into the bag */
     opacity: 0;
-    transform: translateX(-24px);
-    transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94),
-                opacity   0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94),
-                visibility 0s linear 0.4s;
     visibility: hidden;
     pointer-events: none;
+    transform: translate(var(--from-x, 0px), var(--from-y, 0px)) scale(0.2);
+    /* Closing: the furthest tab goes in first */
+    transition: transform 0.24s cubic-bezier(0.55, 0, 0.75, 0.2) calc(var(--back, 0) * 35ms),
+                opacity   0.18s ease-in calc(var(--back, 0) * 35ms + 60ms),
+                visibility 0s linear calc(var(--back, 0) * 35ms + 240ms);
   }
-
-  /* download + about: animate when nav-links gets .open */
-  .nav-links.open .nav-tab {
+  .nav.open .nav-tab {
     opacity: 1;
-    transform: translateX(0);
     visibility: visible;
     pointer-events: auto;
-    transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94),
-                opacity   0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+    transform: none;
+    /* Opening: the nearest tab comes out first, with a little overshoot */
+    transition: transform 0.42s cubic-bezier(0.34, 1.56, 0.64, 1) calc(var(--i, 0) * 55ms + 80ms),
+                opacity   0.15s ease-out calc(var(--i, 0) * 55ms + 80ms),
                 visibility 0s linear 0s;
   }
-  .nav-links.open .nav-tab:nth-child(2) { transition-delay: 0.08s; }
-  .nav-links.open .nav-tab:nth-child(3) { transition-delay: 0.16s; }
+  .nav-tab:hover,
+  .nav-tab:focus-visible { background: #F4F4F4; }
+  .nav-tab.active { box-shadow: inset 6px 0 0 currentColor, -2px 2px 0px rgba(0,0,0,0.2), 2px 2px 0px rgba(0,0,0,0.2); }
 
-  /* gameplay + items: animate when nav-bottom-row gets .open */
-  .nav-bottom-row.open .nav-tab {
-    opacity: 1;
-    transform: translateX(0);
-    visibility: visible;
-    pointer-events: auto;
-    transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94),
-                opacity   0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94),
-                visibility 0s linear 0s;
-  }
-  .nav-bottom-row.open .nav-tab:nth-child(2) { transition-delay: 0.08s; }
   .nav-tab[data-section="download"] { color: #6879E5; }
   .nav-tab[data-section="about"]    { color: #59AB3C; }
   .nav-tab[data-section="gameplay"] { color: #CB4848; }
-  .nav-tab[data-section="items"]    { color: #E6C84D; }
+  .nav-tab[data-section="items"]    { color: #C9A92E; }
+  .nav-tab-portal                   { color: #333; }
 
-  /* Four tabs now share the top row, so let it wrap instead of running off
-     the side of a narrow screen. */
-  .nav { max-width: calc(100vw - 24px); }
-  .nav-top-row,
-  .nav-links,
-  .nav-bottom-row { flex-wrap: wrap; }
-
-  /* "portal login" is an anchor, not a button: strip link styling so it reads
-     exactly like the other tabs. */
-  .nav-tab-portal {
-    color: #CB4848;
-    text-decoration: none;
-  }
-
-  /* MOBILE: nav anchored bottom-left (320px - 425px)
-     Visual layout (open):
-       [ download ] [ items    ]   ← nav-bottom-row (gameplay/items) shown above
-       [ 🎒 bag  ] [ gameplay ] [ about ]   ← nav-top-row (bag row) at bottom
-  */
-  @media (max-width: 425px) {
+  /* Phones and tablets: the bag sits bottom-left and the tabs stack above it */
+  @media (max-width: 768px) {
     .nav {
       top: auto;
       bottom: 12px;
-      left: 12px;
-      flex-direction: column-reverse; /* flip: top-row at bottom, bottom-row above */
-      align-items: flex-start;
-      gap: 12px;
-    }
-    /* On mobile, nav-top-row (bag+download+about) is always visible */
-    .nav-top-row {
-      display: flex;
-      flex-direction: row;
-      align-items: center;
-      gap: 12px;
-    }
-    /* On mobile, nav-bottom-row (gameplay+items) sits above when open */
-    .nav-bottom-row {
-      display: flex;
-      flex-direction: row;
-      gap: 12px;
-    }
-    .nav-links {
-      display: flex;
-      flex-direction: row;
-      gap: 12px;
-    }
-    .nav-bag {
-      font-size: 36px;
-      padding: 0;
-      width: 62px;
-      height: 62px;
-      box-shadow: -2px 2px 0px rgba(0,0,0,0.2), 2px 2px 0px rgba(0,0,0,0.2);
+      flex-direction: column-reverse;
     }
     .nav-tab {
-      border-radius: 0;
-      box-shadow: -2px 2px 0px rgba(0,0,0,0.2), 2px 2px 0px rgba(0,0,0,0.2);
       font-size: 22px;
+      height: 48px;
       padding: 0 20px;
-      height: 62px;
     }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .nav-tab,
+    .nav.open .nav-tab { transform: none; transition: opacity 0.15s, visibility 0s linear 0.15s; }
+    .nav.open .nav-tab { transition: opacity 0.15s; }
+    .nav-bag.bounce img,
+    .nav-bag.gulp img { animation: none; }
   }
 
   /* HERO: the game's logo, centred on a full screen */
@@ -720,34 +674,6 @@
 
   /* Tablet (426px - 768px) */
   @media (min-width: 426px) and (max-width: 768px) {
-    .nav {
-      top: auto;
-      bottom: 12px;
-      left: 12px;
-      flex-direction: column-reverse;
-      align-items: flex-start;
-      gap: 10px;
-    }
-
-    .nav-top-row,
-    .nav-bottom-row,
-    .nav-links {
-      display: flex;
-      flex-direction: row;
-      gap: 10px;
-    }
-
-    .nav-bag {
-      width: 60px;
-      height: 60px;
-    }
-
-    .nav-tab {
-      font-size: 20px;
-      height: 58px;
-      padding: 0 18px;
-    }
-
     .section-yellow {
       padding-bottom: 100px;
     }

@@ -1,23 +1,72 @@
+const nav = document.getElementById('main-nav');
 const navToggle = document.getElementById('nav-toggle');
-  const navLinks = document.getElementById('nav-links');
-  const navBottomRow = document.getElementById('nav-bottom-row');
+const navMenu = document.getElementById('nav-menu');
+const navTabs = Array.from(navMenu.querySelectorAll('.nav-tab'));
 
-  navToggle.addEventListener('click', function() {
-    navLinks.classList.toggle('open');
-    navBottomRow.classList.toggle('open');
+// Each tab starts and ends at the bag: give it the distance back to the bag's
+// centre, and its place in the queue counted from the bag (nearest comes out
+// first, furthest goes back in first). offsetLeft/Top ignore transforms, so
+// this reads the tabs' open positions even while they are tucked away.
+function measureNavTabs() {
+  const bagX = navToggle.offsetLeft + navToggle.offsetWidth / 2;
+  const bagY = navToggle.offsetTop + navToggle.offsetHeight / 2;
+  const byDistance = navTabs
+    .map(tab => {
+      // Tabs are measured inside the menu, the bag inside the nav
+      const dx = bagX - (navMenu.offsetLeft + tab.offsetLeft + tab.offsetWidth / 2);
+      const dy = bagY - (navMenu.offsetTop + tab.offsetTop + tab.offsetHeight / 2);
+      tab.style.setProperty('--from-x', dx + 'px');
+      tab.style.setProperty('--from-y', dy + 'px');
+      return { tab, distance: Math.hypot(dx, dy) };
+    })
+    .sort((a, b) => a.distance - b.distance);
+  byDistance.forEach(({ tab }, i) => {
+    tab.style.setProperty('--i', i);
+    tab.style.setProperty('--back', byDistance.length - 1 - i);
   });
+}
 
-  document.querySelectorAll('.nav-tab').forEach(tab => {
-    tab.addEventListener('click', function() {
-      // Tabs without a data-section (e.g. "portal login") are real links —
-      // let the browser navigate instead of hijacking the click.
-      if (!this.dataset.section) return;
-      document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
-      this.classList.add('active');
-      const target = document.getElementById('sec-' + this.dataset.section);
-      if (target) target.scrollIntoView({ behavior: 'smooth' });
-    });
+function playBag(name) {
+  navToggle.classList.remove('bounce', 'gulp');
+  void navToggle.offsetWidth; // restart the animation
+  navToggle.classList.add(name);
+}
+
+function setNavOpen(open) {
+  if (nav.classList.contains('open') === open) return;
+  if (open) measureNavTabs();
+  nav.classList.toggle('open', open);
+  navToggle.setAttribute('aria-expanded', open);
+  navToggle.setAttribute('aria-label', open ? 'Close navigation' : 'Open navigation');
+  playBag(open ? 'bounce' : 'gulp');
+}
+
+navToggle.addEventListener('click', () => setNavOpen(!nav.classList.contains('open')));
+navToggle.addEventListener('animationend', () => navToggle.classList.remove('bounce', 'gulp'));
+window.addEventListener('resize', measureNavTabs);
+measureNavTabs();
+
+// Tapping anywhere else, or Escape, puts the tabs away
+document.addEventListener('click', e => {
+  if (!nav.contains(e.target)) setNavOpen(false);
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') setNavOpen(false);
+});
+
+navTabs.forEach(tab => {
+  tab.addEventListener('click', function() {
+    // Tabs without a data-section (e.g. "portal login") are real links —
+    // let the browser navigate instead of hijacking the click.
+    if (!this.dataset.section) return;
+    navTabs.forEach(t => t.classList.remove('active'));
+    this.classList.add('active');
+    const target = document.getElementById('sec-' + this.dataset.section);
+    if (target) target.scrollIntoView({ behavior: 'smooth' });
+    // On a phone or tablet the open tabs cover the page, so pack them away
+    if (window.matchMedia('(max-width: 768px)').matches) setNavOpen(false);
   });
+});
 
 // ====== CHARACTER ANIMATION 1 ======
 const charAnimationStates = [

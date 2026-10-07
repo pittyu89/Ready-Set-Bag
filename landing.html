@@ -10,20 +10,15 @@
 <body>
 
   <nav class="nav" id="main-nav">
-    <!-- Desktop row 1 / Mobile row 2: bag + download + about -->
-    <div class="nav-top-row" id="nav-top-row">
-      <button class="nav-bag" id="nav-toggle" aria-label="Toggle navigation"><img src="images/GoBagIcon.png" alt="Bag" style="width: 70%; height: 70%; object-fit: contain;"></button>
-      <div class="nav-links" id="nav-links">
-        <button class="nav-tab active" data-section="download">download</button>
-        <button class="nav-tab" data-section="about">about</button>
-        <!-- Not a section: jumps back to the teacher/admin login portal -->
-        <a class="nav-tab nav-tab-portal" href="index.html">portal login</a>
-      </div>
-    </div>
-    <!-- Desktop row 2 / Mobile row 1: gameplay + items -->
-    <div class="nav-bottom-row" id="nav-bottom-row">
+    <button class="nav-bag" id="nav-toggle" aria-label="Open navigation" aria-expanded="false" aria-controls="nav-menu"><img src="images/GoBagIcon.png" alt=""></button>
+    <!-- Tucked inside the bag until it is opened -->
+    <div class="nav-menu" id="nav-menu">
+      <button class="nav-tab active" data-section="download">download</button>
+      <button class="nav-tab" data-section="about">about</button>
       <button class="nav-tab" data-section="gameplay">gameplay</button>
       <button class="nav-tab" data-section="items">items</button>
+      <!-- Not a section: jumps back to the teacher/admin login portal -->
+      <a class="nav-tab nav-tab-portal" href="index.html">portal login</a>
     </div>
   </nav>
 
