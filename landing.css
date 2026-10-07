@@ -196,149 +196,90 @@
     }
   }
 
-  /* EQUAL HEIGHT SECTIONS (desktop). On small screens these should be auto-sized */
-  .hero,
+  /* HERO: the game's logo, centred on a full screen */
+  .hero {
+    background: #E8E8E8;
+    min-height: 100vh;
+    min-height: 100svh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 96px 24px;
+  }
+  .hero-logo {
+    display: block;
+    /* 116 x 85 pixel art: scaled up, kept sharp */
+    width: min(78vw, 640px, 95vh);
+    height: auto;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+    user-select: none;
+  }
+
+  /* SECTIONS: sized by their content, which is centred and capped on wide screens */
   .section-blue,
   .section-green,
   .section-red,
   .section-yellow {
-    min-height: 100vh;
-    box-sizing: border-box;
+    padding: clamp(24px, 4vw, 72px) clamp(16px, 4vw, 72px);
   }
-
-  /* HERO */
-  .hero {
-    background: #E8E8E8;
-    padding: 4vw 5vw;
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 1vw;
-    position: relative;
-    overflow: hidden;
-  }
-
-  /* On tablets/phones do not force full viewport height — allow stacking and remove gaps (mobile to tablet: 320-768px) */
-  @media (max-width: 768px) {
-    .hero,
-    .section-blue,
-    .section-green,
-    .section-red,
-    .section-yellow {
-      min-height: auto;
-      height: auto;
-      padding-top: 28px;
-      padding-bottom: 28px;
-    }
-    .hero { flex-direction: column; align-items: flex-start; justify-content: flex-start; gap: 18px; }
-    .hero-left { width: 100%; }
-    .bag-scene { width: 100%; }
-    .bag-container { width: min(100%, 680px); }
-    .hero-tagline { margin-left: 0; text-align: left; white-space: normal; }
-  }
-  .hero-left {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    justify-content: center;
-    width: min(68vw, 980px);
-    min-width: 0;
-  }
-  .bag-scene {
+  .card,
+  .about-card,
+  .gameplay-grid,
+  .items-grid-layout {
     width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  /* BLUE: download */
+  .section-blue { background: var(--blue); }
+  .card {
+    background: #E8E8E8;
+    border-radius: 16px;
+    padding: clamp(16px, 2.5vw, 40px);
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: clamp(4px, 0.6vw, 8px);
+    gap: clamp(14px, 2vw, 28px);
   }
-  .bag-container {
-    position: relative;
-    width: min(100%, 48vw);
-    aspect-ratio: 1 / 1;
+  .trailer-box {
+    width: 100%;
+    max-width: 880px;
+    aspect-ratio: 16 / 9;
+    background: #D0D0D0;
+    border-radius: 12px;
     display: flex;
     align-items: center;
     justify-content: center;
-  }
-  #display-bag {
-    display: block;
-    width: 100;
-    height: 100%;
-    object-fit: contain;
-    user-select: none;
-    pointer-events: none;
-  }
-  .pouch-zone {
-    position: absolute;
-    border: 0;
-    background: transparent;
-    cursor: pointer;
-    padding: 0;
-    transition: background 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
-  }
-  .pouch-zone:hover,
-  .pouch-zone:focus-visible,
-  .pouch-zone.active {
-    background: rgba(255, 255, 255, 0.14);
-    box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.35);
-    outline: none;
-  }
-  #top-zone    { top: 12%; left: 26%; width: 48%; height: 20%; }
-  #middle-zone { top: 50%; left: 29%; width: 42%; height: 26%; }
-  #bottom-zone { top: 80%; left: 35%; width: 30%; height: 14%; }
-  #side-zone   { top: 43%; right: 5%; width: 18%; height: 28%; }
-  #side-2-zone { top: 43%; left: 5%; width: 18%; height: 28%; }
-  .bag-caption {
-    font-family: 'Jersey 25', sans-serif;
-    font-size: clamp(12px, 1.3vw, 18px);
-    color: #555;
-    text-align: center;
-    max-width: 100%;
-  }
-  .hero-tagline {
     font-family: var(--pixel);
-    font-size: clamp(14px, 2vw, 30px);
-    color: #FFFFFF;
-    text-align: right;
-    line-height: 2;
-    white-space: nowrap;
-    text-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
-    margin-left: auto;
-    flex: 0 0 15vw;
-    width: min(15vw, 230px);
-  }
-
-  /* BLUE */
-  .section-blue { background: var(--blue); padding: clamp(16px, 2.5vw, 40px); display: flex; flex-direction: column; }
-  .card { background: #E8E8E8; border-radius: 16px; padding: clamp(16px, 2vw, 32px); flex: 1; display: flex; flex-direction: column; }
-  .trailer-box {
-    background: transparent;
-    border-radius: 12px;
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: clamp(12px, 1.5vw, 24px);
-    font-family: var(--pixel);
-    font-size: clamp(14px, 1.5vw, 24px);
-    color: #666;
-    gap: clamp(12px, 1.5vw, 24px);
+    font-size: clamp(18px, 2vw, 28px);
+    color: #777;
   }
   .btn-download {
-    display: block;
-    margin: 0 auto;
+    display: inline-block;
     background: #5B8DD9;
     color: #fff;
-    border: none;
-    padding: clamp(14px, 1.6vw, 24px) clamp(40px, 4vw, 70px);
+    text-decoration: none;
+    text-align: center;
+    padding: clamp(12px, 1.4vw, 20px) clamp(32px, 4vw, 64px);
     font-family: 'Jersey 25', sans-serif;
-    font-size: clamp(18px, 2vw, 32px);
+    font-size: clamp(22px, 2.2vw, 34px);
     border-radius: 10px;
-    cursor: pointer;
+    box-shadow: 0 4px 0 rgba(0, 0, 0, 0.2);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+  .btn-download:hover { transform: translateY(-2px); box-shadow: 0 6px 0 rgba(0, 0, 0, 0.2); }
+  .btn-download:active { transform: translateY(2px); box-shadow: 0 2px 0 rgba(0, 0, 0, 0.2); }
+  .download-note {
+    font-family: 'Jersey 25', sans-serif;
+    font-size: clamp(14px, 1.3vw, 20px);
+    color: #666;
+    text-align: center;
   }
 
   /* GREEN */
-  .section-green { background: var(--green); padding: clamp(16px, 2.5vw, 40px); display: flex; flex-direction: column; }
+  .section-green { background: var(--green); }
   .about-card { background: #E8E8E8; border-radius: 16px; padding: clamp(20px, 2.5vw, 48px); flex: 1; display: flex; flex-direction: column; overflow: hidden; }
   .about-card h2 {
     font-family: 'Jersey 25', sans-serif;
@@ -350,7 +291,7 @@
   .about-card p { font-family: 'Jersey 25', sans-serif; font-size: clamp(14px, 1.4vw, 22px); color: #333; line-height: 1.7; overflow-y: auto; flex: 1; }
 
   /* RED */
-  .section-red { background: var(--red); padding: clamp(16px, 2.5vw, 40px); display: flex; flex-direction: column; }
+  .section-red { background: var(--red); }
   .gameplay-grid {
     display: grid;
     grid-template-columns: 0.25fr 0.5fr 0.25fr;
@@ -573,12 +514,7 @@
 }
 
  /* YELLOW */
-.section-yellow { 
-  background: var(--yellow); 
-  padding: clamp(16px, 2.5vw, 40px); 
-  display: flex; 
-  flex-direction: column; 
-}
+.section-yellow { background: var(--yellow); }
 .items-grid-layout { 
   display: grid; 
   grid-template-columns: 1fr 1fr; 
@@ -693,17 +629,6 @@
 }
   /* Mobile Small to Mobile Large (320px - 425px) */
   @media (max-width: 425px) {
-    .hero { flex-direction: column; align-items: flex-start; height: auto; min-height: 100vh; }
-    .hero-left { width: 100%; }
-    .hero-tagline { 
-      position: relative;
-      top: auto;
-      right: auto;
-      text-align: left;
-      white-space: normal;
-    }
-    .bag-scene { width: 100%; align-items: center; }
-    .bag-container { width: min(100%, 520px); }
     .gameplay-grid {
       display: grid;
       grid-template-columns: 0.4fr 0.6fr;
@@ -763,110 +688,14 @@
     }
   }
 
-  /* Laptop Large+ (1025px - 1439px) */
-  @media (min-width: 1025px) and (max-width: 1439px) {
-    .hero {
-      padding: 2.5vw 4vw;
-      gap: 1vw;
-      flex-direction: row;
-      align-items: center;
-      justify-content: space-between;
-      max-width: 100vw;
-      margin: 0 auto;
-    }
-
-    .hero-left {
-      width: 100%;
-      flex-basis: auto;
-      align-items: center;
-    }
-
-    .bag-scene {
-      width: min(100%, 50vw);
-    }
-
-    .bag-container {
-      width: min(100%, 44vw);
-    }
-
-    .hero-tagline {
-      font-size: clamp(18px, 1.5vw, 34px);
-      flex-basis: auto;
-      width: auto;
-      margin-left: 0;
-      position: absolute;
-      top: 28px;
-      right: 4vw;
-      text-align: right;
-      order: 0;
-      max-width: 30vw;
-    }
-
-    .section-blue,
-    .section-green,
-    .section-red,
-    .section-yellow {
-      padding: 48px;
-    }
-  }
-
   /* Desktop Large (1440px+) - Fixed responsiveness for ultra-wide screens */
   @media (min-width: 1440px) {
-    .hero {
-      padding: 3vw 5vw;
-      gap: 2vw;
-      flex-direction: row;
-      align-items: center;
-      justify-content: space-between;
-      max-width: 1400px;
-      margin: 0 auto;
-    }
-
-    .hero-left {
-      width: 45%;
-      flex-basis: auto;
-      align-items: flex-start;
-    }
-
-    .bag-scene {
-      width: 50%;
-      max-width: 600px;
-    }
-
-    .bag-container {
-      width: 100%;
-      max-width: 550px;
-    }
-
-    .hero-tagline {
-      font-size: 32px;
-      flex-basis: auto;
-      width: auto;
-      margin-left: 0;
-      position: relative;
-      top: auto;
-      right: auto;
-      text-align: right;
-      order: 0;
-      max-width: 100%;
-      white-space: nowrap;
-    }
-
-    .section-blue,
-    .section-green,
-    .section-red,
-    .section-yellow {
-      padding: 60px 80px;
-    }
-
     .gameplay-grid {
       grid-template-columns: 0.2fr 0.6fr 0.2fr;
-      max-width: 1200px;
     }
 
     .items-grid {
-      grid-template-columns: repeat(8, 1fr);
-      max-width: 1200px;
+      grid-template-columns: repeat(6, 1fr);
     }
 
     .card {
@@ -880,42 +709,6 @@
 
   /* Laptop (769px - 1024px) */
   @media (min-width: 769px) and (max-width: 1024px) {
-    .hero {
-      padding: 3vw 3.5vw;
-      gap: 1vw;
-      flex-direction: column;
-      align-items: flex-start;
-      justify-content: flex-start;
-    }
-
-    .hero-left {
-      width: 100%;
-      flex-basis: auto;
-      align-items: center;
-    }
-
-    .bag-scene {
-      width: min(100%, 56vw);
-    }
-
-    .bag-container {
-      width: min(100%, 42vw);
-    }
-
-    .hero-tagline {
-      font-size: clamp(16px, 1.8vw, 26px);
-      flex-basis: auto;
-      width: auto;
-      margin-left: 0;
-      /* pin to top-right in this range */
-      position: absolute;
-      top: 22px;
-      right: 3.5vw;
-      text-align: right;
-      max-width: 34vw;
-      order: 0;
-    }
-
     .gameplay-grid {
       grid-template-columns: 0.3fr 0.45fr 0.25fr;
     }
@@ -949,46 +742,12 @@
       height: 60px;
     }
 
-    .bag-scene {
-      width: 100%;
-    }
-
-    .bag-container {
-      width: min(100%, 640px);
-    }
     .nav-tab {
       font-size: 20px;
       height: 58px;
       padding: 0 18px;
     }
 
-    .hero {
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 28px 20px;
-      gap: 18px;
-      min-height: 100vh;
-    }
-    .bag-scene { width: min(100%, 560px); }
-    .bag-container { width: min(100%, 520px); }
-
-    .hero-tagline {
-      position: absolute;
-      top: 20px;
-      right: 20px;
-      white-space: normal;
-      text-align: right;
-      font-size: clamp(16px, 3vw, 22px);
-      max-width: 34vw;
-    }
-
-    .section-blue,
-    .section-green,
-    .section-red,
-    .section-yellow {
-      padding: 24px;
-    }
     .section-yellow {
       padding-bottom: 100px;
     }
@@ -1022,57 +781,11 @@
     .item-detail-card {
       grid-template-columns: 1fr 1fr;
     }
-    #top-zone    { top: 12%; left: 26%; width: 48%; height: 20%; }
-    #middle-zone { top: 50%; left: 29%; width: 42%; height: 26%; }
-    #bottom-zone { top: 80%; left: 35%; width: 30%; height: 14%; }
-    #side-zone   { top: 43%; right: 5%; width: 18%; height: 28%; }
-    #side-2-zone { top: 43%; left: 5%; width: 18%; height: 28%; }
   }
 
-  /* Mobile S to Mobile L extra refinements (320px - 425px) */
+  /* Phones: room under the last section for the floating nav */
   @media (max-width: 425px) {
-    .hero {
-      flex-direction: column;
-      align-items: center;
-      height: auto;
-      min-height: 100vh;
-      padding: 24px 16px 20px;
-    }
-    .bag-scene {
-      width: min(100%, 520px);
-    }
-    .bag-container {
-      width: min(96vw, 500px);
-    }
-    .bag-caption {
-      font-size: 12px;
-      max-width: 92vw;
-      margin-top: 8px;
-    }
-    .hero-tagline {
-      position: relative;
-      top: auto;
-      right: auto;
-      text-align: center;
-      white-space: normal;
-      max-width: 34vw;
-      line-height: 1.4;
-      font-size: clamp(12px, 2.8vw, 18px);
-      margin: 0 0 12px 0;
-      order: -1;
-    }
-    #top-zone    { top: 12%; left: 26%; width: 48%; height: 20%; }
-    #middle-zone { top: 50%; left: 29%; width: 42%; height: 26%; }
-    #bottom-zone { top: 80%; left: 35%; width: 30%; height: 14%; }
-    #side-zone   { top: 43%; right: 5%; width: 18%; height: 28%; }
-    #side-2-zone { top: 43%; left: 5%; width: 18%; height: 28%; }
     .section-yellow {
-      padding-bottom: 80px;
+      padding-bottom: 96px;
     }
-  }
-
-  /* ensure caption sits under the bag and stays visible */
-  .bag-caption {
-    margin-top: clamp(6px, 0.8vw, 12px);
-    z-index: 2;
   }
