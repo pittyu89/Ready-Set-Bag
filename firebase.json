@@ -13,7 +13,9 @@
       "**/.*",
       "**/node_modules/**",
       "functions/**",
-      "scripts/**"
+      "scripts/**",
+      "**/*.apk",
+      "downloads/**"
     ]
   },
   "emulators": {

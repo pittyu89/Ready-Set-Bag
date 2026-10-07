@@ -36,3 +36,7 @@ Thumbs.db
 
 # Firebase files you might not want in repo
 .firebase
+
+# Android builds: published as GitHub releases, not committed
+*.apk
+downloads/
