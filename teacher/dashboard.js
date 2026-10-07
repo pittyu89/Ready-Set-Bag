@@ -369,14 +369,22 @@ function jsArg(value) {
 }
 
 
+// The level picked before a session was opened, put back when it is closed
+let teacherLevelBeforeScope = null;
+
 function viewTeacherSessionReport(sessionId, code, difficulty, meta) {
-  teacherSessionScope = { sessionId: sessionId, code: code || '', meta: meta || '' };
   const level = document.getElementById('tr-level-filter');
-  // A session runs at one difficulty; matching the filter to it avoids an
-  // empty report when the session isn't the level currently selected.
-  if (level && difficulty && window.RSBAnalytics &&
-      window.RSBAnalytics.KNOWN_LEVELS.indexOf(String(difficulty).toLowerCase()) !== -1) {
-    level.value = String(difficulty).toLowerCase();
+  if (level && !teacherSessionScope) teacherLevelBeforeScope = level.value;
+  teacherSessionScope = { sessionId: sessionId, code: code || '', meta: meta || '' };
+  // A session runs at one difficulty, so there is nothing to choose: the filter is set to
+  // the session's level (or to every level, when the session doesn't say) and its bar,
+  // which holds nothing else, is hidden.
+  if (level) {
+    const known = difficulty && window.RSBAnalytics &&
+      window.RSBAnalytics.KNOWN_LEVELS.indexOf(String(difficulty).toLowerCase()) !== -1;
+    level.value = known ? String(difficulty).toLowerCase() : '';
+    const bar = level.closest('.filter-bar');
+    (bar || level).style.display = 'none';
   }
   syncTeacherSessionScopeBanner();
   renderTeacherReports();
@@ -387,6 +395,13 @@ function viewTeacherSessionReport(sessionId, code, difficulty, meta) {
 
 function clearTeacherSessionScope() {
   teacherSessionScope = null;
+  const level = document.getElementById('tr-level-filter');
+  if (level) {
+    if (teacherLevelBeforeScope) level.value = teacherLevelBeforeScope;
+    const bar = level.closest('.filter-bar');
+    (bar || level).style.display = '';
+  }
+  teacherLevelBeforeScope = null;
   syncTeacherSessionScopeBanner();
   rebuildTeacherResults();
 }
@@ -530,7 +545,8 @@ let levelFilterChosen = false;
 
 function applyDefaultLevelFilter(launchedSessions) {
   const select = document.getElementById('tr-level-filter');
-  if (!select || levelFilterChosen || !launchedSessions.length || !window.RSBAnalytics) return;
+  // Inside a session the level is the session's own
+  if (!select || levelFilterChosen || teacherSessionScope || !launchedSessions.length || !window.RSBAnalytics) return;
 
   const millis = (s) => {
     const v = s.startedAt || s.createdAt;

@@ -452,29 +452,6 @@ function logout() {
   }, 500);
 }
 
-// ---- ADMIN NAME ----
-// Shown in the sidebar and avatar: the `name` field on the admin's own /admins/{uid}
-// document (set in the Firebase console), or the account email when there is none.
-function renderAdminName(name) {
-  const display = (name || '').trim();
-  setText('admin-name', display.toUpperCase());
-  const words = display.split(/\s+/).filter(Boolean);
-  const initials = display.includes('@') || words.length < 2
-    ? display.slice(0, 1)
-    : words[0][0] + words[words.length - 1][0];
-  setText('admin-avatar', initials.toUpperCase());
-}
-
-async function loadAdminName(user) {
-  if (!user || !window.db) return;
-  try {
-    const doc = await window.db.collection('admins').doc(user.uid).get();
-    renderAdminName((doc.exists && doc.data().name) || user.email || 'Admin');
-  } catch (e) {
-    renderAdminName(user.email || 'Admin');
-  }
-}
-
 // ---- CHANGE OWN PASSWORD ----
 function openPasswordModal() {
   document.getElementById('avatar-menu').classList.remove('show');
@@ -1059,8 +1036,6 @@ window.addEventListener('load', () => {
       window.location.href = '../index.html';
       return;
     }
-
-    loadAdminName(user);
 
     if (window.db) {
       // The re-key reads passwords from the vault, so it runs after they've been moved there
@@ -2106,15 +2081,20 @@ function getAdminReportFilters() {
    to that one drill run. The scope lives here rather than in the dropdowns so
    the section/level filters still work inside it. */
 let adminSessionScope = null;
+// The level picked before a session was opened, put back when it is closed
+let adminLevelBeforeScope = null;
 
 function viewAdminSessionReport(sessionId, code, difficulty, meta) {
-  adminSessionScope = { sessionId: sessionId, code: code || '', meta: meta || '' };
   const level = document.getElementById('reports-level-filter');
-  // A session runs at one difficulty; matching the filter to it avoids an
-  // empty report when the session isn't the level currently selected.
-  if (level && difficulty && window.RSBAnalytics &&
-      window.RSBAnalytics.KNOWN_LEVELS.indexOf(String(difficulty).toLowerCase()) !== -1) {
-    level.value = String(difficulty).toLowerCase();
+  if (level && !adminSessionScope) adminLevelBeforeScope = level.value;
+  adminSessionScope = { sessionId: sessionId, code: code || '', meta: meta || '' };
+  // A session runs at one difficulty, so there is nothing to choose: the filter is set to
+  // the session's level (or to every level, when the session doesn't say) and hidden.
+  if (level) {
+    const known = difficulty && window.RSBAnalytics &&
+      window.RSBAnalytics.KNOWN_LEVELS.indexOf(String(difficulty).toLowerCase()) !== -1;
+    level.value = known ? String(difficulty).toLowerCase() : '';
+    level.style.display = 'none';
   }
   const reportsNav = document.querySelectorAll('.nav-item')[3];
   navigate('reports', reportsNav);
@@ -2127,6 +2107,12 @@ function viewAdminSessionReport(sessionId, code, difficulty, meta) {
 
 function clearAdminSessionScope() {
   adminSessionScope = null;
+  const level = document.getElementById('reports-level-filter');
+  if (level) {
+    if (adminLevelBeforeScope) level.value = adminLevelBeforeScope;
+    level.style.display = '';
+  }
+  adminLevelBeforeScope = null;
   syncAdminSessionScopeBanner();
   rebuildAdminResults();
 }
